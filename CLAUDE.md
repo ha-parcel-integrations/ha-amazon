@@ -85,7 +85,9 @@ precedent for any other carrier). Prefer embedded JSON state over visible text.
   and the unseen English wording): resolving through a plausible entry logs a
   one-shot confirmation request, and an entry moves to confirmed only once a real
   line shows it. Only the `DELIVERED` milestone has been observed: do not add
-  milestone names no capture has shown.
+  milestone names no capture has shown. An unmapped milestone warns once even
+  when the timeline resolves the status (maintainer decision): that warning is
+  how the milestone map grows, so don't silence it.
 - **`None` on purpose:** `sender`, `receiver`, `weight`, `dimensions`,
   `pickup_point`. `delivery_window` is in `PENDING_CAPABILITIES` until a real
   in-flight parcel shows a parseable date.
