@@ -1,0 +1,30 @@
+Amazon (ha-amazon)
+
+The Amazon sign-in module, custom_components/amazon_orders/account/auth.py,
+contains code adapted from alexapy:
+
+    alexapy
+    Copyright Keaton Taylor and Alan Tse
+    Licensed under the Apache License, Version 2.0
+    https://gitlab.com/keatontaylor/alexapy
+
+alexapy is the library behind Alexa Media Player
+(https://github.com/alandtse/alexa_media_player). The adapted parts are the
+sign-in URL, the device registration, the access-token refresh and the
+token-to-cookie exchange from alexapy/alexalogin.py. They have been rewritten
+to run on aiohttp alone and to fit this integration; alexapy itself is not a
+dependency.
+
+A copy of the Apache License, Version 2.0 is included as
+LICENSE-Apache-2.0 and is available at
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+
+alexapy ships no NOTICE file of its own; this file is the attribution record
+for the adapted code. The rest of this repository is licensed under the MIT
+License (see LICENSE).

@@ -1,0 +1,109 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Amazon",
+        "description": "Choose the Amazon country you shop on. Parcels are read from your signed-in account for that country. To follow another country, add the integration again.",
+        "data": {
+          "country": "Amazon country"
+        }
+      },
+      "sign_in": {
+        "title": "Sign in to Amazon",
+        "description": "1. Open [the Amazon sign-in page for {country}]({sign_in_url}) in your own browser and sign in, completing any verification Amazon asks for.\n2. Afterwards Amazon shows a page that may look blank or like an error. That is expected. Copy the full address from your browser's address bar.\n3. Paste that address below.\n\nYour password is never entered in Home Assistant.",
+        "data": {
+          "landing_url": "Address of the final page"
+        },
+        "data_description": {
+          "landing_url": "The full web address you ended up on after signing in."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "That address does not contain a sign-in code. Copy the full address of the page you ended up on after signing in.",
+      "sign_in_failed": "Amazon did not accept that sign-in. Open a fresh sign-in link and complete the sign-in in one go.",
+      "cannot_connect": "Could not reach Amazon. Please try again."
+    },
+    "abort": {
+      "already_configured": "That Amazon country is already set up.",
+      "reauth_successful": "Amazon was reauthenticated successfully."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Amazon options",
+        "sections": {
+          "delivered": {
+            "name": "Delivered parcels",
+            "data": {
+              "delivered_filter_type": "Filter by",
+              "delivered_filter_amount": "Amount"
+            },
+            "data_description": {
+              "delivered_filter_type": "Show delivered parcels from the last X days, or limit to the X most recent.",
+              "delivered_filter_amount": "Number of days or parcels to show."
+            }
+          },
+          "history": {
+            "name": "Parcel history",
+            "data": {
+              "include_history": "Include status history"
+            },
+            "data_description": {
+              "include_history": "Add a per-parcel history attribute listing each status update (timestamp, status, original text). Off by default."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Days",
+        "parcels": "Number of parcels"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "A parcel was registered",
+      "parcel_status_changed": "A parcel's status changed",
+      "parcel_delivered": "A parcel was delivered",
+      "parcel_delivery_time_changed": "A parcel's expected delivery time changed"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Refresh"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Deliveries"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Incoming parcels",
+        "unit_of_measurement": "parcels"
+      },
+      "next_delivery": {
+        "name": "Next delivery"
+      },
+      "delivered_parcels": {
+        "name": "Delivered parcels",
+        "unit_of_measurement": "parcels"
+      },
+      "last_update": {
+        "name": "Last successful update"
+      },
+      "parcel": {
+        "name": "Parcel {barcode}"
+      }
+    }
+  }
+}
