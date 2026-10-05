@@ -11,7 +11,7 @@
       },
       "sign_in": {
         "title": "Sínigh isteach ar Amazon",
-        "description": "1. Oscail [leathanach sínithe isteach Amazon do {country}]({sign_in_url}) i do bhrabhsálaí féin agus sínigh isteach, ag críochnú aon fhíorú a iarrann Amazon.\n2. Ina dhiaidh sin taispeánann Amazon leathanach a d'fhéadfadh a bheith folamh nó cosúil le hearráid. Táthar ag súil leis sin. Cóipeáil an seoladh iomlán ó bharra seoltaí do bhrabhsálaí.\n3. Greamaigh an seoladh sin thíos.\n\nNí chuirtear do phasfhocal isteach i Home Assistant riamh.",
+        "description": "1. Oscail [leathanach sínithe isteach Amazon do {country}]({sign_in_url}) i do bhrabhsálaí féin. Is é seo síniú isteach Amazon don aip Alexa. Táthar ag súil leis sin: síníonn Home Assistant isteach mar ghléas Alexa, rud a thugann síniú isteach buan dó gan do phasfhocal a fheiceáil riamh.\n2. Sínigh isteach agus críochnaigh aon fhíorú a iarrann Amazon.\n3. Tiocfaidh tú ar leathanach a dtosaíonn a sheoladh le `https://www.amazon.com/ap/maplanding`, fiú má dhéanann tú siopadóireacht ar Amazon tíre eile. D'fhéadfadh sé a bheith folamh nó cosúil le hearráid, ach is é an leathanach sin an sprioc. Cóipeáil a sheoladh iomlán ón mbarra seoltaí.\n4. Greamaigh thíos é láithreach.\n\nAnsin feicfear gléas darb ainm \"*d'ainm*'s Home Assistant Parcels\" i do chuntas Amazon faoi *Bainistigh d'Ábhar agus do Ghléasanna*. Is é seo an comhtháthú seo. Má bhaineann tú é ansin, sínítear Home Assistant amach.",
         "data": {
           "landing_url": "Seoladh an leathanaigh dheiridh"
         },

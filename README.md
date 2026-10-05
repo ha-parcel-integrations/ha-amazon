@@ -69,8 +69,11 @@ Copy `custom_components/amazon_orders` into your `config/custom_components/` fol
 Add the integration via **Settings → Devices & Services → Add Integration → Amazon**.
 
 1. Pick the Amazon country you shop on.
-2. Open the sign-in link shown, sign in to Amazon in your own browser and complete any verification it asks for.
-3. Amazon then lands on a page that may look blank or like an error. That is expected. Copy the full address from the address bar and paste it back into Home Assistant.
+2. Open the sign-in link shown in your own browser. It is Amazon's sign-in for the Alexa app. That is expected: Home Assistant signs in as an Alexa device, so it gets a lasting sign-in without ever seeing your password.
+3. Sign in and complete any verification Amazon asks for.
+4. You end up on a page whose address starts with `https://www.amazon.com/ap/maplanding`, even if you shop on another country's Amazon. It may look blank or like an error, but that page is the goal. Copy its full address from the address bar and paste it back into Home Assistant straight away.
+
+A device named "*your name*'s Home Assistant Parcels" then appears in your Amazon account under *Manage Your Content and Devices*. That is this integration. Removing it there signs Home Assistant out, and Home Assistant then asks you to sign in again.
 
 Add the integration again to follow another country. If Amazon stops accepting the stored sign-in, Home Assistant asks you to repeat these steps.
 
@@ -175,6 +178,8 @@ logger:
 ## Troubleshooting
 
 - **Setup keeps asking me to sign in again** — Amazon ended the stored sign-in (for example after a password change or a security check). Follow the sign-in steps again; nothing else needs to change.
+- **I don't end up on a `maplanding` page** — finish every step Amazon shows (verification code, passkey, puzzle) in the same browser tab. If you land on another Amazon page, open a fresh sign-in link from Home Assistant and try again, if needed in a private window.
+- **The pasted address is rejected** — copy the whole address, including everything after the `?`, and paste it straight away. If it still fails, open a fresh sign-in link; each link is meant for one sign-in.
 - **A parcel shows `unknown`** — Amazon said something we have not mapped yet. The log line "Unrecognised Amazon status" names it: please [open an issue](https://github.com/ha-parcel-integrations/ha-amazon/issues/new?template=unrecognised_status.yml) with that line.
 - **An order shows up as a parcel named after a shipment code** — that order line has no tracking page yet, so it is keyed on Amazon's shipment code until a tracking id appears.
 - **Nothing is imported** — only orders from the last few months show on Amazon's orders page, and only recent shipments are followed. Check the log for a warning about the page layout.

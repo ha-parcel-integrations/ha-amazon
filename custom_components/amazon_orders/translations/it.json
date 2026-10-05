@@ -11,7 +11,7 @@
       },
       "sign_in": {
         "title": "Accedi ad Amazon",
-        "description": "1. Apri [la pagina di accesso Amazon per {country}]({sign_in_url}) nel tuo browser ed effettua l'accesso, completando qualsiasi verifica richiesta da Amazon.\n2. Dopo, Amazon mostra una pagina che può sembrare vuota o un errore. È normale. Copia l'indirizzo completo dalla barra degli indirizzi del browser.\n3. Incolla quell'indirizzo qui sotto.\n\nLa tua password non viene mai inserita in Home Assistant.",
+        "description": "1. Apri [la pagina di accesso Amazon per {country}]({sign_in_url}) nel tuo browser. È l'accesso Amazon dell'app Alexa. È normale: Home Assistant accede come dispositivo Alexa, così ottiene un accesso duraturo senza mai vedere la tua password.\n2. Accedi e completa qualsiasi verifica richiesta da Amazon.\n3. Arrivi su una pagina il cui indirizzo inizia con `https://www.amazon.com/ap/maplanding`, anche se acquisti sull'Amazon di un altro paese. Può sembrare vuota o un errore, ma quella pagina è l'obiettivo. Copia l'indirizzo completo dalla barra degli indirizzi.\n4. Incollalo subito qui sotto.\n\nPoi nel tuo account Amazon, in *Gestisci contenuti e dispositivi*, compare un dispositivo chiamato \"*il tuo nome*'s Home Assistant Parcels\". È questa integrazione. Rimuoverlo da lì disconnette Home Assistant.",
         "data": {
           "landing_url": "Indirizzo della pagina finale"
         },

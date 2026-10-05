@@ -11,7 +11,7 @@
       },
       "sign_in": {
         "title": "Logga in på Amazon",
-        "description": "1. Öppna [Amazons inloggningssida för {country}]({sign_in_url}) i din egen webbläsare och logga in, och slutför eventuell verifiering som Amazon ber om.\n2. Efteråt visar Amazon en sida som kan se tom ut eller som ett fel. Det är väntat. Kopiera hela adressen från webbläsarens adressfält.\n3. Klistra in adressen nedan.\n\nDitt lösenord anges aldrig i Home Assistant.",
+        "description": "1. Öppna [Amazons inloggningssida för {country}]({sign_in_url}) i din egen webbläsare. Det är Amazons inloggning för Alexa-appen. Det är väntat: Home Assistant loggar in som en Alexa-enhet och får så en varaktig inloggning utan att någonsin se ditt lösenord.\n2. Logga in och slutför eventuell verifiering som Amazon ber om.\n3. Du hamnar på en sida vars adress börjar med `https://www.amazon.com/ap/maplanding`, även om du handlar på ett annat lands Amazon. Den kan se tom ut eller som ett fel, men det är den sidan som är målet. Kopiera hela adressen från adressfältet.\n4. Klistra in den nedan direkt.\n\nSedan visas en enhet som heter \"*ditt namn*'s Home Assistant Parcels\" i ditt Amazon-konto under *Hantera ditt innehåll och dina enheter*. Det är den här integrationen. Tar du bort den där loggas Home Assistant ut.",
         "data": {
           "landing_url": "Adress till sista sidan"
         },

@@ -92,6 +92,7 @@ async def test_registration_returns_the_tokens_and_the_answering_host():
     assert payload["auth_data"]["authorization_code"] == "CODE"
     assert payload["auth_data"]["code_verifier"] == "verifier"
     assert payload["registration_data"]["device_serial"] == "SERIAL"
+    assert payload["registration_data"]["device_name"].endswith("Home Assistant Parcels")
     assert payload["cookies"]["domain"] == f".{DOMAIN}"
 
 

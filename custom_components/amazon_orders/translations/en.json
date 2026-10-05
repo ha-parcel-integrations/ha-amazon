@@ -11,7 +11,7 @@
       },
       "sign_in": {
         "title": "Sign in to Amazon",
-        "description": "1. Open [the Amazon sign-in page for {country}]({sign_in_url}) in your own browser and sign in, completing any verification Amazon asks for.\n2. Afterwards Amazon shows a page that may look blank or like an error. That is expected. Copy the full address from your browser's address bar.\n3. Paste that address below.\n\nYour password is never entered in Home Assistant.",
+        "description": "1. Open [the Amazon sign-in page for {country}]({sign_in_url}) in your own browser. It is Amazon's sign-in for the Alexa app. That is expected: Home Assistant signs in as an Alexa device, so it gets a lasting sign-in without ever seeing your password.\n2. Sign in and complete any verification Amazon asks for.\n3. You end up on a page whose address starts with `https://www.amazon.com/ap/maplanding`, even if you shop on another country's Amazon. It may look blank or like an error, but that page is the goal. Copy its full address from the address bar.\n4. Paste it below straight away.\n\nA device named \"*your name*'s Home Assistant Parcels\" then appears in your Amazon account under *Manage Your Content and Devices*. That is this integration. Removing it there signs Home Assistant out.",
         "data": {
           "landing_url": "Address of the final page"
         },

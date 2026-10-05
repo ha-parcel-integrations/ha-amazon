@@ -15,6 +15,8 @@ from ..const import SIGN_IN_LANGUAGE
 from .errors import AmazonApiError, AmazonAuthError
 
 APP_NAME = "Alexa Media Player"
+# Shown in the user's Amazon device list; distinct so it is not mistaken for Alexa Media Player.
+DEVICE_NAME = "Home Assistant Parcels"
 CALL_VERSION = "2.2.556530.0"
 FALLBACK_API_HOST = "api.amazon.com"
 
@@ -169,7 +171,7 @@ async def register_device(
             "domain": "Device",
             "app_version": CALL_VERSION,
             "device_type": "A2IVLV5VM2W81",
-            "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{APP_NAME}",
+            "device_name": f"%FIRST_NAME%'s%DUPE_STRATEGY_1ST%{DEVICE_NAME}",
             "os_version": "16.6",
             "device_serial": serial,
             "device_model": "iPhone",

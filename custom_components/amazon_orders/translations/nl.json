@@ -11,7 +11,7 @@
       },
       "sign_in": {
         "title": "Aanmelden bij Amazon",
-        "description": "1. Open [de aanmeldpagina van Amazon voor {country}]({sign_in_url}) in je eigen browser en meld je aan. Doorloop de verificatie die Amazon vraagt.\n2. Daarna toont Amazon een pagina die leeg of als een foutmelding kan ogen. Dat is normaal. Kopieer het volledige adres uit de adresbalk van je browser.\n3. Plak dat adres hieronder.\n\nJe wachtwoord voer je nooit in Home Assistant in.",
+        "description": "1. Open [de Amazon-inlogpagina voor {country}]({sign_in_url}) in je eigen browser. Het is de Amazon-login van de Alexa-app. Dat hoort zo: Home Assistant meldt zich aan als Alexa-apparaat, zodat het een blijvende aanmelding krijgt zonder ooit je wachtwoord te zien.\n2. Log in en rond elke verificatie af die Amazon vraagt.\n3. Je komt uit op een pagina waarvan het adres begint met `https://www.amazon.com/ap/maplanding`, ook als je op een Amazon van een ander land winkelt. Die kan leeg of als een fout ogen, maar die pagina is het doel. Kopieer het volledige adres uit de adresbalk.\n4. Plak het meteen hieronder.\n\nDaarna verschijnt in je Amazon-account onder *Inhoud en apparaten beheren* een apparaat \"*jouw naam*'s Home Assistant Parcels\". Dat is deze integratie. Verwijder je het daar, dan wordt Home Assistant afgemeld.",
         "data": {
           "landing_url": "Adres van de laatste pagina"
         },
