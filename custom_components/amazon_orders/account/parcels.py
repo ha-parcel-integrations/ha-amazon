@@ -22,6 +22,7 @@ from ..const import (
     HISTORY_MAX_EVENTS,
     ParcelStatus,
 )
+from .vocabulary import classify_order_text
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,12 +49,6 @@ _EVENT_MAP: dict[str, ParcelStatus] = {
     "delivered to customer": ParcelStatus.DELIVERED,
     "delivered to letterbox": ParcelStatus.DELIVERED,
 }
-
-# Order-line status text, for shipments without a tracking page.
-_ORDER_TEXT_MAP: tuple[tuple[str, ParcelStatus], ...] = (
-    ("delivered", ParcelStatus.DELIVERED),
-    ("not yet dispatched", ParcelStatus.REGISTERED),
-)
 
 _CARRIER_NAMES = {
     "DRAGONFLY": "Dragonfly",
@@ -119,13 +114,19 @@ def map_event_status(message: str | None) -> ParcelStatus | None:
 
 
 def _order_text_status(text: str | None) -> ParcelStatus | None:
-    if not text:
+    """Map order-line wording, reporting once when only a likely guess matches."""
+    kind, confirmed = classify_order_text(text)
+    if not isinstance(kind, ParcelStatus):
         return None
-    lowered = text.strip().lower()
-    for prefix, status in _ORDER_TEXT_MAP:
-        if lowered.startswith(prefix):
-            return status
-    return None
+    if not confirmed:
+        masked = re.sub(r"\d+", "#", text or "")
+        warn_once(
+            f"plausible-status={masked}",
+            f'The Amazon order-line text "{masked}" was read as {kind.value}'
+            " from wording we have not seen confirmed yet; please confirm it"
+            " is right.",
+        )
+    return kind
 
 
 def resolve_status(raw: dict) -> ParcelStatus:
@@ -165,20 +166,13 @@ def _resolve_without_milestone(raw: dict, milestone: str | None) -> ParcelStatus
     if mapped is not None:
         return mapped
 
-    if not raw.get("track_path") and not raw.get("milestone") and not events:
-        # No tracking page and not delivered: Amazon has not dispatched it.
-        # The line's own wording is reported once so the map can grow.
-        text = re.sub(r"\d+", "#", raw.get("order_status") or "")
-        if text:
-            _warn_unmapped_status(f"order_status={text} (treated as registered)")
-        return ParcelStatus.REGISTERED
-
-    if milestone or events or raw.get("order_status"):
-        newest = events[0].get("message") if events else None
-        order_text = re.sub(r"\d+", "#", raw.get("order_status") or "")
-        _warn_unmapped_status(
-            f"milestone={milestone} event={newest} order_status={order_text}"
-        )
+    # Nothing recognised, a line with no tracking page included: it stays
+    # unknown rather than being guessed to be a parcel that is on its way.
+    newest = events[0].get("message") if events else None
+    order_text = re.sub(r"\d+", "#", raw.get("order_status") or "")
+    _warn_unmapped_status(
+        f"milestone={milestone} event={newest} order_status={order_text}"
+    )
     return ParcelStatus.UNKNOWN
 
 

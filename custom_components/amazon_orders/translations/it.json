@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configura Amazon",
-        "description": "Scegli il paese Amazon in cui fai acquisti. I pacchi vengono letti dal tuo account connesso per quel paese. Per seguire un altro paese, aggiungi di nuovo l'integrazione.",
+        "description": "Scegli il paese Amazon in cui fai acquisti. I pacchi vengono letti dal tuo account connesso per quel paese. Per seguire un altro paese, aggiungi di nuovo l'integrazione. Sugli store Amazon in lingue diverse dall'inglese, alcuni testi di stato sono ancora in fase di raccolta. Se il log mostra un avviso \"Unrecognised Amazon status\", segnalarlo tramite il link presente nell'avviso è utile.",
         "data": {
           "country": "Paese Amazon"
         }

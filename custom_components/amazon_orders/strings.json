@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Set up Amazon",
-        "description": "Choose the Amazon country you shop on. Parcels are read from your signed-in account for that country. To follow another country, add the integration again.",
+        "description": "Choose the Amazon country you shop on. Parcels are read from your signed-in account for that country. To follow another country, add the integration again. On Amazon storefronts in languages other than English, some status texts are still being collected. If the log shows an \"Unrecognised Amazon status\" warning, reporting it through the link in that warning helps.",
         "data": {
           "country": "Amazon country"
         }

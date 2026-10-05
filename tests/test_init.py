@@ -191,3 +191,19 @@ async def test_unload_keeps_the_session_when_platforms_refuse_to_unload(hass):
     assert not entry.runtime_data.session.closed
     await entry.runtime_data.coordinator.async_shutdown()
     await entry.runtime_data.session.close()
+
+
+async def test_unreadable_line_is_not_counted_by_the_incoming_sensor(hass):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    unreadable = active_record("AMZNL000000000777")
+    unreadable.update(
+        tracking_id=None, track_path=None, milestone=None, events=[],
+        order_status="Gibberish", shipment_id="SHIPunread1",
+    )
+
+    with patch(PARCELS, new=AsyncMock(return_value=[active_record(), unreadable])):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert hass.states.get("sensor.amazon_amazon_nl_incoming_parcels").state == "1"

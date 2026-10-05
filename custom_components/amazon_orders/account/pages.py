@@ -15,6 +15,10 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from ..const import ParcelStatus
+from .parcels import warn_once
+from .vocabulary import MONTHS, SKIP, STATUS_PREFIXES, classify_order_text
+
 _TILE_RE = re.compile(
     r'<a class="item-card__link" href="([^"]*)" aria-label="([^"]*)"', re.S
 )
@@ -22,16 +26,10 @@ _PLACED_RE = re.compile(
     r"Order placed (\d{1,2} [A-Za-z]+ \d{4})(?:, (?P<tail>.*))?$", re.S
 )
 _ORDER_ID_RE = re.compile(r"\d{3}-\d{7}-\d{7}")
-# Status texts that can open an aria-label segment when the "Order placed"
-# anchor is missing (storefronts lay the label out differently).
-_STATUS_SEGMENT_PREFIXES = (
-    "delivered",
-    "arriving",
-    "not yet dispatched",
-    "dispatched",
-    "out for delivery",
+# "3 October", "3. Oktober", "3 de octubre", "3 Oct. 2026".
+_DAY_MONTH_RE = re.compile(
+    r"(\d{1,2})\.?\s+(?:de\s+)?([^\W\d_]+)\.?(?:\s+(?:de\s+)?(\d{4}))?"
 )
-_DAY_MONTH_RE = re.compile(r"(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?")
 _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
 _CARRIER_RE = re.compile(r"Delivery By ([A-Za-z0-9_]+)")
 _TRACKING_ID_RE = re.compile(r"Tracking ID:\s*([A-Za-z0-9-]+)")
@@ -42,17 +40,6 @@ _EVENT_PART_RE = re.compile(
     r'<span class="tracking-event-(date|time|message|location)">([^<]*)</span>'
 )
 _PASSWORD_FIELD_RE = re.compile(r'<input[^>]+type="password"', re.I)
-
-_MONTHS = {
-    name: number
-    for number, name in enumerate(
-        (
-            "january february march april may june july "
-            "august september october november december"
-        ).split(),
-        start=1,
-    )
-}
 
 # Third-party map key the page embeds; it is not parcel data.
 _STATE_DROP = {"hereMapsApiKey"}
@@ -94,7 +81,7 @@ class OrderTile:
     @property
     def delivered(self) -> bool:
         """Whether the line already reads as delivered."""
-        return self.status_text.lower().startswith("delivered")
+        return classify_order_text(self.status_text)[0] is ParcelStatus.DELIVERED
 
 
 @dataclass
@@ -123,7 +110,7 @@ def _day_month(text: str, reference: date, *, forward: bool = False) -> date | N
     match = _DAY_MONTH_RE.search(text)
     if not match:
         return None
-    month = _MONTHS.get(match.group(2).lower())
+    month = MONTHS.get(match.group(2).lower())
     if month is None:
         return None
     year = int(match.group(3)) if match.group(3) else reference.year
@@ -163,8 +150,18 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
             status_text, _, note = (placed.group("tail") or "").partition(", ")
         else:
             title, status_text, note = _split_unanchored_label(label)
+        kind, confirmed = classify_order_text(status_text)
+        if kind is not None and not confirmed:
+            warn_once(
+                f"plausible-line={_mask(status_text)}",
+                f'The Amazon order-line text "{_mask(status_text)}" was read as'
+                f" {kind} from wording we have not seen confirmed yet; please"
+                " confirm it is right.",
+            )
+        if kind == SKIP:
+            continue
         delivered_on = None
-        if status_text.lower().startswith("delivered"):
+        if kind is ParcelStatus.DELIVERED:
             delivered_on = (
                 _day_month(status_text, placed_on, forward=True)
                 if placed_on
@@ -188,6 +185,11 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
     return tiles
 
 
+def _mask(text: str) -> str:
+    """Hide digits so a moving date cannot make a warning repeat."""
+    return re.sub(r"\d+", "#", text)
+
+
 def _split_unanchored_label(label: str) -> tuple[str, str, str]:
     """Split "<title>, <status>[, <note>]" when there is no "Order placed".
 
@@ -196,7 +198,7 @@ def _split_unanchored_label(label: str) -> tuple[str, str, str]:
     """
     segments = label.split(", ")
     for index in range(1, len(segments)):
-        if segments[index].lower().startswith(_STATUS_SEGMENT_PREFIXES):
+        if segments[index].lower().startswith(STATUS_PREFIXES):
             return (
                 ", ".join(segments[:index]),
                 segments[index],

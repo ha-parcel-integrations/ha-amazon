@@ -76,11 +76,16 @@ precedent for any other carrier). Prefer embedded JSON state over visible text.
   on a stand-in from its order and line (flagged in `raw["barcode_source"]`),
   which changes to the tracking id if one appears later.
 - **Status resolution:** milestone, else newest mappable timeline event, else
-  order-line text, else `unknown` + one warning; a line with no tracking page
-  that is not delivered is `registered`. Only the `DELIVERED` milestone has
-  been observed: do not add milestone names no capture has shown. An unmapped
-  milestone warns once even when the timeline resolves the status (maintainer
-  decision): that warning is how the milestone map grows, so don't silence it.
+  order-line text (`account/vocabulary.py`), else `unknown` + one warning. A line
+  with no tracking page and no recognised text is `unknown`, never `registered`,
+  and is kept out of the incoming list (`coordinator.unresolved`); only an
+  explicitly recognised not-yet-dispatched text gives `registered`. Cancelled,
+  returned and refunded lines are skipped at parse time. The vocabulary has a
+  confirmed table (English) and a separate plausible table (the other languages
+  and the unseen English wording): resolving through a plausible entry logs a
+  one-shot confirmation request, and an entry moves to confirmed only once a real
+  line shows it. Only the `DELIVERED` milestone has been observed: do not add
+  milestone names no capture has shown.
 - **`None` on purpose:** `sender`, `receiver`, `weight`, `dimensions`,
   `pickup_point`. `delivery_window` is in `PENDING_CAPABILITIES` until a real
   in-flight parcel shows a parseable date.

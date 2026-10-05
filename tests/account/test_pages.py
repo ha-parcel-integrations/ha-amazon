@@ -143,7 +143,7 @@ def test_page_without_tiles_is_empty():
         ("2 October 2020", TODAY, False, date(2020, 10, 2)),
         ("Saturday, 3 October", TODAY, False, date(2026, 10, 3)),
         ("31 February", TODAY, False, None),
-        ("3 Octobre", TODAY, False, None),
+        ("3 Oktobr", TODAY, False, None),
         ("no date here", TODAY, False, None),
     ],
 )
@@ -350,3 +350,46 @@ def test_shipped_line_keeps_its_shipment_id_as_key():
         orders_page(tile(ACTIVE_SHIPMENT, "Arriving today", None)), TODAY
     )
     assert parsed.shipment_key == ACTIVE_SHIPMENT
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Zugestellt am 3. Oktober", date(2026, 10, 3)),
+        ("Entregado el 3 de octubre", date(2026, 10, 3)),
+        ("Livré le 3 oct.", date(2026, 10, 3)),
+        ("Delivered 3 Oct. 2025", date(2025, 10, 3)),
+        ("Bezorgd 3 oktober", date(2026, 10, 3)),
+        ("Dostarczono 3 października", date(2026, 10, 3)),
+        ("Zugestellt am 3. März", date(2026, 3, 3)),
+    ],
+)
+def test_day_month_shapes_in_other_languages(text, expected):
+    assert _day_month(text, TODAY) == expected
+
+
+def test_cancelled_and_returned_lines_are_not_listed():
+    page = orders_page(
+        tile("SHIPcancel1", "Cancelled", None),
+        tile("SHIPreturn1", "Return complete", None),
+        tile("SHIPrefund1", "Refund for this return", None),
+        tile(ACTIVE_SHIPMENT, "Arriving today", None),
+    )
+    assert [t.shipment_id for t in parse_order_tiles(page, TODAY)] == [ACTIVE_SHIPMENT]
+
+
+def test_a_german_delivered_line_is_delivered_and_dated(caplog):
+    page = orders_page(
+        tile(
+            DELIVERED_SHIPMENT,
+            "Zugestellt am 3. Oktober",
+            None,
+            placed="2 Oktober 2026",
+        )
+    )
+    # "Order placed" is English-only, so the segment is found by its wording.
+    page = page.replace("Order placed 2 Oktober 2026", "Bestellt am 2. Oktober 2026")
+    (parsed,) = parse_order_tiles(page, TODAY)
+    assert parsed.delivered is True
+    assert parsed.delivered_on == date(2026, 10, 3)
+    assert caplog.text.count("confirm it is right") == 1

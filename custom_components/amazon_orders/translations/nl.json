@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Amazon instellen",
-        "description": "Kies het Amazon-land waar je bestelt. Je pakketten worden gelezen uit je aangemelde account voor dat land. Voeg de integratie opnieuw toe om een ander land te volgen.",
+        "description": "Kies het Amazon-land waar je bestelt. Je pakketten worden gelezen uit je aangemelde account voor dat land. Voeg de integratie opnieuw toe om een ander land te volgen. Op Amazon-winkels in andere talen dan Engels worden sommige statusteksten nog verzameld. Zie je in het logboek een waarschuwing \"Unrecognised Amazon status\", dan helpt het als je die meldt via de link in die waarschuwing.",
         "data": {
           "country": "Amazon-land"
         }

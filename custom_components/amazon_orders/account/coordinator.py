@@ -135,6 +135,7 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         )
         self._client = client
         self.delivered: list[dict] = []
+        self.unresolved: list[dict] = []
         # Consecutive 429 responses, for the exponential backoff in Section 3.
         # Reset to 0 on any success.
         self._consecutive_429 = 0
@@ -218,6 +219,15 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         normalized = [
             normalize_parcel(raw, include_history=include_history) for raw in raws
         ]
+        # A line with no recognised status and no tracking id is not known to
+        # be a parcel on its way, so it must not count as incoming.
+        self.unresolved = [
+            parcel
+            for parcel in normalized
+            if parcel["status"] is ParcelStatus.UNKNOWN
+            and not parcel["raw"].get("tracking_id")
+        ]
+        normalized = [p for p in normalized if p not in self.unresolved]
         active = [parcel for parcel in normalized if not parcel["delivered"]]
         delivered = [parcel for parcel in normalized if parcel["delivered"]]
 

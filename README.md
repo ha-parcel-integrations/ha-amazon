@@ -139,13 +139,15 @@ The `status` field is the carrier-agnostic enum shared by the whole integration 
 
 | Status | Meaning |
 |---|---|
-| `registered` | The order line has no tracking yet (for example "Not Yet Dispatched") |
+| `registered` | Amazon says the order has not been dispatched yet |
 | `in_transit` | In an Amazon or carrier facility, or on the way between them |
 | `out_for_delivery` | With the courier today |
 | `delivered` | Delivered, including left in the letterbox |
-| `unknown` | A status we have not mapped yet; it is logged once as a warning |
+| `unknown` | A status we have not mapped yet; it is logged once as a warning. An order line with no tracking whose wording is not recognised is `unknown` too, and is not counted as incoming |
 
 Amazon also reports other situations (a pickup point, a return, a delivery problem), but none of those have been seen on a real parcel yet, so they are not mapped. If your parcel shows `unknown`, the warning in the log names what Amazon said.
+
+Order-line wording is recognised in English, Dutch, French, German, Spanish, Italian, Swedish and Polish. Only the English wording is confirmed against other tools' sources; the other languages are best guesses, so the first time one is used the log asks you to confirm it. Cancelled, returned and refunded lines are not shown.
 
 Amazon's own human-readable text is always available as `raw_status`.
 

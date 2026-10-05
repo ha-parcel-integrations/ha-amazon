@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Socraigh Amazon",
-        "description": "Roghnaigh an tír Amazon a dhéanann tú siopadóireacht uirthi. Léitear beartáin ó do chuntas sínithe isteach don tír sin. Chun tír eile a leanúint, cuir an comhtháthú leis arís.",
+        "description": "Roghnaigh an tír Amazon a dhéanann tú siopadóireacht uirthi. Léitear beartáin ó do chuntas sínithe isteach don tír sin. Chun tír eile a leanúint, cuir an comhtháthú leis arís. Ar stórais Amazon i dteangacha seachas an Béarla, tá roinnt téacsanna stádais fós á mbailiú. Má thaispeánann an logchomhad rabhadh \"Unrecognised Amazon status\", cabhraíonn sé é a thuairisciú tríd an nasc sa rabhadh sin.",
         "data": {
           "country": "Tír Amazon"
         }

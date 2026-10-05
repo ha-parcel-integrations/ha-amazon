@@ -50,6 +50,7 @@ async def async_get_config_entry_diagnostics(
         "counts": {
             "incoming_active": len(coordinator.data or []),
             "delivered": len(coordinator.delivered or []),
+            "unresolved": len(coordinator.unresolved or []),
             "skipped_from_fetch": len(coordinator.delivered_codes),
         },
         "polling": {

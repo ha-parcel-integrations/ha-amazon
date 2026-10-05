@@ -329,3 +329,23 @@ async def test_a_record_without_any_key_fires_no_events(hass):
 
     assert len(data) == 1 and data[0]["barcode"] is None
     assert fired == []
+
+
+async def test_a_line_with_no_recognised_status_and_no_tracking_is_not_incoming(hass):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    client = AsyncMock()
+    coordinator = AmazonCoordinator(hass, client, entry)
+    unreadable = active_record()
+    unreadable.update(
+        tracking_id=None, track_path=None, milestone=None, events=[],
+        order_status="Gibberish", barcode_source="shipment_key",
+    )
+    client.async_get_parcels.return_value = [unreadable, active_record()]
+
+    data = await coordinator._async_update_data()
+
+    assert [p["barcode"] for p in data] == [ACTIVE_CODE]
+    assert len(coordinator.unresolved) == 1
+    assert coordinator.unresolved[0]["status"] == ParcelStatus.UNKNOWN
+    assert coordinator.delivered == []

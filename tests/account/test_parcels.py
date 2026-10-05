@@ -115,7 +115,7 @@ def test_order_text_resolves_a_shipment_without_a_tracking_page():
 
 def test_nothing_mappable_is_unknown_with_one_warning(caplog):
     raw = untracked_record()
-    raw["order_status"] = "Arriving 7 October"
+    raw["order_status"] = "Something unseen 7 October"
     raw["milestone"] = "SOMETHING_UNSEEN"
     with caplog.at_level(logging.WARNING):
         assert resolve_status(raw) is ParcelStatus.UNKNOWN
@@ -123,26 +123,91 @@ def test_nothing_mappable_is_unknown_with_one_warning(caplog):
     assert caplog.text.count("Unrecognised Amazon status") == 1
     assert "SOMETHING_UNSEEN" in caplog.text
     # Digits are stripped, so a moving date cannot make the warning repeat.
-    assert "Arriving #" in caplog.text
+    assert "Something unseen #" in caplog.text
     assert "issues/new" in caplog.text
 
 
-def test_an_undispatched_line_with_no_text_is_registered_silently(caplog):
+def test_a_line_with_no_status_text_and_no_tracking_is_unknown_not_registered(caplog):
+    """The #1 failure mode: unreadable text must not become a parcel on its way."""
     raw = untracked_record()
     raw["order_status"] = None
     with caplog.at_level(logging.WARNING):
-        assert resolve_status(raw) is ParcelStatus.REGISTERED
-    assert caplog.text == ""
+        assert resolve_status(raw) is ParcelStatus.UNKNOWN
+    assert caplog.text.count("Unrecognised Amazon status") == 1
 
 
-def test_an_undispatched_line_with_unseen_wording_is_registered_and_reported(caplog):
+def test_unseen_wording_with_no_tracking_is_unknown_and_reported_masked(caplog):
     raw = untracked_record()
     raw["order_status"] = "Preparing 3 items"
     with caplog.at_level(logging.WARNING):
-        assert resolve_status(raw) is ParcelStatus.REGISTERED
-        assert resolve_status(raw) is ParcelStatus.REGISTERED
+        assert resolve_status(raw) is ParcelStatus.UNKNOWN
+        assert resolve_status(raw) is ParcelStatus.UNKNOWN
     assert caplog.text.count("Preparing # items") == 1
     assert "issues/new" in caplog.text
+
+
+def test_only_recognised_not_yet_dispatched_text_is_registered(caplog):
+    with caplog.at_level(logging.WARNING):
+        assert resolve_status(untracked_record()) is ParcelStatus.REGISTERED
+    # Plausible wording: resolved, but reported once for confirmation.
+    assert caplog.text.count("Not Yet Dispatched") == 1
+    assert "confirm" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Shipped", ParcelStatus.IN_TRANSIT),
+        ("Dispatched 3 October", ParcelStatus.IN_TRANSIT),
+        ("Arriving tomorrow", ParcelStatus.IN_TRANSIT),
+        ("Delivered 3 October", ParcelStatus.DELIVERED),
+    ],
+)
+def test_confirmed_english_order_text_resolves_silently(text, expected, caplog):
+    raw = untracked_record()
+    raw["order_status"] = text
+    with caplog.at_level(logging.WARNING):
+        assert resolve_status(raw) is expected
+    assert caplog.text == ""
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Out for delivery", ParcelStatus.OUT_FOR_DELIVERY),
+        ("Bezorgd 3 oktober", ParcelStatus.DELIVERED),
+        ("Livré le 3 octobre", ParcelStatus.DELIVERED),
+        ("Zugestellt am 3. Oktober", ParcelStatus.DELIVERED),
+        ("Entregado el 3 de octubre", ParcelStatus.DELIVERED),
+        ("Nog niet verzonden", ParcelStatus.REGISTERED),
+    ],
+)
+def test_plausible_order_text_resolves_with_one_confirmation_warning(
+    text, expected, caplog
+):
+    raw = untracked_record()
+    raw["order_status"] = text
+    with caplog.at_level(logging.WARNING):
+        assert resolve_status(raw) is expected
+        assert resolve_status(raw) is expected
+    assert caplog.text.count("confirm it is right") == 1
+    assert "#" in caplog.text or "#" not in text
+    assert "issues/new" in caplog.text
+
+
+def test_the_confirmation_warning_masks_digits(caplog):
+    raw = untracked_record()
+    raw["order_status"] = "Bezorgd 3 oktober"
+    with caplog.at_level(logging.WARNING):
+        resolve_status(raw)
+    assert "Bezorgd # oktober" in caplog.text
+    assert "Bezorgd 3" not in caplog.text
+
+
+def test_skip_wording_is_not_a_status():
+    raw = untracked_record()
+    raw["order_status"] = "Cancelled"
+    assert resolve_status(raw) is ParcelStatus.UNKNOWN
 
 
 def test_any_delivered_message_counts_as_delivery():

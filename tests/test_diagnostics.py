@@ -31,6 +31,7 @@ def _entry(data: list[dict], delivered: list[dict]) -> MagicMock:
     coordinator.update_interval = timedelta(minutes=15)
     coordinator.data = data
     coordinator.delivered = delivered
+    coordinator.unresolved = []
     coordinator.delivered_codes = set()
     return entry
 
@@ -60,6 +61,7 @@ async def test_diagnostics_redacts_the_parcel_and_its_record(hass):
         "incoming_active": 1,
         "delivered": 1,
         "skipped_from_fetch": 0,
+        "unresolved": 0,
     }
     assert result["polling"] == {
         "tier_minutes": 15,

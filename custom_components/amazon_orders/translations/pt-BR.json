@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configurar a Amazon",
-        "description": "Escolha o país da Amazon em que você compra. Os pacotes são lidos da sua conta conectada para esse país. Para acompanhar outro país, adicione a integração novamente.",
+        "description": "Escolha o país da Amazon em que você compra. Os pacotes são lidos da sua conta conectada para esse país. Para acompanhar outro país, adicione a integração novamente. Nas lojas da Amazon em idiomas diferentes do inglês, alguns textos de status ainda estão sendo coletados. Se o registro mostrar um aviso \"Unrecognised Amazon status\", informá-lo pelo link desse aviso ajuda.",
         "data": {
           "country": "País da Amazon"
         }

@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Amazon einrichten",
-        "description": "Wähle das Amazon-Land, in dem du einkaufst. Pakete werden aus deinem angemeldeten Konto für dieses Land gelesen. Um ein weiteres Land zu verfolgen, füge die Integration erneut hinzu.",
+        "description": "Wähle das Amazon-Land, in dem du einkaufst. Pakete werden aus deinem angemeldeten Konto für dieses Land gelesen. Um ein weiteres Land zu verfolgen, füge die Integration erneut hinzu. Bei Amazon-Shops in anderen Sprachen als Englisch werden einige Statustexte noch gesammelt. Wenn im Protokoll eine Warnung \"Unrecognised Amazon status\" erscheint, hilft es, sie über den Link in dieser Warnung zu melden.",
         "data": {
           "country": "Amazon-Land"
         }

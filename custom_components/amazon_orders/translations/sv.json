@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Konfigurera Amazon",
-        "description": "Välj det Amazon-land du handlar i. Paket läses från ditt inloggade konto för det landet. Lägg till integrationen igen för att följa ett annat land.",
+        "description": "Välj det Amazon-land du handlar i. Paket läses från ditt inloggade konto för det landet. Lägg till integrationen igen för att följa ett annat land. I Amazon-butiker på andra språk än engelska samlas vissa statustexter fortfarande in. Om loggen visar en varning \"Unrecognised Amazon status\" hjälper det om du rapporterar den via länken i varningen.",
         "data": {
           "country": "Amazon-land"
         }

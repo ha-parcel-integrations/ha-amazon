@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configurer Amazon",
-        "description": "Choisis le pays Amazon sur lequel tu fais tes achats. Les colis sont lus depuis ton compte connecté pour ce pays. Pour suivre un autre pays, ajoute à nouveau l'intégration.",
+        "description": "Choisis le pays Amazon sur lequel tu fais tes achats. Les colis sont lus depuis ton compte connecté pour ce pays. Pour suivre un autre pays, ajoute à nouveau l'intégration. Sur les boutiques Amazon dans une autre langue que l'anglais, certains textes de statut sont encore en cours de collecte. Si le journal affiche un avertissement \"Unrecognised Amazon status\", le signaler via le lien de cet avertissement est utile.",
         "data": {
           "country": "Pays Amazon"
         }
