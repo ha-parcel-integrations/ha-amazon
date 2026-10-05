@@ -1,5 +1,8 @@
 # Amazon Parcel Tracker
 
+> [!CAUTION]
+> **Experimental test build.** This integration is a trial and is not (yet) part of the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/) carrier list. Amazon is a shop, not a carrier: one order can be delivered by Amazon's own couriers, by DHL or by another carrier, so the same parcel may also show up in that carrier's integration. How Amazon will fit into the parcel integrations is still being worked out. Until then this integration may be renamed, restructured or withdrawn, and updates may change entities without notice. Use it for testing only.
+
 [![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-amazon.svg)](https://github.com/ha-parcel-integrations/ha-amazon/releases)
 [![Downloads](https://img.shields.io/github/downloads/ha-parcel-integrations/ha-amazon/total.svg)](https://github.com/ha-parcel-integrations/ha-amazon/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
@@ -12,7 +15,7 @@ A custom Home Assistant integration that tracks your [Amazon](https://www.amazon
 > [!WARNING]
 > **Pre-1.0.** This integration reads the pages you see when you are signed in to Amazon, not an official tracking service. Amazon can change those pages or its sign-in at any time, in which case updates fail until the integration is updated, and you may be asked to sign in again. Only delivered parcels have been confirmed so far; the statuses for parcels still on their way are mapped from the tracking timeline, and an unrecognised status shows as `unknown` and logs a warning with a link to report it.
 
-Part of the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/) family: it publishes the same canonical parcel format, statuses and events as the other carrier integrations, so it plugs straight into the [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) and cross-carrier automations.
+Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/) format: it publishes the same canonical parcel format, statuses and events as the other carrier integrations, so it plugs straight into the [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) and cross-carrier automations.
 
 ## Contents
 
