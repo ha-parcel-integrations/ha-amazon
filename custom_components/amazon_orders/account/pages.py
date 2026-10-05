@@ -22,6 +22,15 @@ _PLACED_RE = re.compile(
     r"Order placed (\d{1,2} [A-Za-z]+ \d{4})(?:, (?P<tail>.*))?$", re.S
 )
 _ORDER_ID_RE = re.compile(r"\d{3}-\d{7}-\d{7}")
+# Status texts that can open an aria-label segment when the "Order placed"
+# anchor is missing (storefronts lay the label out differently).
+_STATUS_SEGMENT_PREFIXES = (
+    "delivered",
+    "arriving",
+    "not yet dispatched",
+    "dispatched",
+    "out for delivery",
+)
 _DAY_MONTH_RE = re.compile(r"(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?")
 _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
 _CARRIER_RE = re.compile(r"Delivery By ([A-Za-z0-9_]+)")
@@ -149,9 +158,11 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
         # "<title>, Order placed <date>, <status>[, <note>]".
         placed = _PLACED_RE.search(label)
         placed_on = _day_month(placed.group(1), today) if placed else None
-        status_text, _, note = (
-            (placed.group("tail") or "").partition(", ") if placed else ("", "", "")
-        )
+        title = label.split(", Order placed")[0]
+        if placed:
+            status_text, _, note = (placed.group("tail") or "").partition(", ")
+        else:
+            title, status_text, note = _split_unanchored_label(label)
         delivered_on = None
         if status_text.lower().startswith("delivered"):
             delivered_on = (
@@ -166,7 +177,7 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
                 shipment_id=(query.get("shipmentid") or [""])[0],
                 package_id=(query.get("packageid") or ["1"])[0],
                 pop_path=href,
-                title=label.split(", Order placed")[0],
+                title=title,
                 status_text=status_text.strip(),
                 status_note=note or None,
                 placed_on=placed_on,
@@ -175,6 +186,23 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
             )
         )
     return tiles
+
+
+def _split_unanchored_label(label: str) -> tuple[str, str, str]:
+    """Split "<title>, <status>[, <note>]" when there is no "Order placed".
+
+    The title may itself contain commas, so the status is the first segment
+    after it that opens with a known status text.
+    """
+    segments = label.split(", ")
+    for index in range(1, len(segments)):
+        if segments[index].lower().startswith(_STATUS_SEGMENT_PREFIXES):
+            return (
+                ", ".join(segments[:index]),
+                segments[index],
+                ", ".join(segments[index + 1 :]),
+            )
+    return label, "", ""
 
 
 def parse_track_link(page: str) -> str | None:

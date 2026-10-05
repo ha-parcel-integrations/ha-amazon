@@ -69,7 +69,7 @@ def test_in_flight_tile_has_no_delivery_date():
     assert parsed.delivered_on is None
 
 
-def test_delivered_tile_without_a_placed_date_uses_today_as_reference():
+def test_label_without_a_placed_date_still_yields_its_status():
     label_less = (
         '<a class="item-card__link" '
         'href="/-/en/your-orders/pop?orderId=000-0000009-0000009&amp;shipmentId=S1" '
@@ -77,6 +77,33 @@ def test_delivered_tile_without_a_placed_date_uses_today_as_reference():
     )
     (parsed,) = parse_order_tiles(label_less, TODAY)
     assert parsed.placed_on is None
+    assert parsed.title == "Widget"
+    assert parsed.status_text == "Delivered 3 October"
+    assert parsed.delivered_on is not None
+
+
+def test_unanchored_label_with_commas_in_the_title_finds_the_status():
+    page = (
+        '<a class="item-card__link" '
+        'href="/-/en/your-orders/pop?orderId=000-0000009-0000009" '
+        'aria-label="Cable, 1 m, 2 items, Delivered on 19 September, Left at door"></a>'
+    )
+    (parsed,) = parse_order_tiles(page, TODAY)
+    assert parsed.title == "Cable, 1 m, 2 items"
+    assert parsed.status_text == "Delivered on 19 September"
+    assert parsed.status_note == "Left at door"
+    assert parsed.delivered_on is not None
+    assert (parsed.delivered_on.month, parsed.delivered_on.day) == (9, 19)
+
+
+def test_unanchored_label_without_a_known_status_keeps_the_whole_title():
+    page = (
+        '<a class="item-card__link" '
+        'href="/-/en/your-orders/pop?orderId=000-0000009-0000009" '
+        'aria-label="Widget, something new"></a>'
+    )
+    (parsed,) = parse_order_tiles(page, TODAY)
+    assert parsed.title == "Widget, something new"
     assert parsed.status_text == ""
     assert parsed.delivered_on is None
 
