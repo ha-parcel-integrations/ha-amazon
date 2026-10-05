@@ -97,7 +97,8 @@ COUNTRY_DOMAINS = (
     "amazon.com.br",
 )
 
-# Sign-in page language per storefront; anything missing signs in in English.
+# Sign-in page language per storefront. Anything missing signs in in English,
+# which is deliberate for storefronts that serve more than one language.
 SIGN_IN_LANGUAGE = {
     "amazon.nl": "nl_NL",
     "amazon.de": "de_DE",
@@ -111,6 +112,9 @@ SIGN_IN_LANGUAGE = {
     "amazon.in": "en_IN",
     "amazon.com.mx": "es_MX",
     "amazon.com.br": "pt_BR",
+    "amazon.se": "sv_SE",
+    "amazon.pl": "pl_PL",
+    "amazon.com": "en_US",
 }
 
 ORDERS_PATHS = ("/your-orders/orders", "/gp/css/order-history")

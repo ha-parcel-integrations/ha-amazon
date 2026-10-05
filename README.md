@@ -80,6 +80,8 @@ A device named "*your name*'s Home Assistant Parcels" then appears in your Amazo
 
 Add the integration again to follow another country. If Amazon stops accepting the stored sign-in, Home Assistant asks you to repeat these steps.
 
+Each sign-in, whether for a second country or a fresh one after reauth, adds another (numbered) "Home Assistant Parcels" device to the device list in your Amazon account; the old ones can be removed there.
+
 Only shipments of recent orders are followed: those still on their way, and those delivered in the last week. To keep the load on Amazon low, at most ten shipments are read per update, so a very large number of open orders catches up over several updates.
 
 ## Options
@@ -185,7 +187,7 @@ logger:
 - **The pasted address is rejected** — copy the whole address, including everything after the `?`, and paste it straight away. If it still fails, open a fresh sign-in link; each link is meant for one sign-in.
 - **A parcel shows `unknown`** — Amazon said something we have not mapped yet. The log line "Unrecognised Amazon status" names it: please [open an issue](https://github.com/ha-parcel-integrations/ha-amazon/issues/new?template=unrecognised_status.yml) with that line.
 - **An order shows up as a parcel named after a shipment code** — that order line has no tracking page yet, so it is keyed on Amazon's shipment code until a tracking id appears.
-- **Nothing is imported** — only orders from the last few months show on Amazon's orders page, and only recent shipments are followed. Check the log for a warning about the page layout.
+- **Nothing is imported** — only orders from the last few months show on Amazon's orders page, and only recent shipments are followed. Check the log for a warning that no order lines were recognised: it also appears when you simply have no recent orders, but otherwise Amazon may have changed the page.
 
 ## Related integrations
 

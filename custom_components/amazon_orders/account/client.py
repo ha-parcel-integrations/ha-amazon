@@ -134,6 +134,13 @@ class AmazonClient:
                 return tiles
         if failure is not None:
             raise failure
+        # An account with no recent orders gets here legitimately; the same
+        # outcome after a layout change would otherwise be silent.
+        warn_once(
+            "no-order-lines",
+            "No order lines were recognised on the Amazon orders page. If you"
+            " have recent orders, Amazon may have changed the page.",
+        )
         return []
 
     async def _read_shipment(

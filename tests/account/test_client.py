@@ -422,3 +422,21 @@ async def test_undispatched_order_without_a_shipment_becomes_a_registered_parcel
     assert parcel["status"].value == "registered"
     assert parcel["barcode"] == "000-0000002-0000002-lineitem0009"
     assert record["barcode_source"] == "shipment_key"
+
+
+async def test_no_recognised_order_lines_warns_once(caplog):
+    session = _session()
+    client = _client(session)
+
+    assert await client.async_get_parcels() == []
+    assert await client.async_get_parcels() == []
+
+    assert caplog.text.count("No order lines were recognised") == 1
+
+
+async def test_a_failing_orders_page_does_not_claim_the_layout_changed(caplog):
+    session = _session(orders_status=500)
+    session.add("GET", "/gp/css/order-history", FakeResponse(500, ""))
+    with pytest.raises(AmazonApiError):
+        await _client(session).async_get_parcels()
+    assert "No order lines" not in caplog.text

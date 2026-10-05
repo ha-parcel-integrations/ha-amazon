@@ -56,8 +56,16 @@ def test_sign_in_url_carries_the_pkce_challenge_and_language():
 
 
 def test_unlisted_storefront_signs_in_in_english():
-    url = build_sign_in_url("amazon.se", "SERIAL", "verifier")
+    url = build_sign_in_url("amazon.com.be", "SERIAL", "verifier")
     assert parse_qs(urlparse(url).query)["language"] == ["en_US"]
+
+
+@pytest.mark.parametrize(
+    "domain,language", [("amazon.se", "sv_SE"), ("amazon.pl", "pl_PL")]
+)
+def test_swedish_and_polish_storefronts_sign_in_in_their_language(domain, language):
+    url = build_sign_in_url(domain, "SERIAL", "verifier")
+    assert parse_qs(urlparse(url).query)["language"] == [language]
 
 
 def test_authorization_code_is_pulled_from_the_landing_url():
