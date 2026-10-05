@@ -216,6 +216,16 @@ def test_page_without_any_tracking_id():
     assert info.carrier_code is None
 
 
+def test_carrier_header_is_kept_when_its_wording_is_not_read():
+    info = parse_track_page(track_page(carrier_header="Bezorgd door Testcarrier"), TODAY)
+    assert info.carrier_code is None
+    assert info.carrier_header == "Bezorgd door Testcarrier"
+
+    info = parse_track_page(track_page(carrier="DHL_CONNECT"), TODAY)
+    assert info.carrier_code == "DHL_CONNECT"
+    assert info.carrier_header == "Delivery By DHL_CONNECT"
+
+
 def test_unknown_timezone_leaves_timestamps_naive():
     info = parse_track_page(
         track_page(events=DELIVERED_EVENTS[:1], timezone="Nowhere/Land"), TODAY

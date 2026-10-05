@@ -70,6 +70,7 @@ def track_page(
     *,
     tracking_id: str | None = ACTIVE_CODE,
     carrier: str | None = "DRAGONFLY",
+    carrier_header: str | None = None,
     milestone: str | None = "DELIVERED",
     events: list[tuple[str, str, str, str]] | None = None,
     timezone: str | None = "Europe/Amsterdam",
@@ -77,8 +78,13 @@ def track_page(
 ) -> str:
     """A ship-track page. ``events`` are ``(date, time, message, location)``."""
     parts = ["<html><body>"]
-    if carrier:
-        parts.append(f"<h3>Delivery By {carrier}</h3>")
+    if carrier_header is None and carrier:
+        carrier_header = f"Delivery By {carrier}"
+    if carrier_header:
+        parts.append(
+            '<section class="pt-card delivery-card"><div class="pt-delivery-card-wrapper">'
+            f'<div><h3 class="a-spacing-small">{carrier_header}</h3>'
+        )
     if tracking_id:
         parts.append(f'<div class="pt-delivery-card-trackingId">Tracking ID: {tracking_id}</div>')
     last_date = None

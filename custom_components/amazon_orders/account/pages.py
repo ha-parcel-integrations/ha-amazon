@@ -32,6 +32,10 @@ _DAY_MONTH_RE = re.compile(
 )
 _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
 _CARRIER_RE = re.compile(r"Delivery By ([A-Za-z0-9_]+)")
+_CARRIER_HEADER_RE = re.compile(
+    r'(?:pt-delivery-card-wrapper"><div><h3|tracking-event-carrier-header">\s*<h2)'
+    r"[^>]*>\s*([^<]*?)\s*</h[23]>"
+)
 _TRACKING_ID_RE = re.compile(r"Tracking ID:\s*([A-Za-z0-9-]+)")
 _STATE_RE = re.compile(
     r'<script[^>]*page-state[^>]*>\s*(\{.*?\})\s*</script>', re.S
@@ -91,6 +95,7 @@ class TrackInfo:
     tracking_id: str | None
     carrier_code: str | None
     timezone: str | None
+    carrier_header: str | None = None
     events: list[dict[str, Any]] = field(default_factory=list)
     state: dict[str, Any] = field(default_factory=dict)
 
@@ -279,7 +284,9 @@ def _parse_events(
 def parse_track_page(page: str, today: date) -> TrackInfo:
     """Parse a ship-track page into carrier, tracking id, state and timeline."""
     state = _page_state(page)
-    carrier = _CARRIER_RE.search(page)
+    header = _CARRIER_HEADER_RE.search(page)
+    carrier_header = header.group(1) if header and header.group(1) else None
+    carrier = _CARRIER_RE.search(carrier_header or page)
     tracking_match = _TRACKING_ID_RE.search(page)
     tracking_id = state.get("trackingId") or (
         tracking_match.group(1) if tracking_match else None
@@ -291,6 +298,7 @@ def parse_track_page(page: str, today: date) -> TrackInfo:
         tracking_id=str(tracking_id) if tracking_id else None,
         carrier_code=carrier.group(1) if carrier else None,
         timezone=timezone,
+        carrier_header=carrier_header,
         events=_parse_events(page, _zone(timezone), today),
         state=state,
     )
@@ -318,6 +326,7 @@ def build_record(
         "barcode_source": "tracking_id" if tracking_id else "shipment_key",
         "tracking_id": tracking_id,
         "carrier_code": track.carrier_code if track else None,
+        "carrier_header": track.carrier_header if track else None,
         "order_status": lead.status_text or None,
         "order_status_note": lead.status_note,
         "delivered_on": lead.delivered_on.isoformat() if lead.delivered_on else None,

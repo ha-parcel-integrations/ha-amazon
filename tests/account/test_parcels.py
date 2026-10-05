@@ -442,6 +442,31 @@ def test_carrier_names(caplog):
     assert normalize_parcel(raw)["carrier"] == "Amazon"
 
 
+def test_unread_carrier_header_is_reported_once(caplog):
+    raw = active_record()
+    raw["carrier_code"] = None
+    raw["carrier_header"] = "Bezorgd door Testcarrier 12"
+    assert normalize_parcel(raw)["carrier"] == "Amazon"
+    assert normalize_parcel(raw)["carrier"] == "Amazon"
+    assert caplog.text.count("Bezorgd door Testcarrier #") == 1
+    assert "12" not in caplog.text
+    assert "issues/new" in caplog.text
+
+
+def test_tracked_shipment_without_any_carrier_is_reported_once(caplog):
+    raw = active_record()
+    raw["carrier_code"] = None
+    raw["carrier_header"] = None
+    tracking_id, raw["tracking_id"] = raw["tracking_id"], None
+    normalize_parcel(raw)
+    assert "named no delivery carrier" not in caplog.text
+
+    raw["tracking_id"] = tracking_id
+    normalize_parcel(raw)
+    normalize_parcel(raw)
+    assert caplog.text.count("named no delivery carrier") == 1
+
+
 def test_raw_status_falls_back_to_the_order_line_then_the_milestone():
     raw = delivered_record()
     raw["events"] = []

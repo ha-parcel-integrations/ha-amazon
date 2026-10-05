@@ -241,6 +241,20 @@ def _barcode(raw: dict) -> str | None:
 def _carrier(raw: dict) -> str:
     code = raw.get("carrier_code")
     if not code:
+        header = raw.get("carrier_header")
+        if header:
+            masked = re.sub(r"\d+", "#", header)
+            warn_once(
+                f"carrier-header={masked}",
+                f'Amazon named the delivery carrier as "{masked}", which we'
+                " could not read; please share it so it can be recognised.",
+            )
+        elif raw.get("tracking_id"):
+            warn_once(
+                "carrier=missing",
+                "Amazon's tracking page named no delivery carrier we could"
+                " find; please share which carrier the page shows.",
+            )
         return "Amazon"
     name = _CARRIER_NAMES.get(code)
     if name is None:
