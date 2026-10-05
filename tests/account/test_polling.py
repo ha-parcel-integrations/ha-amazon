@@ -101,6 +101,16 @@ def test_tier_is_hot_when_out_for_delivery_without_planned_from():
     assert _hottest_tier_minutes(parcels, now) == HOT_INTERVAL_MINUTES
 
 
+def test_a_registered_parcel_keeps_polling_at_the_in_flight_tier():
+    from custom_components.amazon_orders.account.parcels import normalize_parcel
+
+    from ..payloads import untracked_record
+
+    parcel = normalize_parcel(untracked_record())
+    now = datetime(2026, 1, 1, 12, tzinfo=UTC)
+    assert _hottest_tier_minutes([parcel], now) == MID_INTERVAL_MINUTES
+
+
 def test_tier_is_hot_when_planned_from_cannot_be_parsed():
     now = datetime(2026, 1, 1, 12, tzinfo=UTC)
     assert (

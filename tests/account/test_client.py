@@ -403,3 +403,22 @@ async def test_a_tracking_page_with_nothing_on_it_warns_once(caplog):
 
     assert caplog.text.count("held no tracking id") == 1
     assert "issues/new" in caplog.text
+
+
+async def test_undispatched_order_without_a_shipment_becomes_a_registered_parcel():
+    from custom_components.amazon_orders.account.parcels import normalize_parcel
+
+    undispatched = (
+        '<a class="item-card__link" '
+        'href="/-/en/your-orders/pop?orderId=000-0000002-0000002&amp;lineItemId=lineitem0009" '
+        'aria-label="Widget, Order placed 2 October 2026, Not Yet Dispatched"></a>'
+    )
+    session = _session(undispatched)
+    session.add("GET", "lineItemId=lineitem0009", FakeResponse(200, pop_page(None)))
+
+    (record,) = await _client(session).async_get_parcels()
+    parcel = normalize_parcel(record)
+
+    assert parcel["status"].value == "registered"
+    assert parcel["barcode"] == "000-0000002-0000002-lineitem0009"
+    assert record["barcode_source"] == "shipment_key"

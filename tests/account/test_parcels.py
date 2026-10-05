@@ -126,12 +126,22 @@ def test_nothing_mappable_is_unknown_with_one_warning(caplog):
     assert "issues/new" in caplog.text
 
 
-def test_a_record_with_nothing_to_go_on_is_silently_unknown(caplog):
+def test_an_undispatched_line_with_no_text_is_registered_silently(caplog):
     raw = untracked_record()
     raw["order_status"] = None
     with caplog.at_level(logging.WARNING):
-        assert resolve_status(raw) is ParcelStatus.UNKNOWN
+        assert resolve_status(raw) is ParcelStatus.REGISTERED
     assert caplog.text == ""
+
+
+def test_an_undispatched_line_with_unseen_wording_is_registered_and_reported(caplog):
+    raw = untracked_record()
+    raw["order_status"] = "Preparing 3 items"
+    with caplog.at_level(logging.WARNING):
+        assert resolve_status(raw) is ParcelStatus.REGISTERED
+        assert resolve_status(raw) is ParcelStatus.REGISTERED
+    assert caplog.text.count("Preparing # items") == 1
+    assert "issues/new" in caplog.text
 
 
 def test_any_delivered_message_counts_as_delivery():

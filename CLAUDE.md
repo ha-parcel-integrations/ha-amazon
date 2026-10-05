@@ -80,7 +80,7 @@ its visible text.
   divergence because every poll costs a token refresh and a cookie exchange.
 - **Barcode** is the ship-track page's tracking id. Shipments with no tracking
   page (4 of 6 order lines in the capture; cause unknown) fall back to the
-  shipment key from the order-line URL and say so in `raw["barcode_source"]`;
+  shipment key from the order-line URL (an order not yet dispatched has no shipment id, so it is `<order id>-<line item id>`, else `<order id>-<position>`) and say so in `raw["barcode_source"]`;
   the key flips to the tracking id if one shows up later.
 - **Status resolution** (`resolve_status`): progress-tracker milestone, else the
   newest mappable timeline event, else the order line's status text, else

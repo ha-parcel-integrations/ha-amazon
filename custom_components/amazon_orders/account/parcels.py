@@ -159,6 +159,14 @@ def resolve_status(raw: dict) -> ParcelStatus:
     if mapped is not None:
         return mapped
 
+    if not raw.get("track_path") and not raw.get("milestone") and not events:
+        # No tracking page and not delivered: Amazon has not dispatched it.
+        # The line's own wording is reported once so the map can grow.
+        text = re.sub(r"\d+", "#", raw.get("order_status") or "")
+        if text:
+            _warn_unmapped_status(f"order_status={text} (treated as registered)")
+        return ParcelStatus.REGISTERED
+
     if milestone or events or raw.get("order_status"):
         newest = events[0].get("message") if events else None
         order_text = re.sub(r"\d+", "#", raw.get("order_status") or "")

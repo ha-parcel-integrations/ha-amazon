@@ -21,6 +21,7 @@ _TILE_RE = re.compile(
 _PLACED_RE = re.compile(
     r"Order placed (\d{1,2} [A-Za-z]+ \d{4})(?:, (?P<tail>.*))?$", re.S
 )
+_ORDER_ID_RE = re.compile(r"\d{3}-\d{7}-\d{7}")
 _DAY_MONTH_RE = re.compile(r"(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?")
 _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
 _CARRIER_RE = re.compile(r"Delivery By ([A-Za-z0-9_]+)")
@@ -62,11 +63,24 @@ class OrderTile:
     status_note: str | None
     placed_on: date | None
     delivered_on: date | None
+    position: int = 0
+
+    @property
+    def shipment_key(self) -> str:
+        """The shipment id, or a stable stand-in for a line not yet shipped.
+
+        An order that has not been dispatched has no shipment id; its line id
+        (else its place on the page) keeps it distinct, and the key is
+        replaced by the real shipment id once one exists.
+        """
+        if self.shipment_id:
+            return self.shipment_id
+        return f"{self.order_id}-{self.line_item_id or self.position}"
 
     @property
     def key(self) -> tuple[str, str, str]:
         """Identity of the shipment this line belongs to."""
-        return (self.order_id, self.shipment_id, self.package_id)
+        return (self.order_id, self.shipment_key, self.package_id)
 
     @property
     def delivered(self) -> bool:
@@ -121,11 +135,14 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
     """Return every order line found on an orders page, in page order."""
     matches = list(_TILE_RE.finditer(page))
     tiles: list[OrderTile] = []
-    for match in matches:
+    for position, match in enumerate(matches):
         href = html.unescape(match.group(1))
         label = html.unescape(match.group(2))
-        query = parse_qs(urlparse(href).query)
-        order_id = (query.get("orderId") or [""])[0]
+        query = {k.lower(): v for k, v in parse_qs(urlparse(href).query).items()}
+        order_id = (query.get("orderid") or [""])[0]
+        if not order_id:
+            found = _ORDER_ID_RE.search(href)
+            order_id = found.group(0) if found else ""
         if not order_id:
             continue
         # The aria-label is the one place every tile layout agrees on:
@@ -145,15 +162,16 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
         tiles.append(
             OrderTile(
                 order_id=order_id,
-                line_item_id=(query.get("lineItemId") or [""])[0],
-                shipment_id=(query.get("shipmentId") or [""])[0],
-                package_id=(query.get("packageId") or ["1"])[0],
+                line_item_id=(query.get("lineitemid") or [""])[0],
+                shipment_id=(query.get("shipmentid") or [""])[0],
+                package_id=(query.get("packageid") or ["1"])[0],
                 pop_path=href,
                 title=label.split(", Order placed")[0],
                 status_text=status_text.strip(),
                 status_note=note or None,
                 placed_on=placed_on,
                 delivered_on=delivered_on,
+                position=position,
             )
         )
     return tiles
@@ -265,7 +283,7 @@ def build_record(
     return {
         "domain": domain,
         "order_id": lead.order_id,
-        "shipment_id": lead.shipment_id,
+        "shipment_id": lead.shipment_key,
         "package_id": lead.package_id,
         "barcode_source": "tracking_id" if tracking_id else "shipment_key",
         "tracking_id": tracking_id,

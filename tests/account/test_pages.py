@@ -284,3 +284,42 @@ def test_record_with_a_page_that_has_no_progress_tracker():
     info = parse_track_page(track_page(state=False), TODAY)
     record = build_record(COUNTRY, _tiles(), track_path(DELIVERED_SHIPMENT), info)
     assert record["milestone"] is None
+
+
+def _bare_tile(href: str, label: str = "Widget, Order placed 2 October 2026") -> str:
+    return f'<a class="item-card__link" href="{href}" aria-label="{label}"></a>'
+
+
+def test_undispatched_line_without_a_shipment_is_keyed_on_its_line():
+    page = orders_page(
+        _bare_tile(
+            "/-/en/your-orders/pop?orderId=000-0000002-0000002&lineItemId=lineitem0009"
+        )
+    )
+    (parsed,) = parse_order_tiles(page, TODAY)
+    assert parsed.shipment_id == ""
+    assert parsed.shipment_key == "000-0000002-0000002-lineitem0009"
+    assert parsed.key == ("000-0000002-0000002", parsed.shipment_key, "1")
+
+
+def test_undispatched_line_without_any_ids_is_keyed_on_its_position():
+    page = orders_page(
+        _bare_tile("/-/en/your-orders/pop?orderID=000-0000002-0000002"),
+        _bare_tile("/-/en/your-orders/pop?orderID=000-0000002-0000002"),
+    )
+    first, second = parse_order_tiles(page, TODAY)
+    assert first.shipment_key == "000-0000002-0000002-0"
+    assert second.shipment_key == "000-0000002-0000002-1"
+
+
+def test_order_id_is_found_in_the_path_when_not_in_the_query():
+    page = orders_page(_bare_tile("/-/en/your-orders/order-details/000-0000003-0000003"))
+    (parsed,) = parse_order_tiles(page, TODAY)
+    assert parsed.order_id == "000-0000003-0000003"
+
+
+def test_shipped_line_keeps_its_shipment_id_as_key():
+    (parsed,) = parse_order_tiles(
+        orders_page(tile(ACTIVE_SHIPMENT, "Arriving today", None)), TODAY
+    )
+    assert parsed.shipment_key == ACTIVE_SHIPMENT
