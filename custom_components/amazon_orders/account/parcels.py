@@ -132,13 +132,23 @@ def resolve_status(raw: dict) -> ParcelStatus:
     """Resolve a record's status: milestone, else newest event, else order text.
 
     Only when none of them maps does the parcel report ``unknown``, with a
-    one-shot warning naming what was seen.
+    one-shot warning naming what was seen. An unmapped milestone is reported
+    once on its own as well, even when the timeline resolves the status.
     """
     milestone = raw.get("milestone")
     mapped = _MILESTONE_MAP.get(milestone) if milestone else None
     if mapped is not None:
         return mapped
+    status = _resolve_without_milestone(raw, milestone)
+    if milestone and status is not ParcelStatus.UNKNOWN:
+        # The milestone is the preferred source but its vocabulary is barely
+        # known, so report a new one even when the timeline can stand in.
+        _warn_unmapped_status(f"milestone={milestone}")
+    return status
 
+
+def _resolve_without_milestone(raw: dict, milestone: str | None) -> ParcelStatus:
+    """Fall back to the newest mappable event, then the order text."""
     events = sorted(
         (e for e in raw.get("events") or [] if isinstance(e, dict)),
         key=lambda e: parse_iso(e.get("timestamp")) or datetime.min.replace(

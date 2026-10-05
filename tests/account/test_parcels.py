@@ -83,7 +83,7 @@ def test_delivered_milestone_wins_over_the_timeline():
 
 def test_unmapped_milestone_falls_back_to_the_newest_mappable_event(caplog):
     """The band-ordering trap: an unseen milestone name must not hide a
-    perfectly good timeline, and must not warn while the timeline resolves it."""
+    perfectly good timeline, but is still reported once so the map can grow."""
     raw = active_record()
     raw["milestone"] = "SOMETHING_UNSEEN"
     raw["events"] = [
@@ -92,7 +92,8 @@ def test_unmapped_milestone_falls_back_to_the_newest_mappable_event(caplog):
     ]
     with caplog.at_level(logging.WARNING):
         assert resolve_status(raw) is ParcelStatus.OUT_FOR_DELIVERY
-    assert "Unrecognised" not in caplog.text
+        assert resolve_status(raw) is ParcelStatus.OUT_FOR_DELIVERY
+    assert caplog.text.count("milestone=SOMETHING_UNSEEN") == 1
 
 
 def test_newest_mappable_event_decides_not_the_oldest():
@@ -366,7 +367,7 @@ def test_carrier_names(caplog):
     raw = active_record()
     raw["carrier_code"] = "DHL_CONNECT"
     assert normalize_parcel(raw)["carrier"] == "DHL"
-    assert caplog.text == ""
+    assert "DHL_CONNECT" not in caplog.text
     raw["carrier_code"] = "SOME_NEW_CARRIER"
     assert normalize_parcel(raw)["carrier"] == "Some New Carrier"
     assert normalize_parcel(raw)["carrier"] == "Some New Carrier"
