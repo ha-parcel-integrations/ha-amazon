@@ -75,6 +75,9 @@ async def test_user_flow_shows_the_sign_in_link_then_creates_the_entry(hass):
     assert urlparse(url).path == "/ap/signin"
     assert parse_qs(urlparse(url).query)["language"] == ["nl_NL"]
     assert result["description_placeholders"]["country"] == COUNTRY
+    assert result["description_placeholders"]["landing_url_prefix"].endswith(
+        "/ap/maplanding"
+    )
 
     with patch(REGISTER, new=AsyncMock(return_value=REGISTRATION)) as register:
         result = await hass.config_entries.flow.async_configure(

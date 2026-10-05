@@ -19,6 +19,7 @@ APP_NAME = "Alexa Media Player"
 DEVICE_NAME = "Home Assistant Parcels"
 CALL_VERSION = "2.2.556530.0"
 FALLBACK_API_HOST = "api.amazon.com"
+LANDING_URL = "https://www.amazon.com/ap/maplanding"
 
 _DEVICE_ID_SUFFIX = "23413249564c5635564d32573831"
 _TOKEN_FIELDS = {
@@ -66,7 +67,7 @@ def _code_challenge(verifier: str) -> str:
 def build_sign_in_url(domain: str, serial: str, verifier: str) -> str:
     """Return the Amazon sign-in URL the user opens in their own browser."""
     query = {
-        "openid.return_to": "https://www.amazon.com/ap/maplanding",
+        "openid.return_to": LANDING_URL,
         "openid.assoc_handle": "amzn_dp_project_dee_ios",
         "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
         "pageId": "amzn_dp_project_dee_ios",

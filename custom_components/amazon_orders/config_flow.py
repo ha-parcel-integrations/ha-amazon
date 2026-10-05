@@ -19,6 +19,7 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .account.auth import (
+    LANDING_URL,
     build_sign_in_url,
     extract_authorization_code,
     new_code_verifier,
@@ -150,6 +151,7 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
                     self._domain, self._serial, self._verifier
                 ),
                 "country": self._domain,
+                "landing_url_prefix": LANDING_URL,
             },
         )
 
