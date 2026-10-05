@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurer Amazon",
+        "description": "Choisis le pays Amazon sur lequel tu fais tes achats. Les colis sont lus depuis ton compte connecté pour ce pays. Pour suivre un autre pays, ajoute à nouveau l'intégration.",
+        "data": {
+          "country": "Pays Amazon"
+        }
+      },
+      "sign_in": {
+        "title": "Se connecter à Amazon",
+        "description": "1. Ouvre [la page de connexion Amazon pour {country}]({sign_in_url}) dans ton propre navigateur et connecte-toi, en effectuant toute vérification demandée par Amazon.\n2. Amazon affiche ensuite une page qui peut sembler vide ou ressembler à une erreur. C'est normal. Copie l'adresse complète depuis la barre d'adresse de ton navigateur.\n3. Colle cette adresse ci-dessous.\n\nTon mot de passe n'est jamais saisi dans Home Assistant.",
+        "data": {
+          "landing_url": "Adresse de la page finale"
+        },
+        "data_description": {
+          "landing_url": "L'adresse web complète sur laquelle tu es arrivé après la connexion."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Cette adresse ne contient pas de code de connexion. Copie l'adresse complète de la page sur laquelle tu es arrivé après la connexion.",
+      "sign_in_failed": "Amazon n'a pas accepté cette connexion. Ouvre un nouveau lien de connexion et termine la connexion d'une traite.",
+      "cannot_connect": "Impossible de joindre Amazon. Veuillez réessayer."
+    },
+    "abort": {
+      "already_configured": "Ce pays Amazon est déjà configuré.",
+      "reauth_successful": "Amazon a été réauthentifié avec succès."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options Amazon",
+        "sections": {
+          "delivered": {
+            "name": "Colis livrés",
+            "data": {
+              "delivered_filter_type": "Filtrer par",
+              "delivered_filter_amount": "Quantité"
+            },
+            "data_description": {
+              "delivered_filter_type": "Afficher les colis livrés des X derniers jours, ou se limiter aux X plus récents.",
+              "delivered_filter_amount": "Nombre de jours ou de colis à afficher."
+            }
+          },
+          "history": {
+            "name": "Historique des colis",
+            "data": {
+              "include_history": "Inclure l'historique des statuts"
+            },
+            "data_description": {
+              "include_history": "Ajoute un attribut d'historique par colis répertoriant chaque mise à jour de statut (horodatage, statut, texte d'origine). Désactivé par défaut."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Jours",
+        "parcels": "Nombre de colis"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Un colis a été enregistré",
+      "parcel_status_changed": "Le statut d'un colis a changé",
+      "parcel_delivered": "Un colis a été livré",
+      "parcel_delivery_time_changed": "L'heure de livraison prévue d'un colis a changé"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Actualiser"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Livraisons"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Colis entrants",
+        "unit_of_measurement": "colis"
+      },
+      "next_delivery": {
+        "name": "Prochaine livraison"
+      },
+      "en_route_to_pickup_point": {
+        "name": "En route vers le point relais",
+        "unit_of_measurement": "colis"
+      },
+      "awaiting_pickup": {
+        "name": "En attente de retrait",
+        "unit_of_measurement": "colis"
+      },
+      "delivered_parcels": {
+        "name": "Colis livrés",
+        "unit_of_measurement": "colis"
+      },
+      "last_update": {
+        "name": "Dernière mise à jour réussie"
+      },
+      "parcel": {
+        "name": "Colis {barcode}"
+      }
+    }
+  }
+}

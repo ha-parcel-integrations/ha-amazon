@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Socraigh Amazon",
+        "description": "Roghnaigh an tír Amazon a dhéanann tú siopadóireacht uirthi. Léitear beartáin ó do chuntas sínithe isteach don tír sin. Chun tír eile a leanúint, cuir an comhtháthú leis arís.",
+        "data": {
+          "country": "Tír Amazon"
+        }
+      },
+      "sign_in": {
+        "title": "Sínigh isteach ar Amazon",
+        "description": "1. Oscail [leathanach sínithe isteach Amazon do {country}]({sign_in_url}) i do bhrabhsálaí féin agus sínigh isteach, ag críochnú aon fhíorú a iarrann Amazon.\n2. Ina dhiaidh sin taispeánann Amazon leathanach a d'fhéadfadh a bheith folamh nó cosúil le hearráid. Táthar ag súil leis sin. Cóipeáil an seoladh iomlán ó bharra seoltaí do bhrabhsálaí.\n3. Greamaigh an seoladh sin thíos.\n\nNí chuirtear do phasfhocal isteach i Home Assistant riamh.",
+        "data": {
+          "landing_url": "Seoladh an leathanaigh dheiridh"
+        },
+        "data_description": {
+          "landing_url": "An seoladh gréasáin iomlán ar tháinig tú air tar éis síniú isteach."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Níl cód sínithe isteach sa seoladh sin. Cóipeáil seoladh iomlán an leathanaigh ar tháinig tú air tar éis síniú isteach.",
+      "sign_in_failed": "Níor ghlac Amazon leis an síniú isteach sin. Oscail nasc sínithe isteach nua agus críochnaigh an síniú isteach in aon iarracht amháin.",
+      "cannot_connect": "Níorbh fhéidir teagmháil a dhéanamh le Amazon. Bain triail eile as."
+    },
+    "abort": {
+      "already_configured": "Tá an tír Amazon sin socraithe cheana féin.",
+      "reauth_successful": "D'éirigh le hathfhíordheimhniú Amazon."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Roghanna Amazon",
+        "sections": {
+          "delivered": {
+            "name": "Pacáistí seachadta",
+            "data": {
+              "delivered_filter_type": "Scag de réir",
+              "delivered_filter_amount": "Méid"
+            },
+            "data_description": {
+              "delivered_filter_type": "Taispeáin pacáistí a seachadadh sna X lá is déanaí, nó teorannaigh do na X is déanaí.",
+              "delivered_filter_amount": "Líon na laethanta nó na bpacáistí le taispeáint."
+            }
+          },
+          "history": {
+            "name": "Stair an bheartáin",
+            "data": {
+              "include_history": "Cuir stair na stádas san áireamh"
+            },
+            "data_description": {
+              "include_history": "Cuireann sé aitreabúid staire le gach beartán ina liostaítear gach athrú stádais (stampa ama, stádas, buntéacs). Múchta de réir réamhshocraithe."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Laethanta",
+        "parcels": "Líon na bpacáistí"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Cláraíodh pacáiste",
+      "parcel_status_changed": "D'athraigh stádas pacáiste",
+      "parcel_delivered": "Seachadadh pacáiste",
+      "parcel_delivery_time_changed": "D'athraigh am seachadta measta pacáiste"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Athnuaigh"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Seachadtaí"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Pacáistí ag teacht isteach",
+        "unit_of_measurement": "pacáistí"
+      },
+      "next_delivery": {
+        "name": "An chéad seachadadh eile"
+      },
+      "en_route_to_pickup_point": {
+        "name": "Ar an mbealach chuig pointe bailithe",
+        "unit_of_measurement": "pacáistí"
+      },
+      "awaiting_pickup": {
+        "name": "Ag fanacht le bailiú",
+        "unit_of_measurement": "pacáistí"
+      },
+      "delivered_parcels": {
+        "name": "Pacáistí seachadta",
+        "unit_of_measurement": "pacáistí"
+      },
+      "last_update": {
+        "name": "An nuashonrú rathúil is déanaí"
+      },
+      "parcel": {
+        "name": "Pacáiste {barcode}"
+      }
+    }
+  }
+}

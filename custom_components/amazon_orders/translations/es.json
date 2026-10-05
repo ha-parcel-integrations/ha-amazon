@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar Amazon",
+        "description": "Elige el país de Amazon en el que compras. Los paquetes se leen desde tu cuenta con sesión iniciada para ese país. Para seguir otro país, vuelve a añadir la integración.",
+        "data": {
+          "country": "País de Amazon"
+        }
+      },
+      "sign_in": {
+        "title": "Iniciar sesión en Amazon",
+        "description": "1. Abre [la página de inicio de sesión de Amazon para {country}]({sign_in_url}) en tu propio navegador e inicia sesión, completando cualquier verificación que pida Amazon.\n2. Después, Amazon muestra una página que puede parecer vacía o un error. Es lo esperado. Copia la dirección completa de la barra de direcciones de tu navegador.\n3. Pega esa dirección abajo.\n\nTu contraseña nunca se introduce en Home Assistant.",
+        "data": {
+          "landing_url": "Dirección de la página final"
+        },
+        "data_description": {
+          "landing_url": "La dirección web completa a la que llegaste tras iniciar sesión."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Esa dirección no contiene un código de inicio de sesión. Copia la dirección completa de la página a la que llegaste tras iniciar sesión.",
+      "sign_in_failed": "Amazon no aceptó ese inicio de sesión. Abre un enlace de inicio de sesión nuevo y complétalo de una vez.",
+      "cannot_connect": "No se pudo conectar con Amazon. Inténtalo de nuevo."
+    },
+    "abort": {
+      "already_configured": "Ese país de Amazon ya está configurado.",
+      "reauth_successful": "Amazon se ha vuelto a autenticar correctamente."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de Amazon",
+        "sections": {
+          "delivered": {
+            "name": "Paquetes entregados",
+            "data": {
+              "delivered_filter_type": "Filtrar por",
+              "delivered_filter_amount": "Cantidad"
+            },
+            "data_description": {
+              "delivered_filter_type": "Muestra los paquetes entregados de los últimos X días, o limita a los X más recientes.",
+              "delivered_filter_amount": "Número de días o paquetes a mostrar."
+            }
+          },
+          "history": {
+            "name": "Historial de paquetes",
+            "data": {
+              "include_history": "Incluir historial de estados"
+            },
+            "data_description": {
+              "include_history": "Añade un atributo de historial por paquete con cada actualización de estado (marca de tiempo, estado, texto original). Desactivado por defecto."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Días",
+        "parcels": "Número de paquetes"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Se registró un paquete",
+      "parcel_status_changed": "El estado de un paquete ha cambiado",
+      "parcel_delivered": "Se entregó un paquete",
+      "parcel_delivery_time_changed": "La hora de entrega prevista de un paquete ha cambiado"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Actualizar"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Entregas"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Paquetes entrantes",
+        "unit_of_measurement": "paquetes"
+      },
+      "next_delivery": {
+        "name": "Próxima entrega"
+      },
+      "en_route_to_pickup_point": {
+        "name": "En camino al punto de recogida",
+        "unit_of_measurement": "paquetes"
+      },
+      "awaiting_pickup": {
+        "name": "Listo para recoger",
+        "unit_of_measurement": "paquetes"
+      },
+      "delivered_parcels": {
+        "name": "Paquetes entregados",
+        "unit_of_measurement": "paquetes"
+      },
+      "last_update": {
+        "name": "Última actualización correcta"
+      },
+      "parcel": {
+        "name": "Paquete {barcode}"
+      }
+    }
+  }
+}

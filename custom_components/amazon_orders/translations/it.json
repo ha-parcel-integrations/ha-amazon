@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configura Amazon",
+        "description": "Scegli il paese Amazon in cui fai acquisti. I pacchi vengono letti dal tuo account connesso per quel paese. Per seguire un altro paese, aggiungi di nuovo l'integrazione.",
+        "data": {
+          "country": "Paese Amazon"
+        }
+      },
+      "sign_in": {
+        "title": "Accedi ad Amazon",
+        "description": "1. Apri [la pagina di accesso Amazon per {country}]({sign_in_url}) nel tuo browser ed effettua l'accesso, completando qualsiasi verifica richiesta da Amazon.\n2. Dopo, Amazon mostra una pagina che può sembrare vuota o un errore. È normale. Copia l'indirizzo completo dalla barra degli indirizzi del browser.\n3. Incolla quell'indirizzo qui sotto.\n\nLa tua password non viene mai inserita in Home Assistant.",
+        "data": {
+          "landing_url": "Indirizzo della pagina finale"
+        },
+        "data_description": {
+          "landing_url": "L'indirizzo web completo su cui sei arrivato dopo l'accesso."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Questo indirizzo non contiene un codice di accesso. Copia l'indirizzo completo della pagina su cui sei arrivato dopo l'accesso.",
+      "sign_in_failed": "Amazon non ha accettato questo accesso. Apri un nuovo link di accesso e completa l'accesso in un'unica volta.",
+      "cannot_connect": "Impossibile raggiungere Amazon. Riprova."
+    },
+    "abort": {
+      "already_configured": "Questo paese Amazon è già configurato.",
+      "reauth_successful": "Amazon è stato riautenticato correttamente."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni Amazon",
+        "sections": {
+          "delivered": {
+            "name": "Pacchi consegnati",
+            "data": {
+              "delivered_filter_type": "Filtra per",
+              "delivered_filter_amount": "Quantità"
+            },
+            "data_description": {
+              "delivered_filter_type": "Mostra i pacchi consegnati negli ultimi X giorni, oppure limita ai X più recenti.",
+              "delivered_filter_amount": "Numero di giorni o pacchi da mostrare."
+            }
+          },
+          "history": {
+            "name": "Cronologia pacchi",
+            "data": {
+              "include_history": "Includi cronologia degli stati"
+            },
+            "data_description": {
+              "include_history": "Aggiunge a ogni pacco un attributo di cronologia con ogni aggiornamento di stato (data e ora, stato, testo originale). Disattivato per impostazione predefinita."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Giorni",
+        "parcels": "Numero di pacchi"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Un pacco è stato registrato",
+      "parcel_status_changed": "Lo stato di un pacco è cambiato",
+      "parcel_delivered": "Un pacco è stato consegnato",
+      "parcel_delivery_time_changed": "L'orario di consegna previsto di un pacco è cambiato"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Aggiorna"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Consegne"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Pacchi in arrivo",
+        "unit_of_measurement": "pacchi"
+      },
+      "next_delivery": {
+        "name": "Prossima consegna"
+      },
+      "en_route_to_pickup_point": {
+        "name": "In viaggio verso il punto di ritiro",
+        "unit_of_measurement": "pacchi"
+      },
+      "awaiting_pickup": {
+        "name": "Pronto per il ritiro",
+        "unit_of_measurement": "pacchi"
+      },
+      "delivered_parcels": {
+        "name": "Pacchi consegnati",
+        "unit_of_measurement": "pacchi"
+      },
+      "last_update": {
+        "name": "Ultimo aggiornamento riuscito"
+      },
+      "parcel": {
+        "name": "Pacco {barcode}"
+      }
+    }
+  }
+}

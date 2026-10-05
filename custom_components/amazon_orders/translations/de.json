@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Amazon einrichten",
+        "description": "Wähle das Amazon-Land, in dem du einkaufst. Pakete werden aus deinem angemeldeten Konto für dieses Land gelesen. Um ein weiteres Land zu verfolgen, füge die Integration erneut hinzu.",
+        "data": {
+          "country": "Amazon-Land"
+        }
+      },
+      "sign_in": {
+        "title": "Bei Amazon anmelden",
+        "description": "1. Öffne [die Amazon-Anmeldeseite für {country}]({sign_in_url}) in deinem eigenen Browser und melde dich an. Schließe dabei jede Überprüfung ab, die Amazon verlangt.\n2. Danach zeigt Amazon eine Seite, die leer oder wie ein Fehler aussehen kann. Das ist so gewollt. Kopiere die vollständige Adresse aus der Adressleiste deines Browsers.\n3. Füge diese Adresse unten ein.\n\nDein Passwort wird nie in Home Assistant eingegeben.",
+        "data": {
+          "landing_url": "Adresse der letzten Seite"
+        },
+        "data_description": {
+          "landing_url": "Die vollständige Webadresse, auf der du nach der Anmeldung gelandet bist."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Diese Adresse enthält keinen Anmeldecode. Kopiere die vollständige Adresse der Seite, auf der du nach der Anmeldung gelandet bist.",
+      "sign_in_failed": "Amazon hat diese Anmeldung nicht akzeptiert. Öffne einen neuen Anmeldelink und schließe die Anmeldung in einem Durchgang ab.",
+      "cannot_connect": "Amazon war nicht erreichbar. Bitte versuche es erneut."
+    },
+    "abort": {
+      "already_configured": "Dieses Amazon-Land ist bereits eingerichtet.",
+      "reauth_successful": "Amazon wurde erfolgreich neu authentifiziert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Amazon-Optionen",
+        "sections": {
+          "delivered": {
+            "name": "Zugestellte Pakete",
+            "data": {
+              "delivered_filter_type": "Filtern nach",
+              "delivered_filter_amount": "Anzahl"
+            },
+            "data_description": {
+              "delivered_filter_type": "Zeige zugestellte Pakete der letzten X Tage oder beschränke die Anzeige auf die letzten X Pakete.",
+              "delivered_filter_amount": "Anzahl der anzuzeigenden Tage oder Pakete."
+            }
+          },
+          "history": {
+            "name": "Paketverlauf",
+            "data": {
+              "include_history": "Statusverlauf einbeziehen"
+            },
+            "data_description": {
+              "include_history": "Fügt jedem Paket ein Verlaufsattribut hinzu, das jede Statusaktualisierung auflistet (Zeitstempel, Status, Originaltext). Standardmäßig deaktiviert."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Tage",
+        "parcels": "Anzahl Pakete"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Ein Paket wurde registriert",
+      "parcel_status_changed": "Der Status eines Pakets hat sich geändert",
+      "parcel_delivered": "Ein Paket wurde zugestellt",
+      "parcel_delivery_time_changed": "Die voraussichtliche Zustellzeit eines Pakets hat sich geändert"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Aktualisieren"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Zustellungen"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Eingehende Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "next_delivery": {
+        "name": "Nächste Zustellung"
+      },
+      "en_route_to_pickup_point": {
+        "name": "Unterwegs zur Abholstelle",
+        "unit_of_measurement": "Pakete"
+      },
+      "awaiting_pickup": {
+        "name": "Abholbereit",
+        "unit_of_measurement": "Pakete"
+      },
+      "delivered_parcels": {
+        "name": "Zugestellte Pakete",
+        "unit_of_measurement": "Pakete"
+      },
+      "last_update": {
+        "name": "Letzte erfolgreiche Aktualisierung"
+      },
+      "parcel": {
+        "name": "Paket {barcode}"
+      }
+    }
+  }
+}

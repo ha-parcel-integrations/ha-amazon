@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar a Amazon",
+        "description": "Escolha o país da Amazon em que você compra. Os pacotes são lidos da sua conta conectada para esse país. Para acompanhar outro país, adicione a integração novamente.",
+        "data": {
+          "country": "País da Amazon"
+        }
+      },
+      "sign_in": {
+        "title": "Entrar na Amazon",
+        "description": "1. Abra [a página de login da Amazon para {country}]({sign_in_url}) no seu próprio navegador e faça login, concluindo qualquer verificação que a Amazon pedir.\n2. Depois, a Amazon mostra uma página que pode parecer vazia ou um erro. Isso é esperado. Copie o endereço completo da barra de endereços do navegador.\n3. Cole esse endereço abaixo.\n\nSua senha nunca é digitada no Home Assistant.",
+        "data": {
+          "landing_url": "Endereço da página final"
+        },
+        "data_description": {
+          "landing_url": "O endereço web completo em que você chegou após fazer login."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Esse endereço não contém um código de login. Copie o endereço completo da página em que você chegou após fazer login.",
+      "sign_in_failed": "A Amazon não aceitou esse login. Abra um novo link de login e conclua o login de uma só vez.",
+      "cannot_connect": "Não foi possível acessar a Amazon. Tente novamente."
+    },
+    "abort": {
+      "already_configured": "Esse país da Amazon já está configurado.",
+      "reauth_successful": "A Amazon foi autenticada novamente com sucesso."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções da Amazon",
+        "sections": {
+          "delivered": {
+            "name": "Pacotes entregues",
+            "data": {
+              "delivered_filter_type": "Filtrar por",
+              "delivered_filter_amount": "Quantidade"
+            },
+            "data_description": {
+              "delivered_filter_type": "Mostrar pacotes entregues dos últimos X dias, ou limitar aos X mais recentes.",
+              "delivered_filter_amount": "Número de dias ou pacotes a mostrar."
+            }
+          },
+          "history": {
+            "name": "Histórico de pacotes",
+            "data": {
+              "include_history": "Incluir histórico de status"
+            },
+            "data_description": {
+              "include_history": "Adiciona um atributo de histórico por pacote listando cada atualização de status (data/hora, status, texto original). Desativado por padrão."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dias",
+        "parcels": "Número de pacotes"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Um pacote foi registrado",
+      "parcel_status_changed": "O status de um pacote foi alterado",
+      "parcel_delivered": "Um pacote foi entregue",
+      "parcel_delivery_time_changed": "O horário de entrega previsto de um pacote foi alterado"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Atualizar"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Entregas"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Pacotes a caminho",
+        "unit_of_measurement": "pacotes"
+      },
+      "next_delivery": {
+        "name": "Próxima entrega"
+      },
+      "en_route_to_pickup_point": {
+        "name": "A caminho do ponto de retirada",
+        "unit_of_measurement": "pacotes"
+      },
+      "awaiting_pickup": {
+        "name": "Aguardando retirada",
+        "unit_of_measurement": "pacotes"
+      },
+      "delivered_parcels": {
+        "name": "Pacotes entregues",
+        "unit_of_measurement": "pacotes"
+      },
+      "last_update": {
+        "name": "Última atualização bem-sucedida"
+      },
+      "parcel": {
+        "name": "Pacote {barcode}"
+      }
+    }
+  }
+}

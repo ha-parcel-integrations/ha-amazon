@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Amazon を設定",
+        "description": "買い物をしている Amazon の国を選択してください。荷物はその国のサインイン済みアカウントから読み取られます。別の国を追跡するには、統合をもう一度追加してください。",
+        "data": {
+          "country": "Amazon の国"
+        }
+      },
+      "sign_in": {
+        "title": "Amazon にサインイン",
+        "description": "1. ご自身のブラウザで[{country} の Amazon サインインページ]({sign_in_url})を開き、Amazon が求める確認をすべて完了してサインインしてください。\n2. その後、Amazon は空白またはエラーのように見えるページを表示します。これは想定どおりです。ブラウザのアドレスバーから完全なアドレスをコピーしてください。\n3. そのアドレスを下に貼り付けてください。\n\nパスワードが Home Assistant に入力されることはありません。",
+        "data": {
+          "landing_url": "最後のページのアドレス"
+        },
+        "data_description": {
+          "landing_url": "サインイン後に表示されたページの完全なウェブアドレス。"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "そのアドレスにはサインインコードが含まれていません。サインイン後に表示されたページの完全なアドレスをコピーしてください。",
+      "sign_in_failed": "Amazon はこのサインインを受け付けませんでした。新しいサインインリンクを開き、一度でサインインを完了してください。",
+      "cannot_connect": "Amazon に接続できませんでした。もう一度お試しください。"
+    },
+    "abort": {
+      "already_configured": "この Amazon の国はすでに設定されています。",
+      "reauth_successful": "Amazon の再認証に成功しました。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Amazon のオプション",
+        "sections": {
+          "delivered": {
+            "name": "配達済みの荷物",
+            "data": {
+              "delivered_filter_type": "絞り込み方法",
+              "delivered_filter_amount": "数"
+            },
+            "data_description": {
+              "delivered_filter_type": "過去 X 日間の配達済みの荷物を表示するか、最新の X 件に制限します。",
+              "delivered_filter_amount": "表示する日数または荷物の数。"
+            }
+          },
+          "history": {
+            "name": "荷物の履歴",
+            "data": {
+              "include_history": "ステータス履歴を含める"
+            },
+            "data_description": {
+              "include_history": "各ステータス更新（タイムスタンプ、ステータス、元のテキスト）を一覧にした荷物ごとの履歴属性を追加します。デフォルトではオフです。"
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "日数",
+        "parcels": "荷物の数"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "荷物が登録された",
+      "parcel_status_changed": "荷物のステータスが変わった",
+      "parcel_delivered": "荷物が配達された",
+      "parcel_delivery_time_changed": "荷物の配達予定時刻が変わった"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "更新"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "配達"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "到着予定の荷物",
+        "unit_of_measurement": "個"
+      },
+      "next_delivery": {
+        "name": "次回の配達"
+      },
+      "en_route_to_pickup_point": {
+        "name": "受取場所へ輸送中",
+        "unit_of_measurement": "個"
+      },
+      "awaiting_pickup": {
+        "name": "受取待ち",
+        "unit_of_measurement": "個"
+      },
+      "delivered_parcels": {
+        "name": "配達済みの荷物",
+        "unit_of_measurement": "個"
+      },
+      "last_update": {
+        "name": "最終更新成功"
+      },
+      "parcel": {
+        "name": "荷物 {barcode}"
+      }
+    }
+  }
+}

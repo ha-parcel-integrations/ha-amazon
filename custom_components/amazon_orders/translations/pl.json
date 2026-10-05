@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Skonfiguruj Amazon",
+        "description": "Wybierz kraj Amazon, w którym robisz zakupy. Paczki są odczytywane z Twojego zalogowanego konta dla tego kraju. Aby śledzić inny kraj, dodaj integrację ponownie.",
+        "data": {
+          "country": "Kraj Amazon"
+        }
+      },
+      "sign_in": {
+        "title": "Zaloguj się do Amazon",
+        "description": "1. Otwórz [stronę logowania Amazon dla {country}]({sign_in_url}) we własnej przeglądarce i zaloguj się, kończąc każdą weryfikację, o którą poprosi Amazon.\n2. Następnie Amazon pokaże stronę, która może wyglądać na pustą lub na błąd. Tak ma być. Skopiuj pełny adres z paska adresu przeglądarki.\n3. Wklej ten adres poniżej.\n\nTwoje hasło nigdy nie jest wpisywane w Home Assistant.",
+        "data": {
+          "landing_url": "Adres ostatniej strony"
+        },
+        "data_description": {
+          "landing_url": "Pełny adres internetowy, na który trafiłeś po zalogowaniu."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Ten adres nie zawiera kodu logowania. Skopiuj pełny adres strony, na którą trafiłeś po zalogowaniu.",
+      "sign_in_failed": "Amazon nie zaakceptował tego logowania. Otwórz nowy link logowania i dokończ logowanie za jednym razem.",
+      "cannot_connect": "Nie udało się połączyć z Amazon. Spróbuj ponownie."
+    },
+    "abort": {
+      "already_configured": "Ten kraj Amazon jest już skonfigurowany.",
+      "reauth_successful": "Ponowne uwierzytelnienie Amazon powiodło się."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Amazon",
+        "sections": {
+          "delivered": {
+            "name": "Doręczone przesyłki",
+            "data": {
+              "delivered_filter_type": "Filtruj według",
+              "delivered_filter_amount": "Liczba"
+            },
+            "data_description": {
+              "delivered_filter_type": "Pokaż doręczone przesyłki z ostatnich X dni lub ogranicz do X najnowszych.",
+              "delivered_filter_amount": "Liczba dni lub przesyłek do pokazania."
+            }
+          },
+          "history": {
+            "name": "Historia przesyłki",
+            "data": {
+              "include_history": "Uwzględnij historię statusów"
+            },
+            "data_description": {
+              "include_history": "Dodaje do każdej przesyłki atrybut historii z każdą aktualizacją statusu (znacznik czasu, status, oryginalny tekst). Domyślnie wyłączone."
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "Dni",
+        "parcels": "Liczba przesyłek"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "Przesyłka została zarejestrowana",
+      "parcel_status_changed": "Status paczki się zmienił",
+      "parcel_delivered": "Przesyłka została doręczona",
+      "parcel_delivery_time_changed": "Przewidywany czas dostawy paczki się zmienił"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "Odśwież"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "Dostawy"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "Nadchodzące przesyłki",
+        "unit_of_measurement": "przesyłki"
+      },
+      "next_delivery": {
+        "name": "Następna dostawa"
+      },
+      "en_route_to_pickup_point": {
+        "name": "W drodze do punktu odbioru",
+        "unit_of_measurement": "przesyłki"
+      },
+      "awaiting_pickup": {
+        "name": "Oczekuje na odbiór",
+        "unit_of_measurement": "przesyłki"
+      },
+      "delivered_parcels": {
+        "name": "Doręczone przesyłki",
+        "unit_of_measurement": "przesyłki"
+      },
+      "last_update": {
+        "name": "Ostatnia udana aktualizacja"
+      },
+      "parcel": {
+        "name": "Przesyłka {barcode}"
+      }
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "title": "Amazon",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Amazon सेट अप करें",
+        "description": "वह Amazon देश चुनें जहाँ आप खरीदारी करते हैं। पार्सल उस देश के लिए आपके साइन-इन किए गए खाते से पढ़े जाते हैं। किसी दूसरे देश को ट्रैक करने के लिए इंटीग्रेशन फिर से जोड़ें।",
+        "data": {
+          "country": "Amazon देश"
+        }
+      },
+      "sign_in": {
+        "title": "Amazon में साइन इन करें",
+        "description": "1. अपने ब्राउज़र में [{country} के लिए Amazon साइन-इन पेज]({sign_in_url}) खोलें और साइन इन करें, Amazon जो भी सत्यापन माँगे उसे पूरा करें।\n2. इसके बाद Amazon एक पेज दिखाता है जो खाली या त्रुटि जैसा दिख सकता है। यह अपेक्षित है। अपने ब्राउज़र के एड्रेस बार से पूरा पता कॉपी करें।\n3. वह पता नीचे पेस्ट करें।\n\nआपका पासवर्ड कभी भी Home Assistant में दर्ज नहीं किया जाता।",
+        "data": {
+          "landing_url": "अंतिम पेज का पता"
+        },
+        "data_description": {
+          "landing_url": "साइन इन के बाद आप जिस पेज पर पहुँचे, उसका पूरा वेब पता।"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "इस पते में साइन-इन कोड नहीं है। साइन इन के बाद आप जिस पेज पर पहुँचे, उसका पूरा पता कॉपी करें।",
+      "sign_in_failed": "Amazon ने यह साइन-इन स्वीकार नहीं किया। एक नया साइन-इन लिंक खोलें और साइन-इन एक बार में पूरा करें।",
+      "cannot_connect": "Amazon से संपर्क नहीं हो सका। कृपया पुनः प्रयास करें।"
+    },
+    "abort": {
+      "already_configured": "यह Amazon देश पहले से सेट अप है।",
+      "reauth_successful": "Amazon को सफलतापूर्वक पुनः प्रमाणित किया गया।"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Amazon विकल्प",
+        "sections": {
+          "delivered": {
+            "name": "डिलीवर किए गए पार्सल",
+            "data": {
+              "delivered_filter_type": "इसके अनुसार फ़िल्टर करें",
+              "delivered_filter_amount": "मात्रा"
+            },
+            "data_description": {
+              "delivered_filter_type": "पिछले X दिनों में डिलीवर हुए पार्सल दिखाएं, या सबसे हाल के X तक सीमित करें।",
+              "delivered_filter_amount": "दिखाने के लिए दिनों या पार्सल की संख्या।"
+            }
+          },
+          "history": {
+            "name": "पार्सल इतिहास",
+            "data": {
+              "include_history": "स्थिति इतिहास शामिल करें"
+            },
+            "data_description": {
+              "include_history": "प्रत्येक पार्सल के लिए एक history एट्रिब्यूट जोड़ें जिसमें हर स्थिति अपडेट (टाइमस्टैंप, स्थिति, मूल टेक्स्ट) सूचीबद्ध हो। डिफ़ॉल्ट रूप से बंद।"
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "delivered_filter_type": {
+      "options": {
+        "days": "दिन",
+        "parcels": "पार्सल की संख्या"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "parcel_registered": "एक पार्सल रजिस्टर किया गया",
+      "parcel_status_changed": "किसी पार्सल की स्थिति बदली",
+      "parcel_delivered": "एक पार्सल डिलीवर हो गया",
+      "parcel_delivery_time_changed": "किसी पार्सल के अनुमानित डिलीवरी समय में बदलाव हुआ"
+    }
+  },
+  "entity": {
+    "button": {
+      "refresh": {
+        "name": "रीफ्रेश"
+      }
+    },
+    "calendar": {
+      "deliveries": {
+        "name": "डिलीवरी"
+      }
+    },
+    "sensor": {
+      "incoming_parcels": {
+        "name": "आने वाले पार्सल",
+        "unit_of_measurement": "पार्सल"
+      },
+      "next_delivery": {
+        "name": "अगली डिलीवरी"
+      },
+      "en_route_to_pickup_point": {
+        "name": "पिकअप पॉइंट के रास्ते में",
+        "unit_of_measurement": "पार्सल"
+      },
+      "awaiting_pickup": {
+        "name": "संग्रह की प्रतीक्षा में",
+        "unit_of_measurement": "पार्सल"
+      },
+      "delivered_parcels": {
+        "name": "डिलीवर किए गए पार्सल",
+        "unit_of_measurement": "पार्सल"
+      },
+      "last_update": {
+        "name": "अंतिम सफल अपडेट"
+      },
+      "parcel": {
+        "name": "पार्सल {barcode}"
+      }
+    }
+  }
+}
