@@ -49,12 +49,12 @@ API mechanics (sign-in chain, page structure, vocabularies, what was tried and
 failed) live in the private `carrier-research/amazon-logistics/api/` and are
 never copied here. This section keeps decisions only.
 
-**Build-time gate, still open.** The research gate "does the refresh token
-survive several idle days" had not been answered when this repo was built; the
-maintainer chose to build ahead of it. If the stored sign-in dies within days
-the integration would need a re-login every week and should not ship, so
-resolve that before any tag, release or public push. Until then the repo is
-local only.
+**Sign-in durability, partly open.** The repo is public and released as 0.x;
+the maintainer built and shipped ahead of the research gate. A continuously
+polling install has held one sign-in for 4+ days across restarts without a
+reauth. Still unanswered: whether a sign-in survives days with Home Assistant
+off, and whether signing in on a second install with the same account ends the
+first one's sign-in. Settle both before 1.0.0.
 
 Account model with an HTML source: the carrier-research standing ruling
 permits parsing signed-in pages for Amazon **only** (a named exception, not a
