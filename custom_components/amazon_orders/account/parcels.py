@@ -39,6 +39,12 @@ _MILESTONE_MAP: dict[str, ParcelStatus] = {
     "DELIVERED": ParcelStatus.DELIVERED,
 }
 
+# The tracking page's language-independent status code. Only ``DELIVERED``
+# has been observed; the rest is reported once so the map can grow.
+_SHORT_STATUS_MAP: dict[str, ParcelStatus] = {
+    "DELIVERED": ParcelStatus.DELIVERED,
+}
+
 # Timeline messages, lower-cased.
 _EVENT_MAP: dict[str, ParcelStatus] = {
     "package arrived at an amazon facility": ParcelStatus.IN_TRANSIT,
@@ -132,16 +138,24 @@ def _order_text_status(text: str | None) -> ParcelStatus | None:
 
 
 def resolve_status(raw: dict) -> ParcelStatus:
-    """Resolve a record's status: milestone, else newest event, else order text.
+    """Resolve a status: milestone, short status, newest event, order text.
 
     Only when none of them maps does the parcel report ``unknown``, with a
-    one-shot warning naming what was seen. An unmapped milestone is reported
-    once on its own as well, even when the timeline resolves the status.
+    one-shot warning naming what was seen. An unmapped milestone or short
+    status is reported once on its own as well, even when a later source
+    resolves the status.
     """
     milestone = raw.get("milestone")
     mapped = _MILESTONE_MAP.get(milestone) if milestone else None
     if mapped is not None:
         return mapped
+    short_status = (raw.get("page_state") or {}).get("shortStatus")
+    if isinstance(short_status, str) and short_status:
+        mapped = _SHORT_STATUS_MAP.get(short_status)
+        if mapped is not None:
+            return mapped
+        # Language-independent, so worth growing even when other sources resolve.
+        _warn_unmapped_status(f"short_status={short_status}")
     status = _resolve_without_milestone(raw, milestone)
     if milestone and status is not ParcelStatus.UNKNOWN:
         # The milestone is the preferred source but its vocabulary is barely

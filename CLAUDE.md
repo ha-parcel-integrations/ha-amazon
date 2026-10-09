@@ -80,7 +80,9 @@ precedent for any other carrier). Prefer embedded JSON state over visible text.
 - **Barcode** is the tracking id. A shipment without a tracking page is keyed
   on a stand-in from its order and line (flagged in `raw["barcode_source"]`),
   which changes to the tracking id if one appears later.
-- **Status resolution:** milestone, else newest mappable timeline event, else
+- **Status resolution:** milestone, else the tracking page's `shortStatus`
+  (language-independent; only `DELIVERED` seen, an unmapped value warns once
+  like a milestone), else newest mappable timeline event, else
   order-line text (`account/vocabulary.py`), else `unknown` + one warning. A line
   with no tracking page and no recognised text is `unknown`, never `registered`,
   and is kept out of the incoming list (`coordinator.unresolved`); only an

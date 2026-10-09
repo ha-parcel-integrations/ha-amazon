@@ -96,6 +96,24 @@ def test_unmapped_milestone_falls_back_to_the_newest_mappable_event(caplog):
     assert caplog.text.count("milestone=SOMETHING_UNSEEN") == 1
 
 
+def test_delivered_short_status_resolves_without_milestone_or_timeline():
+    raw = untracked_record()
+    raw["order_status"] = "Something unseen"
+    raw["page_state"] = {"shortStatus": "DELIVERED"}
+    assert resolve_status(raw) is ParcelStatus.DELIVERED
+
+
+def test_unmapped_short_status_falls_back_and_is_reported_once(caplog):
+    raw = active_record()
+    raw["milestone"] = None
+    raw["page_state"] = {"shortStatus": "SOMETHING_UNSEEN"}
+    raw["events"] = [event("2026-10-03T08:05:00+02:00", "Out for delivery")]
+    with caplog.at_level(logging.WARNING):
+        assert resolve_status(raw) is ParcelStatus.OUT_FOR_DELIVERY
+        assert resolve_status(raw) is ParcelStatus.OUT_FOR_DELIVERY
+    assert caplog.text.count("short_status=SOMETHING_UNSEEN") == 1
+
+
 def test_newest_mappable_event_decides_not_the_oldest():
     raw = in_transit_record()
     raw["milestone"] = None
