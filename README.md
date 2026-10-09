@@ -43,6 +43,7 @@ Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/)
 - One entry per Amazon country and account, each with its own sign-in, so two people in a household can each add their own account on the same Amazon
 - Per-parcel sensor with the canonical status (`registered` / `in_transit` / `out_for_delivery` / `delivered` / …), Amazon's own status text and a link to the tracking page
 - The delivery carrier Amazon names (for example Dragonfly or DHL) on every parcel
+- Hands parcels over to the matching carrier integration when you have it set up, for a delivery window, pickup point and full history (see [Hand-off to carrier integrations](#hand-off-to-carrier-integrations))
 - Summary sensors: incoming parcels, next delivery, recently delivered parcels
 - Read-only **Deliveries** calendar
 - Events + device triggers for no-code automations (parcel registered, status changed, delivered)
@@ -92,9 +93,36 @@ Open **Configure** on the integration entry:
 |---|---|---|---|
 | Delivered parcels | Filter by / amount | last 7 days | How long delivered parcels stay visible on the delivered sensor. Shipments delivered more than a week ago are not read from Amazon. |
 | Parcel history | Include status history | off | Adds a `history` attribute per parcel with each status update. |
+| Carrier integrations | Hand off parcels to carrier integrations | on | Passes parcels to the carrier's own integration. See below. |
 
 Polling isn't one of these settings: the integration polls on a dynamic,
 status-driven schedule with nothing to configure.
+
+## Hand-off to carrier integrations
+
+Amazon only knows what you ordered. The carrier that delivers the parcel knows
+much more: the delivery window, the pickup point, the full tracking history.
+So when a carrier has its own integration in the
+[ha-parcel-integrations](https://ha-parcel-integrations.github.io/carriers/)
+family and you have it set up, this integration hands the parcel over to it and
+stops listing it, so you do not see it twice. Today that covers
+**DHL** (the `dhl` integration), **Colis Privé** and **Dragonfly**.
+
+- It is on by default and can be turned off under **Configure**; the last step
+  of adding the integration asks about it too. Turning it off lists those parcels
+  here again; they also stay in the carrier integrations.
+- If the carrier integration is not set up, the parcel simply stays here, and a
+  repair notice links to that carrier's page so you can add it. You can ignore
+  the notice.
+- Parcels from other carriers, Amazon's own deliveries and shipments without a
+  tracking number are never handed over, and neither are parcels that are
+  already delivered.
+- If a carrier integration refuses a tracking number (for example because it
+  has more than one account to choose from), a warning in the log says so, and
+  the parcel stays listed here. Add the number to that integration by hand if
+  you want it tracked there.
+- Once handed over, a parcel belongs to the carrier integration, which also
+  follows a return and removes the parcel after its own retention period.
 
 ## Dynamic polling
 

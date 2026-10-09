@@ -168,3 +168,19 @@ DEFAULT_INCLUDE_HISTORY = False
 # Cap each parcel's history to the most recent N events so the attribute stays
 # well under HA's ~16 KB state-attribute limit.
 HISTORY_MAX_EVENTS = 20
+
+# Hand-off to carrier integrations: this integration is a shop, so a parcel a
+# suite carrier delivers is passed on to that carrier's integration, which
+# exposes more. Amazon's carrier_code -> (HA domain, name, page on the docs
+# site). DHL goes to ``dhl``, never ``dhl_nl``, because only ``dhl`` has the
+# track_parcel service.
+CONF_HAND_OFF = "hand_off"
+CONF_TRACKING_CODE = "tracking_code"
+DEFAULT_HAND_OFF = True
+DOCS_CARRIERS_URL = "https://ha-parcel-integrations.github.io/carriers/"
+HAND_OFF_CARRIERS = {
+    "DHL_CONNECT": ("dhl", "DHL", "dhl"),
+    "COLIS_PRIVE_BELU": ("colis_prive", "Colis Privé", "colis-prive"),
+    "DRAGONFLY": ("dragonfly", "Dragonfly", "dragonfly"),
+}
+SERVICE_TRACK_PARCEL = "track_parcel"

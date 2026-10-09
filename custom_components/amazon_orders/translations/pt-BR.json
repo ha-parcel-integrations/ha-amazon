@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "O endereço web completo em que você chegou após fazer login."
         }
+      },
+      "hand_off": {
+        "title": "Repassar encomendas às transportadoras",
+        "description": "A Amazon só sabe o que você pediu. Quando a transportadora que entrega uma encomenda tem uma integração própria aqui, o Home Assistant pode repassá-la: as integrações de transportadoras mostram mais, como a janela de entrega, o ponto de retirada e o histórico completo. A encomenda passa então a aparecer nessa transportadora, e não aqui.",
+        "data": {
+          "hand_off": "Repassar encomendas às integrações de transportadoras"
+        },
+        "data_description": {
+          "hand_off": "Encomendas de transportadoras sem integração configurada continuam aqui."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Adiciona um atributo de histórico por pacote listando cada atualização de status (data/hora, status, texto original). Desativado por padrão."
+            }
+          },
+          "hand_off": {
+            "name": "Integrações de transportadoras",
+            "data": {
+              "hand_off": "Repassar encomendas às integrações de transportadoras"
+            },
+            "data_description": {
+              "hand_off": "Encomendas de transportadoras sem integração configurada continuam aqui."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Pacote {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} não está configurado",
+      "description": "As encomendas da Amazon entregues por {carrier} podem ser repassadas à integração {carrier}, que mostra mais que a Amazon, como a janela de entrega e o histórico completo. Até ser configurada, elas continuam listadas aqui. Veja [a página de {carrier}]({url}) para adicioná-la, ou desative o repasse nas opções da Amazon."
     }
   }
 }

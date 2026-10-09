@@ -34,12 +34,14 @@ from .const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_DEVICE_SERIAL,
+    CONF_HAND_OFF,
     CONF_INCLUDE_HISTORY,
     CONF_LANDING_URL,
     CONF_REFRESH_TOKEN,
     COUNTRY_DOMAINS,
     DEFAULT_DELIVERED_FILTER_AMOUNT,
     DEFAULT_DELIVERED_FILTER_TYPE,
+    DEFAULT_HAND_OFF,
     DEFAULT_INCLUDE_HISTORY,
     DOMAIN,
 )
@@ -59,6 +61,9 @@ _COUNTRY_SCHEMA = vol.Schema(
     }
 )
 _SIGN_IN_SCHEMA = vol.Schema({vol.Required(CONF_LANDING_URL): str})
+_HAND_OFF_SCHEMA = vol.Schema(
+    {vol.Required(CONF_HAND_OFF, default=DEFAULT_HAND_OFF): selector.BooleanSelector()}
+)
 
 
 class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -71,6 +76,8 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
         self._domain: str = COUNTRY_DOMAINS[0]
         self._serial: str = ""
         self._verifier: str = ""
+        self._pending_data: dict[str, Any] = {}
+        self._pending_title: str = ""
 
     @staticmethod
     @callback
@@ -138,17 +145,11 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
                     await self.async_set_unique_id(unique_id)
                     self._abort_if_unique_id_configured()
                     name = registration.customer_name
-                    return self.async_create_entry(
-                        title=f"{self._domain} · {name}" if name else self._domain,
-                        data=data,
-                        options={
-                            CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
-                            CONF_DELIVERED_FILTER_AMOUNT: (
-                                DEFAULT_DELIVERED_FILTER_AMOUNT
-                            ),
-                            CONF_INCLUDE_HISTORY: DEFAULT_INCLUDE_HISTORY,
-                        },
+                    self._pending_data = data
+                    self._pending_title = (
+                        f"{self._domain} · {name}" if name else self._domain
                     )
+                    return await self.async_step_hand_off()
 
         return self.async_show_form(
             step_id="sign_in",
@@ -162,6 +163,23 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
                 "landing_url_prefix": LANDING_URL,
             },
         )
+
+    async def async_step_hand_off(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Last step: whether to hand parcels to the carrier integrations."""
+        if user_input is not None:
+            return self.async_create_entry(
+                title=self._pending_title,
+                data=self._pending_data,
+                options={
+                    CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
+                    CONF_DELIVERED_FILTER_AMOUNT: DEFAULT_DELIVERED_FILTER_AMOUNT,
+                    CONF_INCLUDE_HISTORY: DEFAULT_INCLUDE_HISTORY,
+                    CONF_HAND_OFF: bool(user_input[CONF_HAND_OFF]),
+                },
+            )
+        return self.async_show_form(step_id="hand_off", data_schema=_HAND_OFF_SCHEMA)
 
     def _unique_id(self, registration: DeviceRegistration) -> str:
         """Key the entry on the Amazon account, within its country."""
@@ -185,7 +203,7 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class AmazonOptionsFlowHandler(OptionsFlow):
-    """Manage delivered retention and history in one sectioned form."""
+    """Manage delivered retention, history and hand-off in one sectioned form."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -194,6 +212,7 @@ class AmazonOptionsFlowHandler(OptionsFlow):
         if user_input is not None:
             delivered = user_input["delivered"]
             history = user_input["history"]
+            hand_off = user_input["hand_off"]
             # Reload so a changed history/delivered-retention setting takes
             # effect immediately. No update listener is registered —
             # combining the two is deprecated.
@@ -208,6 +227,7 @@ class AmazonOptionsFlowHandler(OptionsFlow):
                         delivered[CONF_DELIVERED_FILTER_AMOUNT]
                     ),
                     CONF_INCLUDE_HISTORY: bool(history[CONF_INCLUDE_HISTORY]),
+                    CONF_HAND_OFF: bool(hand_off[CONF_HAND_OFF]),
                 },
             )
 
@@ -260,6 +280,17 @@ class AmazonOptionsFlowHandler(OptionsFlow):
                         }
                     ),
                     {"collapsed": True},
+                ),
+                vol.Required("hand_off"): section(
+                    vol.Schema(
+                        {
+                            vol.Required(
+                                CONF_HAND_OFF,
+                                default=current.get(CONF_HAND_OFF, DEFAULT_HAND_OFF),
+                            ): selector.BooleanSelector(),
+                        }
+                    ),
+                    {"collapsed": False},
                 ),
             }
         )

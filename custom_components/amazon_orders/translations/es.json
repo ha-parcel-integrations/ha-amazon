@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "La dirección web completa a la que llegaste tras iniciar sesión."
         }
+      },
+      "hand_off": {
+        "title": "Pasar los paquetes a las empresas de transporte",
+        "description": "Amazon solo conoce lo que has pedido. Cuando la empresa que entrega un paquete tiene su propia integración, Home Assistant puede pasarle el paquete: las integraciones de transportistas muestran más, como la franja de entrega, el punto de recogida y el historial completo. El paquete aparece entonces en ese transportista y no aquí.",
+        "data": {
+          "hand_off": "Pasar los paquetes a las integraciones de transportistas"
+        },
+        "data_description": {
+          "hand_off": "Los paquetes de transportistas sin integración configurada se quedan aquí."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Añade un atributo de historial por paquete con cada actualización de estado (marca de tiempo, estado, texto original). Desactivado por defecto."
+            }
+          },
+          "hand_off": {
+            "name": "Integraciones de transportistas",
+            "data": {
+              "hand_off": "Pasar los paquetes a las integraciones de transportistas"
+            },
+            "data_description": {
+              "hand_off": "Los paquetes de transportistas sin integración configurada se quedan aquí."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Paquete {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} no está configurado",
+      "description": "Los paquetes de Amazon entregados por {carrier} pueden pasarse a la integración de {carrier}, que muestra más que Amazon, como la franja de entrega y el historial completo. Mientras no esté configurada, siguen apareciendo aquí. Consulta [la página de {carrier}]({url}) para añadirla, o desactiva el traspaso en las opciones de Amazon."
     }
   }
 }

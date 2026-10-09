@@ -17,6 +17,7 @@ from custom_components.amazon_orders.const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
     CONF_DEVICE_SERIAL,
+    CONF_HAND_OFF,
     CONF_INCLUDE_HISTORY,
     CONF_LANDING_URL,
     CONF_REFRESH_TOKEN,
@@ -97,7 +98,15 @@ async def test_user_flow_shows_the_sign_in_link_then_creates_the_entry(hass):
             result["flow_id"], {CONF_LANDING_URL: LANDING}
         )
 
+    # The hand-off choice is the last step, shown pre-ticked.
+    assert result["step_id"] == "hand_off"
+    assert result["data_schema"]({})[CONF_HAND_OFF] is True
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HAND_OFF: True}
+    )
+
     assert result["type"] == "create_entry"
+    assert result["options"][CONF_HAND_OFF] is True
     assert result["title"] == f"{COUNTRY} · Sam"
     assert result["result"].unique_id == f"{COUNTRY}:{CUSTOMER}"
     assert result["data"][CONF_COUNTRY] == COUNTRY
@@ -108,6 +117,19 @@ async def test_user_flow_shows_the_sign_in_link_then_creates_the_entry(hass):
     # The code went to registration together with this flow's own serial.
     args = register.await_args.args
     assert args[1] == COUNTRY and args[2] == serial and args[4] == "CODE123"
+
+
+async def test_hand_off_can_be_declined_while_adding(hass):
+    result = await _to_sign_in(hass)
+    with patch(REGISTER, new=AsyncMock(return_value=REGISTRATION)):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_LANDING_URL: LANDING}
+        )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HAND_OFF: False}
+    )
+    assert result["type"] == "create_entry"
+    assert result["options"][CONF_HAND_OFF] is False
 
 
 async def test_pasted_address_without_a_code_asks_again(hass):
@@ -144,9 +166,14 @@ async def test_registration_failures_are_told_apart(hass, error, expected):
 async def _sign_in(hass, registration, country: str = COUNTRY):
     result = await _to_sign_in(hass, country)
     with patch(REGISTER, new=AsyncMock(return_value=registration)):
-        return await hass.config_entries.flow.async_configure(
+        result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {CONF_LANDING_URL: LANDING}
         )
+    if result.get("step_id") == "hand_off":
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HAND_OFF: True}
+        )
+    return result
 
 
 async def test_the_same_account_cannot_be_added_twice(hass):
@@ -274,6 +301,7 @@ async def test_options_flow_saves_and_reloads(hass):
                     CONF_DELIVERED_FILTER_AMOUNT: 5,
                 },
                 "history": {CONF_INCLUDE_HISTORY: True},
+                "hand_off": {CONF_HAND_OFF: False},
             },
         )
 
@@ -282,6 +310,7 @@ async def test_options_flow_saves_and_reloads(hass):
         CONF_DELIVERED_FILTER_TYPE: "parcels",
         CONF_DELIVERED_FILTER_AMOUNT: 5,
         CONF_INCLUDE_HISTORY: True,
+        CONF_HAND_OFF: False,
     }
     # A changed setting only takes effect on reload, so the flow schedules one
     # itself rather than registering an update listener (which is deprecated in

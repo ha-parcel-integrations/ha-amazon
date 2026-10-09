@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "L'indirizzo web completo su cui sei arrivato dopo l'accesso."
         }
+      },
+      "hand_off": {
+        "title": "Passa i pacchi ai corrieri",
+        "description": "Amazon conosce solo ciò che hai ordinato. Quando il corriere che consegna un pacco ha una propria integrazione, Home Assistant può passargli il pacco: le integrazioni dei corrieri mostrano di più, come la fascia di consegna, il punto di ritiro e la cronologia completa. Il pacco compare quindi sotto quel corriere e non qui.",
+        "data": {
+          "hand_off": "Passa i pacchi alle integrazioni dei corrieri"
+        },
+        "data_description": {
+          "hand_off": "I pacchi dei corrieri senza integrazione configurata restano qui."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Aggiunge a ogni pacco un attributo di cronologia con ogni aggiornamento di stato (data e ora, stato, testo originale). Disattivato per impostazione predefinita."
+            }
+          },
+          "hand_off": {
+            "name": "Integrazioni dei corrieri",
+            "data": {
+              "hand_off": "Passa i pacchi alle integrazioni dei corrieri"
+            },
+            "data_description": {
+              "hand_off": "I pacchi dei corrieri senza integrazione configurata restano qui."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Pacco {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} non è configurato",
+      "description": "I pacchi Amazon consegnati da {carrier} possono essere passati all'integrazione {carrier}, che mostra più di Amazon, come la fascia di consegna e la cronologia completa. Finché non è configurata restano elencati qui. Vedi [la pagina di {carrier}]({url}) per aggiungerla, oppure disattiva il passaggio nelle opzioni di Amazon."
     }
   }
 }

@@ -28,6 +28,7 @@ from ..const import (
     STAGGER_MINUTES,
     ParcelStatus,
 )
+from ..handoff import HandOff
 from .client import AmazonClient
 from .errors import AmazonApiError, AmazonAuthError
 from .parcels import apply_delivered_filter, normalize_parcel, sort_parcels_by_ts
@@ -134,6 +135,10 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
             update_interval=timedelta(minutes=HOT_INTERVAL_MINUTES),
         )
         self._client = client
+        self.handoff = HandOff(hass, entry.entry_id, entry.options)
+        # Every parcel of the last poll, handed-off ones included, so the
+        # hand-off can run again once Home Assistant has started.
+        self._all_parcels: list[dict] = []
         self.delivered: list[dict] = []
         self.unresolved: list[dict] = []
         # Consecutive 429 responses, for the exponential backoff in Section 3.
@@ -216,9 +221,19 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         self._consecutive_429 = 0
 
         include_history = self._include_history
-        normalized = [
+        self._all_parcels = [
             normalize_parcel(raw, include_history=include_history) for raw in raws
         ]
+        self.last_success_time = datetime.now(timezone.utc)
+        return await self._async_publish()
+
+    async def async_hand_off_after_start(self) -> None:
+        """Run the hand-off on the last poll once Home Assistant has started."""
+        self.async_set_updated_data(await self._async_publish())
+
+    async def _async_publish(self) -> list[dict]:
+        """Split the last poll into the lists the entities show."""
+        normalized = await self.handoff.async_process(self._all_parcels)
         # A line with no recognised status and no tracking id is not known to
         # be a parcel on its way, so it must not count as incoming.
         self.unresolved = [
@@ -251,8 +266,6 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
             for parcel in incoming
             if parcel.get("barcode")
         }
-
-        self.last_success_time = datetime.now(timezone.utc)
 
         now = dt_util.now()
         self._current_tier_minutes = _hottest_tier_minutes(normalized_active, now)

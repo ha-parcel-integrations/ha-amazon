@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "L'adresse web complète sur laquelle tu es arrivé après la connexion."
         }
+      },
+      "hand_off": {
+        "title": "Transmettre les colis aux transporteurs",
+        "description": "Amazon ne connaît que ce que vous avez commandé. Lorsque le transporteur qui livre un colis dispose de sa propre intégration, Home Assistant peut lui transmettre le colis : les intégrations de transporteurs affichent plus d'informations, comme la plage de livraison, le point relais et l'historique complet. Le colis apparaît alors chez ce transporteur et non ici.",
+        "data": {
+          "hand_off": "Transmettre les colis aux intégrations de transporteurs"
+        },
+        "data_description": {
+          "hand_off": "Les colis des transporteurs sans intégration configurée restent ici."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Ajoute un attribut d'historique par colis répertoriant chaque mise à jour de statut (horodatage, statut, texte d'origine). Désactivé par défaut."
+            }
+          },
+          "hand_off": {
+            "name": "Intégrations de transporteurs",
+            "data": {
+              "hand_off": "Transmettre les colis aux intégrations de transporteurs"
+            },
+            "data_description": {
+              "hand_off": "Les colis des transporteurs sans intégration configurée restent ici."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Colis {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} n'est pas configuré",
+      "description": "Les colis Amazon livrés par {carrier} peuvent être transmis à l'intégration {carrier}, qui affiche plus qu'Amazon, comme la plage de livraison et l'historique complet. Tant qu'elle n'est pas configurée, ils restent listés ici. Consultez [la page {carrier}]({url}) pour l'ajouter, ou désactivez la transmission dans les options Amazon."
     }
   }
 }

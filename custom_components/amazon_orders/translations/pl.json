@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "Pełny adres internetowy, na który trafiłeś po zalogowaniu."
         }
+      },
+      "hand_off": {
+        "title": "Przekazuj przesyłki kurierom",
+        "description": "Amazon wie tylko, co zamówiłeś. Gdy przewoźnik dostarczający przesyłkę ma tu własną integrację, Home Assistant może mu ją przekazać: integracje przewoźników pokazują więcej, np. okno dostawy, punkt odbioru i pełną historię. Przesyłka pojawi się wtedy u tego przewoźnika, a nie tutaj.",
+        "data": {
+          "hand_off": "Przekazuj przesyłki integracjom przewoźników"
+        },
+        "data_description": {
+          "hand_off": "Przesyłki przewoźników bez skonfigurowanej integracji zostają tutaj."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Dodaje do każdej przesyłki atrybut historii z każdą aktualizacją statusu (znacznik czasu, status, oryginalny tekst). Domyślnie wyłączone."
+            }
+          },
+          "hand_off": {
+            "name": "Integracje przewoźników",
+            "data": {
+              "hand_off": "Przekazuj przesyłki integracjom przewoźników"
+            },
+            "data_description": {
+              "hand_off": "Przesyłki przewoźników bez skonfigurowanej integracji zostają tutaj."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Przesyłka {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} nie jest skonfigurowany",
+      "description": "Przesyłki Amazon dostarczane przez {carrier} można przekazać integracji {carrier}, która pokazuje więcej niż Amazon, np. okno dostawy i pełną historię. Dopóki nie zostanie skonfigurowana, pozostają na tej liście. Zobacz [stronę {carrier}]({url}), aby ją dodać, lub wyłącz przekazywanie w opcjach Amazon."
     }
   }
 }

@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "The full web address you ended up on after signing in."
         }
+      },
+      "hand_off": {
+        "title": "Hand parcels to carrier integrations",
+        "description": "Amazon only knows what you ordered. When the carrier that delivers a parcel has its own integration here, Home Assistant can hand the parcel over to it: carrier integrations show more, such as the delivery window, the pickup point and the full history. The parcel then shows up under that carrier instead of here.",
+        "data": {
+          "hand_off": "Hand off parcels to carrier integrations"
+        },
+        "data_description": {
+          "hand_off": "Parcels from carriers without an integration set up stay here."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Add a per-parcel history attribute listing each status update (timestamp, status, original text). Off by default."
+            }
+          },
+          "hand_off": {
+            "name": "Carrier integrations",
+            "data": {
+              "hand_off": "Hand off parcels to carrier integrations"
+            },
+            "data_description": {
+              "hand_off": "Parcels from carriers without an integration set up stay here."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Parcel {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} is not set up",
+      "description": "Amazon parcels delivered by {carrier} can be handed to the {carrier} integration, which shows more than Amazon does, such as the delivery window and the full history. Until it is set up they stay listed here. See [the {carrier} page]({url}) to add it, or turn off handing off in the Amazon options."
     }
   }
 }

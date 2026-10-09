@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "Die vollständige Webadresse, auf der du nach der Anmeldung gelandet bist."
         }
+      },
+      "hand_off": {
+        "title": "Pakete an Paketdienste weitergeben",
+        "description": "Amazon kennt nur, was du bestellt hast. Hat der Paketdienst, der ein Paket zustellt, hier eine eigene Integration, kann Home Assistant das Paket dorthin weitergeben: Paketdienst-Integrationen zeigen mehr, etwa das Zustellfenster, die Abholstelle und den vollständigen Verlauf. Das Paket erscheint dann bei diesem Paketdienst statt hier.",
+        "data": {
+          "hand_off": "Pakete an Paketdienst-Integrationen weitergeben"
+        },
+        "data_description": {
+          "hand_off": "Pakete von Paketdiensten ohne eingerichtete Integration bleiben hier."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Fügt jedem Paket ein Verlaufsattribut hinzu, das jede Statusaktualisierung auflistet (Zeitstempel, Status, Originaltext). Standardmäßig deaktiviert."
+            }
+          },
+          "hand_off": {
+            "name": "Paketdienst-Integrationen",
+            "data": {
+              "hand_off": "Pakete an Paketdienst-Integrationen weitergeben"
+            },
+            "data_description": {
+              "hand_off": "Pakete von Paketdiensten ohne eingerichtete Integration bleiben hier."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Paket {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} ist nicht eingerichtet",
+      "description": "Amazon-Pakete, die {carrier} zustellt, können an die {carrier}-Integration weitergegeben werden, die mehr zeigt als Amazon, etwa das Zustellfenster und den vollständigen Verlauf. Bis sie eingerichtet ist, bleiben sie hier aufgelistet. Auf [der Seite zu {carrier}]({url}) steht, wie du sie hinzufügst, oder schalte das Weitergeben in den Amazon-Optionen aus."
     }
   }
 }

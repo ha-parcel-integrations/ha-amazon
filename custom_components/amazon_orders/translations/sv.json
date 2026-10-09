@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "Den fullständiga webbadressen du hamnade på efter inloggningen."
         }
+      },
+      "hand_off": {
+        "title": "Lämna över paket till fraktbolag",
+        "description": "Amazon vet bara vad du beställt. När fraktbolaget som levererar ett paket har en egen integration kan Home Assistant lämna över paketet dit: fraktbolagens integrationer visar mer, till exempel leveransfönstret, ombudet och hela historiken. Paketet visas då hos det fraktbolaget i stället för här.",
+        "data": {
+          "hand_off": "Lämna över paket till fraktbolagens integrationer"
+        },
+        "data_description": {
+          "hand_off": "Paket från fraktbolag utan inställd integration blir kvar här."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Lägg till ett historikattribut per paket som listar varje statusuppdatering (tidsstämpel, status, originaltext). Avstängt som standard."
+            }
+          },
+          "hand_off": {
+            "name": "Fraktbolagsintegrationer",
+            "data": {
+              "hand_off": "Lämna över paket till fraktbolagens integrationer"
+            },
+            "data_description": {
+              "hand_off": "Paket från fraktbolag utan inställd integration blir kvar här."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Paket {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} är inte inställt",
+      "description": "Amazon-paket som levereras av {carrier} kan lämnas över till integrationen för {carrier}, som visar mer än Amazon, till exempel leveransfönstret och hela historiken. Tills den är inställd finns de kvar här. Se [sidan för {carrier}]({url}) för att lägga till den, eller stäng av överlämningen i Amazons alternativ."
     }
   }
 }

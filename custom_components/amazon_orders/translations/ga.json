@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "An seoladh gréasáin iomlán ar tháinig tú air tar éis síniú isteach."
         }
+      },
+      "hand_off": {
+        "title": "Tabhair beartáin do chomhtháthaithe iompróra",
+        "description": "Níl a fhios ag Amazon ach cad a d'ordaigh tú. Nuair a bhíonn comhtháthú ag an iompróir a sheachadann beartán, is féidir le Home Assistant an beartán a thabhairt dó: taispeánann comhtháthaithe iompróirí níos mó, mar an fhuinneog seachadta, an pointe bailithe agus an stair iomlán. Taispeánfar an beartán faoin iompróir sin in ionad anseo.",
+        "data": {
+          "hand_off": "Tabhair beartáin do chomhtháthaithe iompróirí"
+        },
+        "data_description": {
+          "hand_off": "Fanann beartáin ó iompróirí gan comhtháthú socraithe anseo."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Cuireann sé aitreabúid staire le gach beartán ina liostaítear gach athrú stádais (stampa ama, stádas, buntéacs). Múchta de réir réamhshocraithe."
+            }
+          },
+          "hand_off": {
+            "name": "Comhtháthaithe iompróirí",
+            "data": {
+              "hand_off": "Tabhair beartáin do chomhtháthaithe iompróirí"
+            },
+            "data_description": {
+              "hand_off": "Fanann beartáin ó iompróirí gan comhtháthú socraithe anseo."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Pacáiste {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "Níl {carrier} socraithe",
+      "description": "Is féidir beartáin Amazon a sheachadann {carrier} a thabhairt don chomhtháthú {carrier}, a thaispeánann níos mó ná Amazon, mar an fhuinneog seachadta agus an stair iomlán. Go dtí go socrófar é, fanann siad liostaithe anseo. Féach [leathanach {carrier}]({url}) chun é a chur leis, nó cuir an tabhairt amach as i roghanna Amazon."
     }
   }
 }

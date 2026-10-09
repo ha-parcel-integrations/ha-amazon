@@ -18,6 +18,16 @@
         "data_description": {
           "landing_url": "Het volledige webadres waar je na het aanmelden terechtkwam."
         }
+      },
+      "hand_off": {
+        "title": "Pakketten doorgeven aan vervoerders",
+        "description": "Amazon weet alleen wat je hebt besteld. Als de vervoerder die een pakket bezorgt een eigen integratie heeft, kan Home Assistant het pakket daaraan doorgeven: vervoerders tonen meer, zoals het bezorgvenster, het afhaalpunt en de volledige geschiedenis. Het pakket verschijnt dan bij die vervoerder in plaats van hier.",
+        "data": {
+          "hand_off": "Pakketten doorgeven aan vervoerders"
+        },
+        "data_description": {
+          "hand_off": "Pakketten van vervoerders zonder ingestelde integratie blijven hier staan."
+        }
       }
     },
     "error": {
@@ -54,6 +64,15 @@
             },
             "data_description": {
               "include_history": "Voegt per pakket een geschiedenisattribuut toe met elke statusupdate (tijdstip, status, oorspronkelijke tekst). Standaard uit."
+            }
+          },
+          "hand_off": {
+            "name": "Vervoerders",
+            "data": {
+              "hand_off": "Pakketten doorgeven aan vervoerders"
+            },
+            "data_description": {
+              "hand_off": "Pakketten van vervoerders zonder ingestelde integratie blijven hier staan."
             }
           }
         }
@@ -113,6 +132,12 @@
       "parcel": {
         "name": "Pakket {barcode}"
       }
+    }
+  },
+  "issues": {
+    "carrier_not_set_up": {
+      "title": "{carrier} is niet ingesteld",
+      "description": "Amazon-pakketten die door {carrier} worden bezorgd kunnen worden doorgegeven aan de {carrier}-integratie, die meer toont dan Amazon, zoals het bezorgvenster en de volledige geschiedenis. Tot die is ingesteld blijven ze hier staan. Zie [de pagina van {carrier}]({url}) om hem toe te voegen, of zet het doorgeven uit in de Amazon-opties."
     }
   }
 }

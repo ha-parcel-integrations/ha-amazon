@@ -116,8 +116,8 @@ which exposes more (delivery window, pickup point, full history).
 
 - **One option, on by default:** "hand off parcels to carrier integrations",
   a section in the options form and the last step of the config flow (shown
-  pre-ticked, with one line on why). Turning it off untracks everything this
-  entry handed off and shows those parcels here again.
+  pre-ticked, with one line on why). Turning it off forgets what this entry
+  handed off and shows those parcels here again; it untracks nothing.
 - **Mapping is a fixed table** from Amazon `carrier_code` to HA domain
   (`DHL_CONNECT -> dhl`, `COLIS_PRIVE_BELU -> colis_prive`,
   `DRAGONFLY -> dragonfly`). DHL goes to `dhl`, never `dhl_nl` (no
@@ -130,11 +130,16 @@ which exposes more (delivery window, pickup point, full history).
 - **The shop always falls back to showing the parcel itself.** A parcel only
   disappears from this integration once the carrier accepted it. Nothing is
   ever lost.
-- **Handed-off codes are remembered** per entry (code -> domain), so the
-  service is not called every poll, the parcel is hidden here, and it can be
-  untracked later. Cancelled / returned / refunded order lines and turning
-  the option off call `untrack_parcel`; a delivered parcel is left to the
-  carrier's own retention.
+- **Never untracked at the carrier** (maintainer decision): a parcel is only
+  handed off once it has a real tracking id, so it physically exists at the
+  carrier, which is from then on the authority on it (returns included) and
+  cleans it up through its own retention. Inferring "cancelled" from a code
+  leaving the order list is wrong here: after a restart the capped fan-out
+  lists only part of the shipments, which would untrack and re-hand parcels.
+- **Handed-off codes are remembered** per entry (code -> domain + hand-off
+  time), so the service is not called every poll and the parcel stays hidden
+  here. A code is forgotten only when it is missing from the order list
+  **and** was handed off more than `FORGET_AFTER` (30 days) ago.
 - **Carrier in the table but not set up:** one Repair issue **per carrier
   domain** (not per parcel, not per entry), linking to that carrier's page on
   the docs site; not fixable, ignorable. It is deleted when the carrier's
@@ -149,6 +154,12 @@ which exposes more (delivery window, pickup point, full history).
 - **Service call fails** (`ServiceValidationError`, e.g. invalid code or more
   than one hub): one WARNING per code saying to add it by hand, fall back to
   showing it here, retry only after a reload.
+- **Implementation notes.** Delivered parcels are never handed off. Hand-off failures
+  catch `HomeAssistantError`, not just `ServiceValidationError`. The Repair
+  issue is neither raised nor cleared while the option is off. The gate is
+  `hass.state is CoreState.running`, not `hass.is_running` (true while still
+  starting). The options and config-flow strings carry the option; the docs-site
+  slug lives in `HAND_OFF_CARRIERS` and reaches the issue as a placeholder.
 - **Attribution:** `account/auth.py` is adapted from alexapy (Apache-2.0). Keep
   its docstring, `NOTICE`, `LICENSE-Apache-2.0` and the README Credits in step,
   and credit alexapy in any commit that touches that code. The docs-site
@@ -157,7 +168,7 @@ which exposes more (delivery window, pickup point, full history).
 
 ## Options and reloads
 
-One sectioned options form (delivered retention, history). The submit calls
+One sectioned options form (delivered retention, history, hand-off). The submit calls
 `async_schedule_reload` and registers **no** update listener; combining a
 listener with a reload-on-update flow is deprecated, an error in HA 2026.12+.
 
@@ -180,6 +191,7 @@ shipment is discovered.
 | `const.py` (domain, URLs, `ParcelStatus`, option keys) | partly (URLs) |
 | `config_flow.py` | partly (country picker and sign-in link) |
 | `sensor.py` / `button.py` / `calendar.py` / `device_trigger.py` | no |
+| `handoff.py` (hand-off to carrier integrations: service calls, remembered codes in a per-entry `Store`, Repair issues; the carrier table is `HAND_OFF_CARRIERS` in `const.py`, the coordinator runs it in `_async_publish` and re-runs it on `EVENT_HOMEASSISTANT_STARTED`) | partly (the table) |
 | `device.py` (shared device-info helper) | no |
 | `diagnostics.py` | partly (`TO_REDACT`) |
 
