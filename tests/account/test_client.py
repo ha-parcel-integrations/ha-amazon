@@ -156,6 +156,23 @@ async def test_a_delivered_shipment_is_read_once_and_then_cached():
     assert len(_gets(session)) == reads_after_first + 1
 
 
+async def test_a_delivered_milestone_without_a_date_is_read_again_the_next_day():
+    session = _session(_active_tile("SHIPdone001"))
+    _shipment(session, "SHIPdone001", events=[], milestone="DELIVERED")
+    client = _client(session)
+
+    await client.async_get_parcels()
+    await client.async_get_parcels()
+    assert sum("ship-track" in url for url in _gets(session)) == 2
+
+    (key,) = client._undated
+    client._undated[key] = date.today() - timedelta(days=1)
+    await client.async_get_parcels()
+    await client.async_get_parcels()
+    assert sum("ship-track" in url for url in _gets(session)) == 3
+    assert client._undated == {}
+
+
 async def test_in_flight_shipment_is_re_read_every_poll():
     session = _session(_active_tile("SHIPactive1"))
     _shipment(session, "SHIPactive1", milestone="IN_PROGRESS")
@@ -182,6 +199,18 @@ async def test_untracked_shipment_stays_order_level():
     assert record["barcode_source"] == "shipment_key"
     assert record["tracking_id"] is None
     assert not any("ship-track" in url for url in _gets(session))
+
+
+async def test_a_shipped_line_without_a_tracking_link_warns_once(caplog):
+    session = _session(_active_tile("SHIPnotrack1"), _delivered_tile("SHIPnotrack2"))
+    _shipment(session, "SHIPnotrack1", tracked=False)
+    _shipment(session, "SHIPnotrack2", tracked=False)
+    client = _client(session)
+
+    await client.async_get_parcels()
+    await client.async_get_parcels()
+
+    assert caplog.text.count("linked to no tracking page") == 1
 
 
 async def test_delivered_shipment_without_a_tracking_page_is_final_too():

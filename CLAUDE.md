@@ -68,7 +68,8 @@ precedent for any other carrier). Prefer embedded JSON state over visible text.
 - **Auth failure -> reauth once, then polling pauses** (`AmazonAuthError` ->
   `ConfigEntryAuthFailed`). 429 and 503 back off through the coordinator.
 - **Fan-out is capped** (`MAX_TRACK_LOADS` shipments per cycle, stalest first;
-  delivered shipments read once then cached; nothing delivered longer ago than
+  a delivered shipment is cached once it has a delivery date, or from the day
+  after it first read as delivered without one; nothing delivered longer ago than
   `DELIVERED_LOOKBACK_DAYS` is followed). The **idle tier**
   (`IDLE_INTERVAL_MINUTES`) is a local divergence from the suite's tiers
   because every poll costs several requests.

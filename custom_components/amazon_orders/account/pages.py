@@ -240,11 +240,35 @@ def _zone(name: str | None) -> ZoneInfo | None:
         return None
 
 
+_TODAY_WORDS = {"today", "vandaag", "heute", "aujourd'hui", "hoy", "oggi", "idag", "dzisiaj"}
+_YESTERDAY_WORDS = {"yesterday", "gisteren", "gestern", "hier", "ayer", "ieri", "igår", "wczoraj"}
+
+
 def _parse_time(text: str) -> time | None:
-    try:
-        return datetime.strptime(text.strip().upper(), "%I:%M %p").time()
-    except ValueError:
-        return None
+    for shape in ("%I:%M %p", "%H:%M"):
+        try:
+            return datetime.strptime(text.strip().upper(), shape).time()
+        except ValueError:
+            continue
+    return None
+
+
+def _event_day(text: str, today: date) -> date | None:
+    """Resolve a timeline date header, including "Today" and "Yesterday"."""
+    word = text.strip().rstrip(",").lower()
+    if word in _TODAY_WORDS:
+        return today
+    if word in _YESTERDAY_WORDS:
+        return today - timedelta(days=1)
+    day = _day_month(text, today)
+    if day is None and text:
+        masked = _mask(text)
+        warn_once(
+            f"event-date={masked}",
+            f'The Amazon tracking timeline has a date "{masked}" we could not'
+            " read, so its events are left out; please share it.",
+        )
+    return day
 
 
 def _parse_events(
@@ -257,7 +281,7 @@ def _parse_events(
     for kind, raw_text in _EVENT_PART_RE.findall(page):
         text = html.unescape(raw_text).strip()
         if kind == "date":
-            current_day = _day_month(text, today)
+            current_day = _event_day(text, today)
         elif kind == "time":
             pending = {"day": current_day, "time": _parse_time(text)}
         elif pending is not None and kind == "message":

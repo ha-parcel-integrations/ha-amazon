@@ -26,6 +26,7 @@ from ..const import (
     MAX_TRACK_LOADS,
     ORDERS_PATHS,
     REQUEST_PAUSE_SECONDS,
+    ParcelStatus,
 )
 from .auth import exchange_token_for_cookies, refresh_access_token
 from .errors import AmazonApiError, AmazonAuthError
@@ -37,7 +38,8 @@ from .pages import (
     parse_track_link,
     parse_track_page,
 )
-from .parcels import warn_once
+from .parcels import _delivered_at, warn_once
+from .vocabulary import classify_order_text
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,6 +68,8 @@ class AmazonClient:
         # Last record and read time per shipment, so a capped cycle can
         # rotate through the rest without a barcode flipping in between.
         self._last: dict[_ShipmentKey, tuple[dict[str, Any], datetime]] = {}
+        # Day a shipment was first read as delivered without a delivery date.
+        self._undated: dict[_ShipmentKey, date] = {}
 
     async def _authenticate(self) -> None:
         """Renew the access token and mint fresh website cookies."""
@@ -158,11 +162,35 @@ class AmazonClient:
                     "A shipment tracking page held no tracking id and no timeline;"
                     " Amazon may have changed the page.",
                 )
+        elif classify_order_text(tiles[0].status_text)[0] in (
+            ParcelStatus.IN_TRANSIT,
+            ParcelStatus.OUT_FOR_DELIVERY,
+        ):
+            warn_once(
+                "no-track-link",
+                "A shipped Amazon order line linked to no tracking page we could"
+                " find, so its carrier, tracking id and timeline are missing;"
+                " Amazon may use a different tracking page on this storefront.",
+            )
         return build_record(self._domain, tiles, track_path, track)
 
-    @staticmethod
-    def _is_delivered(tiles: list[OrderTile], record: dict[str, Any]) -> bool:
-        return tiles[0].delivered or record.get("milestone") == "DELIVERED"
+    def _is_final(
+        self,
+        key: _ShipmentKey,
+        tiles: list[OrderTile],
+        record: dict[str, Any],
+        today: date,
+    ) -> bool:
+        """Whether a shipment is delivered and needs no further reads.
+
+        The milestone can say delivered before the order line carries the
+        delivery date; reading it once more the next day picks that date up.
+        """
+        if not (tiles[0].delivered or record.get("milestone") == "DELIVERED"):
+            return False
+        if _delivered_at(record) is not None:
+            return True
+        return self._undated.setdefault(key, today) < today
 
     async def async_get_parcels(self) -> list[dict[str, Any]]:
         """Return one raw record per shipment worth showing."""
@@ -175,6 +203,7 @@ class AmazonClient:
             groups.setdefault(tile.key, []).append(tile)
         self._final = {k: v for k, v in self._final.items() if k in groups}
         self._last = {k: v for k, v in self._last.items() if k in groups}
+        self._undated = {k: v for k, v in self._undated.items() if k in groups}
 
         cutoff = today - timedelta(days=DELIVERED_LOOKBACK_DAYS)
         work: list[_ShipmentKey] = []
@@ -191,8 +220,9 @@ class AmazonClient:
         for key in work[:MAX_TRACK_LOADS]:
             record = await self._read_shipment(groups[key], today)
             self._last[key] = (record, datetime.now(timezone.utc))
-            if self._is_delivered(groups[key], record):
+            if self._is_final(key, groups[key], record, today):
                 self._final[key] = record
+                self._undated.pop(key, None)
 
         records: list[dict[str, Any]] = []
         for key in groups:

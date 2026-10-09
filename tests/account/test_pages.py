@@ -428,3 +428,31 @@ def test_a_german_delivered_line_is_delivered_and_dated(caplog):
     assert parsed.delivered is True
     assert parsed.delivered_on == date(2026, 10, 3)
     assert caplog.text.count("confirm it is right") == 1
+
+
+def test_dutch_timeline_with_24_hour_times_and_relative_days():
+    info = parse_track_page(
+        track_page(
+            events=[
+                ("Vandaag", "11:50", "Wordt vandaag bezorgd", "Antwerpen BE"),
+                ("Gisteren", "06:34", "Pakket aangekomen", "Antwerpen BE"),
+            ]
+        ),
+        TODAY,
+    )
+    assert [e["timestamp"] for e in info.events] == [
+        "2026-10-05T11:50:00+02:00",
+        "2026-10-04T06:34:00+02:00",
+    ]
+
+
+def test_an_unreadable_timeline_date_drops_its_events_and_warns_once(caplog):
+    page = track_page(
+        events=[
+            ("Someday 12", "11:50", "Out for delivery", ""),
+            ("Someday 12", "12:50", "Out for delivery", ""),
+        ]
+    )
+    assert parse_track_page(page, TODAY).events == []
+    parse_track_page(page, TODAY)
+    assert caplog.text.count('date "Someday #"') == 1
