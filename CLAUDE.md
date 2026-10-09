@@ -103,9 +103,52 @@ precedent for any other carrier). Prefer embedded JSON state over visible text.
   key that is not parcel data.
 - **No outgoing parcels:** the signed-in pages only list what the user ordered.
 - **Not built:** browser automation, IMAP parsing, order-level sensors,
-  alexapy as a requirement, and hand-off of a DHL-carried parcel to `ha-dhl`
-  (exposed only as `carrier` + `raw["carrier_code"]`; de-duplication belongs in
-  the aggregator).
+  alexapy as a requirement, and a separate `ha-amazon-logistics` repo (Amazon
+  Logistics has no tracking outside the signed-in pages, so it would be an
+  empty shell fed by this integration; its parcels stay here as
+  `carrier: "Amazon"`).
+
+## Hand-off to carrier integrations
+
+This integration is a **shop**, not a carrier: it lists what was ordered and
+hands each parcel to the suite integration of the courier that delivers it,
+which exposes more (delivery window, pickup point, full history).
+
+- **One option, on by default:** "hand off parcels to carrier integrations",
+  a section in the options form and the last step of the config flow (shown
+  pre-ticked, with one line on why). Turning it off untracks everything this
+  entry handed off and shows those parcels here again.
+- **Mapping is a fixed table** from Amazon `carrier_code` to HA domain
+  (`DHL_CONNECT -> dhl`, `COLIS_PRIVE_BELU -> colis_prive`,
+  `DRAGONFLY -> dragonfly`). DHL goes to `dhl`, never `dhl_nl` (no
+  `track_parcel` there).
+- **Hand off only when `hass.services.has_service(domain, "track_parcel")`**,
+  and only after `EVENT_HOMEASSISTANT_STARTED`: during startup the carrier may
+  not have registered its service yet, which would read as "not installed".
+- **Never handed off:** `carrier: "Amazon"` (Amazon Logistics) and any parcel
+  without a real tracking id (`raw["barcode_source"]` stand-in).
+- **The shop always falls back to showing the parcel itself.** A parcel only
+  disappears from this integration once the carrier accepted it. Nothing is
+  ever lost.
+- **Handed-off codes are remembered** per entry (code -> domain), so the
+  service is not called every poll, the parcel is hidden here, and it can be
+  untracked later. Cancelled / returned / refunded order lines and turning
+  the option off call `untrack_parcel`; a delivered parcel is left to the
+  carrier's own retention.
+- **Carrier in the table but not set up:** one Repair issue **per carrier
+  domain** (not per parcel, not per entry), linking to that carrier's page on
+  the docs site; not fixable, ignorable. It is deleted when the carrier's
+  service appears, never when the parcels needing it go away (that would
+  re-nag a user who ignored it).
+- **Carrier in the suite without `track_parcel`** (account-based: PostNL, DPD,
+  …): no hand-off, no Repair issue. The carrier account already shows the
+  parcel; de-duplication is the aggregator's job (carrier record wins over the
+  shop record).
+- **Carrier not in the suite:** shown here, no Repair issue. Unknown
+  `carrier_code` keeps its existing one-shot warning.
+- **Service call fails** (`ServiceValidationError`, e.g. invalid code or more
+  than one hub): one WARNING per code saying to add it by hand, fall back to
+  showing it here, retry only after a reload.
 - **Attribution:** `account/auth.py` is adapted from alexapy (Apache-2.0). Keep
   its docstring, `NOTICE`, `LICENSE-Apache-2.0` and the README Credits in step,
   and credit alexapy in any commit that touches that code. The docs-site
