@@ -186,7 +186,12 @@ async def test_a_refused_code_warns_once_and_stays_listed(hass, caplog):
 
     assert len(track) == 1  # not retried until a reload
     assert _incoming(hass) == "1"
-    warnings = [r for r in caplog.records if DRAGONFLY_CODE in r.getMessage()]
+    warnings = [
+        r
+        for r in caplog.records
+        if r.name == "custom_components.amazon_orders.handoff"
+        and DRAGONFLY_CODE in r.getMessage()
+    ]
     assert len(warnings) == 1
     assert warnings[0].levelno == logging.WARNING
     assert "by hand" in warnings[0].getMessage()
