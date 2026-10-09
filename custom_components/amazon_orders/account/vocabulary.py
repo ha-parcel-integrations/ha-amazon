@@ -25,6 +25,10 @@ _CONFIRMED_TEXT: tuple[tuple[str, Kind], ...] = (
     ("cancelled", SKIP),
     ("return complete", SKIP),
     ("refund", SKIP),
+    # nl, seen on amazon.com.be order lines
+    ("bezorgd", ParcelStatus.DELIVERED),
+    ("wordt vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
+    ("wordt morgen bezorgd", ParcelStatus.IN_TRANSIT),
 )
 
 _PLAUSIBLE_TEXT: tuple[tuple[str, Kind], ...] = (
@@ -32,12 +36,17 @@ _PLAUSIBLE_TEXT: tuple[tuple[str, Kind], ...] = (
     ("out for delivery", ParcelStatus.OUT_FOR_DELIVERY),
     ("not yet dispatched", ParcelStatus.REGISTERED),
     # nl
-    ("bezorgd", ParcelStatus.DELIVERED),
     ("verwacht", ParcelStatus.IN_TRANSIT),
     ("aankomst", ParcelStatus.IN_TRANSIT),
-    ("wordt vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
     ("vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
     ("wordt bezorgd", ParcelStatus.IN_TRANSIT),
+    ("wordt maandag bezorgd", ParcelStatus.IN_TRANSIT),
+    ("wordt dinsdag bezorgd", ParcelStatus.IN_TRANSIT),
+    ("wordt woensdag bezorgd", ParcelStatus.IN_TRANSIT),
+    ("wordt donderdag bezorgd", ParcelStatus.IN_TRANSIT),
+    ("wordt vrijdag bezorgd", ParcelStatus.IN_TRANSIT),
+    ("wordt zaterdag bezorgd", ParcelStatus.IN_TRANSIT),
+    ("wordt zondag bezorgd", ParcelStatus.IN_TRANSIT),
     ("nog niet verzonden", ParcelStatus.REGISTERED),
     ("verzonden", ParcelStatus.IN_TRANSIT),
     ("geannuleerd", SKIP),
@@ -134,12 +143,13 @@ def _months(table: str) -> dict[str, int]:
     }
 
 
-# English, German and French, including the short forms the readers list.
+# English, German and French, including the short forms the readers list, and
+# the Dutch months seen on a real order line.
 _CONFIRMED_MONTHS = _months(
     "january jan januar janvier janv|february feb februar février févr fév|"
     "march mar märz mars|april apr avril avr|may mai|june jun juni juin|"
     "july jul juli juillet juil|august aug août|"
-    "september septembre sep sept|october oct okt octobre|november novembre nov|"
+    "september septembre sep sept|october oct okt octobre oktober|november novembre nov|"
     "december dec dez décembre déc"
 )
 # Italian, Spanish, Dutch, Swedish and Polish names: no source shows them.
@@ -148,7 +158,7 @@ _PLAUSIBLE_MONTHS = _months(
     "febbraio febrero februari lutego|marzo marzo maart mrt marca|"
     "aprile abril kwietnia|maggio mayo mei maj maja|giugno junio czerwca|"
     "luglio julio juli lipca|agosto agosto augusti sierpnia|"
-    "settembre septiembre września|ottobre octubre oktober października|"
+    "settembre septiembre września|ottobre octubre października|"
     "novembre noviembre listopada|dicembre diciembre december grudnia"
 )
 

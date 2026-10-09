@@ -22,9 +22,12 @@ from custom_components.amazon_orders.const import ParcelStatus
         ("Cancelled", SKIP),
         ("Return complete", SKIP),
         ("Refund for this return", SKIP),
+        ("Bezorgd op 8 oktober", ParcelStatus.DELIVERED),
+        ("Wordt vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
+        ("Wordt morgen bezorgd", ParcelStatus.IN_TRANSIT),
     ],
 )
-def test_confirmed_english_wording(text, kind):
+def test_confirmed_wording(text, kind):
     assert classify_order_text(text) == (kind, True)
 
 
@@ -43,8 +46,9 @@ def test_unknown_and_empty_text_classify_as_nothing():
 @pytest.mark.parametrize(
     "text,kind",
     [
-        ("Wordt vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
+        ("Vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
         ("Wordt bezorgd donderdag", ParcelStatus.IN_TRANSIT),
+        ("Wordt donderdag bezorgd", ParcelStatus.IN_TRANSIT),
         ("Geannuleerd", SKIP),
         ("Pas encore expédié", ParcelStatus.REGISTERED),
         ("Annulé", SKIP),

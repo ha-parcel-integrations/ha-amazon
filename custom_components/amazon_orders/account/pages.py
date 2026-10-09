@@ -31,7 +31,9 @@ _DAY_MONTH_RE = re.compile(
     r"(\d{1,2})\.?\s+(?:de\s+)?([^\W\d_]+)\.?(?:\s+(?:de\s+)?(\d{4}))?"
 )
 _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
-_CARRIER_RE = re.compile(r"Delivery By ([A-Za-z0-9_]+)")
+_CARRIER_RE = re.compile(
+    r"(?:Delivery By|Bezorging door|Levering door) ([A-Za-z0-9_]+)"
+)
 _CARRIER_HEADER_RE = re.compile(
     r'(?:pt-delivery-card-wrapper"><div><h3|tracking-event-carrier-header">\s*<h2)'
     r"[^>]*>\s*([^<]*?)\s*</h[23]>"

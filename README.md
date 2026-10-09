@@ -147,7 +147,7 @@ The `status` field is the carrier-agnostic enum shared by the whole integration 
 
 Amazon also reports other situations (a pickup point, a return, a delivery problem), but none of those have been seen on a real parcel yet, so they are not mapped. If your parcel shows `unknown`, the warning in the log names what Amazon said.
 
-Order-line wording is recognised in English, Dutch, French, German, Spanish, Italian, Swedish and Polish. Only the English wording is confirmed against other tools' sources; the other languages are best guesses, so the first time one is used the log asks you to confirm it. Cancelled, returned and refunded lines are not shown.
+Order-line wording is recognised in English, Dutch, French, German, Spanish, Italian, Swedish and Polish. The English wording is confirmed against other tools' sources, and the main Dutch wording against real orders on amazon.com.be; the rest are best guesses, so the first time one is used the log asks you to confirm it. Cancelled, returned and refunded lines are not shown.
 
 Amazon's own human-readable text is always available as `raw_status`.
 

@@ -175,7 +175,7 @@ def test_confirmed_english_order_text_resolves_silently(text, expected, caplog):
     "text,expected",
     [
         ("Out for delivery", ParcelStatus.OUT_FOR_DELIVERY),
-        ("Bezorgd 3 oktober", ParcelStatus.DELIVERED),
+        ("Verwacht 3 oktober", ParcelStatus.IN_TRANSIT),
         ("Livré le 3 octobre", ParcelStatus.DELIVERED),
         ("Zugestellt am 3. Oktober", ParcelStatus.DELIVERED),
         ("Entregado el 3 de octubre", ParcelStatus.DELIVERED),
@@ -197,11 +197,11 @@ def test_plausible_order_text_resolves_with_one_confirmation_warning(
 
 def test_the_confirmation_warning_masks_digits(caplog):
     raw = untracked_record()
-    raw["order_status"] = "Bezorgd 3 oktober"
+    raw["order_status"] = "Verwacht 3 oktober"
     with caplog.at_level(logging.WARNING):
         resolve_status(raw)
-    assert "Bezorgd # oktober" in caplog.text
-    assert "Bezorgd 3" not in caplog.text
+    assert "Verwacht # oktober" in caplog.text
+    assert "Verwacht 3" not in caplog.text
 
 
 def test_skip_wording_is_not_a_status():
@@ -433,6 +433,11 @@ def test_carrier_names(caplog):
     raw["carrier_code"] = "DHL_CONNECT"
     assert normalize_parcel(raw)["carrier"] == "DHL"
     assert "DHL_CONNECT" not in caplog.text
+    raw["carrier_code"] = "COLIS_PRIVE_BELU"
+    assert normalize_parcel(raw)["carrier"] == "Colis Privé"
+    raw["carrier_code"] = "Amazon"
+    assert normalize_parcel(raw)["carrier"] == "Amazon"
+    assert "carrier_code=" not in caplog.text
     raw["carrier_code"] = "SOME_NEW_CARRIER"
     assert normalize_parcel(raw)["carrier"] == "Some New Carrier"
     assert normalize_parcel(raw)["carrier"] == "Some New Carrier"

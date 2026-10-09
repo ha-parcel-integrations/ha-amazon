@@ -96,6 +96,19 @@ def test_unanchored_label_with_commas_in_the_title_finds_the_status():
     assert (parsed.delivered_on.month, parsed.delivered_on.day) == (9, 19)
 
 
+def test_a_belgian_line_due_tomorrow_reads_as_in_transit(caplog):
+    page = (
+        '<a class="item-card__link" '
+        'href="/-/nl/your-orders/pop?orderId=000-0000009-0000009&amp;shipmentId=S1" '
+        'aria-label="Widget, Wordt morgen bezorgd"></a>'
+    )
+    (parsed,) = parse_order_tiles(page, TODAY)
+    assert parsed.title == "Widget"
+    assert parsed.status_text == "Wordt morgen bezorgd"
+    assert parsed.delivered is False
+    assert "confirm it is right" not in caplog.text
+
+
 def test_unanchored_label_without_a_known_status_keeps_the_whole_title():
     page = (
         '<a class="item-card__link" '
@@ -224,6 +237,18 @@ def test_carrier_header_is_kept_when_its_wording_is_not_read():
     info = parse_track_page(track_page(carrier="DHL_CONNECT"), TODAY)
     assert info.carrier_code == "DHL_CONNECT"
     assert info.carrier_header == "Delivery By DHL_CONNECT"
+
+
+@pytest.mark.parametrize(
+    "header,code",
+    [
+        ("Bezorging door COLIS_PRIVE_BELU", "COLIS_PRIVE_BELU"),
+        ("Levering door Amazon", "Amazon"),
+    ],
+)
+def test_dutch_carrier_headers_are_read(header, code):
+    info = parse_track_page(track_page(carrier_header=header), TODAY)
+    assert info.carrier_code == code
 
 
 def test_unknown_timezone_leaves_timestamps_naive():

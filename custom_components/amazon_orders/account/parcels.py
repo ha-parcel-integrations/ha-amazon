@@ -53,6 +53,8 @@ _EVENT_MAP: dict[str, ParcelStatus] = {
 _CARRIER_NAMES = {
     "DRAGONFLY": "Dragonfly",
     "DHL_CONNECT": "DHL",
+    "Amazon": "Amazon",
+    "COLIS_PRIVE_BELU": "Colis Privé",
 }
 
 # Status texts we have already warned about, so each unmapped one is logged

@@ -81,8 +81,8 @@ precedent for any other carrier). Prefer embedded JSON state over visible text.
   and is kept out of the incoming list (`coordinator.unresolved`); only an
   explicitly recognised not-yet-dispatched text gives `registered`. Cancelled,
   returned and refunded lines are skipped at parse time. The vocabulary has a
-  confirmed table (English) and a separate plausible table (the other languages
-  and the unseen English wording): resolving through a plausible entry logs a
+  confirmed table (English, plus the Dutch seen on amazon.com.be) and a separate
+  plausible table (the other languages and the unseen wording): resolving through a plausible entry logs a
   one-shot confirmation request, and an entry moves to confirmed only once a real
   line shows it. Only the `DELIVERED` milestone has been observed: do not add
   milestone names no capture has shown. An unmapped milestone warns once even
