@@ -43,6 +43,8 @@ class DeviceRegistration:
     refresh_token: str
     access_token: str
     expires_in: int
+    customer_id: str | None = None
+    customer_name: str | None = None
 
 
 def new_device_serial() -> str:
@@ -191,14 +193,27 @@ async def register_device(
     }
     host, body = await _post_api(session, domain, "/auth/register", json=payload)
     try:
-        bearer = body["response"]["success"]["tokens"]["bearer"]
-        return host, DeviceRegistration(
-            refresh_token=bearer["refresh_token"],
-            access_token=bearer["access_token"],
-            expires_in=int(bearer["expires_in"]),
-        )
+        success = body["response"]["success"]
+        bearer = success["tokens"]["bearer"]
+        refresh_token = bearer["refresh_token"]
+        access_token = bearer["access_token"]
+        expires_in = int(bearer["expires_in"])
     except (KeyError, TypeError, ValueError) as err:
         raise AmazonAuthError("registration returned no bearer token") from err
+    customer = (success.get("extensions") or {}).get("customer_info")
+    if not isinstance(customer, dict):
+        customer = {}
+    return host, DeviceRegistration(
+        refresh_token=refresh_token,
+        access_token=access_token,
+        expires_in=expires_in,
+        customer_id=_text(customer.get("user_id")),
+        customer_name=_text(customer.get("given_name") or customer.get("name")),
+    )
+
+
+def _text(value: Any) -> str | None:
+    return str(value) if value else None
 
 
 async def refresh_access_token(

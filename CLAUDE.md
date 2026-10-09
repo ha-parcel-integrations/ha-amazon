@@ -60,8 +60,12 @@ Account model with an HTML source: the carrier-research standing ruling
 permits parsing signed-in pages for Amazon **only** (a named exception, not a
 precedent for any other carrier). Prefer embedded JSON state over visible text.
 
-- **One config entry per Amazon country** (`unique_id` = the storefront
-  domain); `single_config_entry` is deliberately not set.
+- **One config entry per Amazon account per country** (`unique_id` =
+  `<storefront>:<account id from the registration>`, else the device serial
+  when Amazon names no account); `single_config_entry` is deliberately not
+  set. Entries from 0.2.0 and earlier are keyed on the storefront alone and
+  adopt the account key on their first reauth; reauth with another account
+  aborts `wrong_account`.
 - **Sign-in is a pasted link, never a password form.** Entry data holds the
   storefront, the refresh token and the device serial, all redacted in
   diagnostics. Never fall back to a password login.

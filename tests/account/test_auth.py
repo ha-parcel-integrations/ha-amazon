@@ -102,6 +102,28 @@ async def test_registration_returns_the_tokens_and_the_answering_host():
     assert payload["registration_data"]["device_serial"] == "SERIAL"
     assert payload["registration_data"]["device_name"].endswith("Home Assistant Parcels")
     assert payload["cookies"]["domain"] == f".{DOMAIN}"
+    assert registration.customer_id is None
+    assert registration.customer_name is None
+
+
+async def test_registration_names_the_account():
+    body = {
+        "response": {
+            "success": {
+                **REGISTERED["response"]["success"],
+                "extensions": {
+                    "customer_info": {"user_id": "amzn1.account.X", "name": "Sam Doe"}
+                },
+            }
+        }
+    }
+    session = FakeSession()
+    session.add("POST", "/auth/register", FakeResponse(200, body))
+
+    _, registration = await register_device(session, DOMAIN, "S", "v", "c")
+
+    assert registration.customer_id == "amzn1.account.X"
+    assert registration.customer_name == "Sam Doe"
 
 
 async def test_registration_falls_back_to_the_global_host():

@@ -20,6 +20,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .account.auth import (
     LANDING_URL,
+    DeviceRegistration,
     build_sign_in_url,
     extract_authorization_code,
     new_code_verifier,
@@ -27,6 +28,7 @@ from .account.auth import (
     register_device,
 )
 from .account.errors import AmazonApiError, AmazonAuthError
+from .account.parcels import warn_once
 from .const import (
     CONF_COUNTRY,
     CONF_DELIVERED_FILTER_AMOUNT,
@@ -89,10 +91,7 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Ask which Amazon country to read."""
         if user_input is not None:
-            domain = user_input[CONF_COUNTRY]
-            await self.async_set_unique_id(domain)
-            self._abort_if_unique_id_configured()
-            self._start_sign_in(domain)
+            self._start_sign_in(user_input[CONF_COUNTRY])
             return await self.async_step_sign_in()
 
         return self.async_show_form(step_id="user", data_schema=_COUNTRY_SCHEMA)
@@ -126,12 +125,21 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
                         CONF_REFRESH_TOKEN: registration.refresh_token,
                         CONF_DEVICE_SERIAL: self._serial,
                     }
+                    unique_id = self._unique_id(registration)
                     if self.source == "reauth":
+                        entry = self._get_reauth_entry()
+                        # An entry from before accounts were told apart is keyed
+                        # on the country alone; its first reauth adopts the account.
+                        if entry.unique_id not in (self._domain, unique_id):
+                            return self.async_abort(reason="wrong_account")
                         return self.async_update_reload_and_abort(
-                            self._get_reauth_entry(), data_updates=data
+                            entry, unique_id=unique_id, data_updates=data
                         )
+                    await self.async_set_unique_id(unique_id)
+                    self._abort_if_unique_id_configured()
+                    name = registration.customer_name
                     return self.async_create_entry(
-                        title=self._domain,
+                        title=f"{self._domain} · {name}" if name else self._domain,
                         data=data,
                         options={
                             CONF_DELIVERED_FILTER_TYPE: DEFAULT_DELIVERED_FILTER_TYPE,
@@ -154,6 +162,19 @@ class AmazonConfigFlow(ConfigFlow, domain=DOMAIN):
                 "landing_url_prefix": LANDING_URL,
             },
         )
+
+    def _unique_id(self, registration: DeviceRegistration) -> str:
+        """Key the entry on the Amazon account, within its country."""
+        if registration.customer_id:
+            return f"{self._domain}:{registration.customer_id}"
+        # Without an account id two sign-ins cannot be told apart, so each
+        # stays its own entry rather than blocking a second account.
+        warn_once(
+            "registration-without-customer",
+            "Amazon's sign-in did not name the account, so adding the same"
+            " account twice cannot be detected.",
+        )
+        return f"{self._domain}:{self._serial}"
 
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]

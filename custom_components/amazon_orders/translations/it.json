@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configura Amazon",
-        "description": "Scegli il paese Amazon in cui fai acquisti. I pacchi vengono letti dal tuo account connesso per quel paese. Per seguire un altro paese, aggiungi di nuovo l'integrazione. Sugli store Amazon in lingue diverse dall'inglese, alcuni testi di stato sono ancora in fase di raccolta. Se il log mostra un avviso \"Unrecognised Amazon status\", segnalarlo tramite il link presente nell'avviso è utile.",
+        "description": "Scegli il paese Amazon in cui fai acquisti. I pacchi vengono letti dal tuo account connesso per quel paese. Per seguire un altro paese o un altro account Amazon, aggiungi di nuovo l'integrazione. Sugli store Amazon in lingue diverse dall'inglese, alcuni testi di stato sono ancora in fase di raccolta. Se il log mostra un avviso \"Unrecognised Amazon status\", segnalarlo tramite il link presente nell'avviso è utile.",
         "data": {
           "country": "Paese Amazon"
         }
@@ -26,8 +26,9 @@
       "cannot_connect": "Impossibile raggiungere Amazon. Riprova."
     },
     "abort": {
-      "already_configured": "Questo paese Amazon è già configurato.",
-      "reauth_successful": "Amazon è stato riautenticato correttamente."
+      "already_configured": "Questo account Amazon è già configurato per questo paese.",
+      "reauth_successful": "Amazon è stato riautenticato correttamente.",
+      "wrong_account": "Questo è un account Amazon diverso da quello con cui è stata configurata questa voce. Accedi con l'account originale oppure aggiungi l'altro account come nuova voce."
     }
   },
   "options": {

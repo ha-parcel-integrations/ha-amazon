@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Socraigh Amazon",
-        "description": "Roghnaigh an tír Amazon a dhéanann tú siopadóireacht uirthi. Léitear beartáin ó do chuntas sínithe isteach don tír sin. Chun tír eile a leanúint, cuir an comhtháthú leis arís. Ar stórais Amazon i dteangacha seachas an Béarla, tá roinnt téacsanna stádais fós á mbailiú. Má thaispeánann an logchomhad rabhadh \"Unrecognised Amazon status\", cabhraíonn sé é a thuairisciú tríd an nasc sa rabhadh sin.",
+        "description": "Roghnaigh an tír Amazon a dhéanann tú siopadóireacht uirthi. Léitear beartáin ó do chuntas sínithe isteach don tír sin. Chun tír eile nó cuntas Amazon eile a leanúint, cuir an comhtháthú leis arís. Ar stórais Amazon i dteangacha seachas an Béarla, tá roinnt téacsanna stádais fós á mbailiú. Má thaispeánann an logchomhad rabhadh \"Unrecognised Amazon status\", cabhraíonn sé é a thuairisciú tríd an nasc sa rabhadh sin.",
         "data": {
           "country": "Tír Amazon"
         }
@@ -26,8 +26,9 @@
       "cannot_connect": "Níorbh fhéidir teagmháil a dhéanamh le Amazon. Bain triail eile as."
     },
     "abort": {
-      "already_configured": "Tá an tír Amazon sin socraithe cheana féin.",
-      "reauth_successful": "D'éirigh le hathfhíordheimhniú Amazon."
+      "already_configured": "Tá an cuntas Amazon sin socraithe cheana féin don tír seo.",
+      "reauth_successful": "D'éirigh le hathfhíordheimhniú Amazon.",
+      "wrong_account": "Is cuntas Amazon difriúil é sin ón gceann ar socraíodh an iontráil seo leis. Sínigh isteach leis an gcuntas bunaidh, nó cuir an cuntas eile leis mar iontráil nua."
     }
   },
   "options": {

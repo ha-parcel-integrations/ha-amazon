@@ -28,17 +28,30 @@ LANDING = (
     "https://www.amazon.com/ap/maplanding?openid.oa2.authorization_code=CODE123"
 )
 REGISTER = "custom_components.amazon_orders.config_flow.register_device"
-REGISTRATION = (
-    "api.amazon.nl",
-    DeviceRegistration(refresh_token="new-refresh", access_token="a", expires_in=3600),
-)
+CUSTOMER = "amzn1.account.TESTACCOUNT1"
 
 
-def _entry(country: str = COUNTRY) -> MockConfigEntry:
+def _registration(customer: str | None = CUSTOMER, name: str | None = "Sam"):
+    return (
+        "api.amazon.nl",
+        DeviceRegistration(
+            refresh_token="new-refresh",
+            access_token="a",
+            expires_in=3600,
+            customer_id=customer,
+            customer_name=name,
+        ),
+    )
+
+
+REGISTRATION = _registration()
+
+
+def _entry(country: str = COUNTRY, unique_id: str | None = None) -> MockConfigEntry:
     return MockConfigEntry(
         domain=DOMAIN,
         title=country,
-        unique_id=country,
+        unique_id=unique_id or f"{country}:{CUSTOMER}",
         data={
             CONF_COUNTRY: country,
             CONF_REFRESH_TOKEN: "old-refresh",
@@ -85,7 +98,8 @@ async def test_user_flow_shows_the_sign_in_link_then_creates_the_entry(hass):
         )
 
     assert result["type"] == "create_entry"
-    assert result["title"] == COUNTRY
+    assert result["title"] == f"{COUNTRY} · Sam"
+    assert result["result"].unique_id == f"{COUNTRY}:{CUSTOMER}"
     assert result["data"][CONF_COUNTRY] == COUNTRY
     assert result["data"][CONF_REFRESH_TOKEN] == "new-refresh"
     serial = result["data"][CONF_DEVICE_SERIAL]
@@ -127,11 +141,36 @@ async def test_registration_failures_are_told_apart(hass, error, expected):
     assert "sign_in_url" in result["description_placeholders"]
 
 
-async def test_the_same_country_cannot_be_added_twice(hass):
+async def _sign_in(hass, registration, country: str = COUNTRY):
+    result = await _to_sign_in(hass, country)
+    with patch(REGISTER, new=AsyncMock(return_value=registration)):
+        return await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_LANDING_URL: LANDING}
+        )
+
+
+async def test_the_same_account_cannot_be_added_twice(hass):
     _entry().add_to_hass(hass)
-    result = await _to_sign_in(hass)
+    result = await _sign_in(hass, REGISTRATION)
     assert result["type"] == "abort"
     assert result["reason"] == "already_configured"
+
+
+async def test_a_second_account_on_the_same_country_can_be_added(hass):
+    _entry().add_to_hass(hass)
+    result = await _sign_in(hass, _registration("amzn1.account.OTHER", None))
+    assert result["type"] == "create_entry"
+    assert result["title"] == COUNTRY
+    assert result["result"].unique_id == f"{COUNTRY}:amzn1.account.OTHER"
+
+
+async def test_a_sign_in_without_an_account_id_still_adds_an_entry(hass, caplog):
+    _entry().add_to_hass(hass)
+    result = await _sign_in(hass, _registration(None, None))
+    assert result["type"] == "create_entry"
+    serial = result["data"][CONF_DEVICE_SERIAL]
+    assert result["result"].unique_id == f"{COUNTRY}:{serial}"
+    assert "did not name the account" in caplog.text
 
 
 async def test_another_country_can_be_added_alongside(hass):
@@ -167,6 +206,36 @@ async def test_reauth_replaces_the_token_and_serial(hass):
     assert entry.data[CONF_REFRESH_TOKEN] == "new-refresh"
     assert entry.data[CONF_DEVICE_SERIAL] != "OLDSERIAL"
     assert entry.data[CONF_COUNTRY] == COUNTRY
+
+
+async def test_reauth_with_another_account_is_refused(hass):
+    entry = _entry()
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reauth_flow(hass)
+    with patch(REGISTER, new=AsyncMock(return_value=_registration("amzn1.account.OTHER"))):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_LANDING_URL: LANDING}
+        )
+
+    assert result["type"] == "abort"
+    assert result["reason"] == "wrong_account"
+    assert entry.data[CONF_REFRESH_TOKEN] == "old-refresh"
+
+
+async def test_reauth_of_a_country_keyed_entry_adopts_the_account(hass):
+    entry = _entry(unique_id=COUNTRY)
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reauth_flow(hass)
+    with patch(REGISTER, new=AsyncMock(return_value=REGISTRATION)):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_LANDING_URL: LANDING}
+        )
+        await hass.async_block_till_done()
+
+    assert result["reason"] == "reauth_successful"
+    assert entry.unique_id == f"{COUNTRY}:{CUSTOMER}"
 
 
 async def test_reauth_surfaces_a_rejected_sign_in(hass):

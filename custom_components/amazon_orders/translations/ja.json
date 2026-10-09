@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Amazon を設定",
-        "description": "買い物をしている Amazon の国を選択してください。荷物はその国のサインイン済みアカウントから読み取られます。別の国を追跡するには、統合をもう一度追加してください。 英語以外の言語のAmazonストアでは、一部のステータス文言をまだ収集中です。ログに「Unrecognised Amazon status」という警告が表示された場合は、その警告に含まれるリンクから報告していただけると助かります。",
+        "description": "買い物をしている Amazon の国を選択してください。荷物はその国のサインイン済みアカウントから読み取られます。別の国や別の Amazon アカウントを追跡するには、統合をもう一度追加してください。 英語以外の言語のAmazonストアでは、一部のステータス文言をまだ収集中です。ログに「Unrecognised Amazon status」という警告が表示された場合は、その警告に含まれるリンクから報告していただけると助かります。",
         "data": {
           "country": "Amazon の国"
         }
@@ -26,8 +26,9 @@
       "cannot_connect": "Amazon に接続できませんでした。もう一度お試しください。"
     },
     "abort": {
-      "already_configured": "この Amazon の国はすでに設定されています。",
-      "reauth_successful": "Amazon の再認証に成功しました。"
+      "already_configured": "この Amazon アカウントはこの国ですでに設定されています。",
+      "reauth_successful": "Amazon の再認証に成功しました。",
+      "wrong_account": "このエントリの設定に使われたものとは別の Amazon アカウントです。元のアカウントでサインインするか、もう一方のアカウントを新しいエントリとして追加してください。"
     }
   },
   "options": {

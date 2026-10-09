@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Konfigurera Amazon",
-        "description": "Välj det Amazon-land du handlar i. Paket läses från ditt inloggade konto för det landet. Lägg till integrationen igen för att följa ett annat land. I Amazon-butiker på andra språk än engelska samlas vissa statustexter fortfarande in. Om loggen visar en varning \"Unrecognised Amazon status\" hjälper det om du rapporterar den via länken i varningen.",
+        "description": "Välj det Amazon-land du handlar i. Paket läses från ditt inloggade konto för det landet. Lägg till integrationen igen för att följa ett annat land eller ett annat Amazon-konto. I Amazon-butiker på andra språk än engelska samlas vissa statustexter fortfarande in. Om loggen visar en varning \"Unrecognised Amazon status\" hjälper det om du rapporterar den via länken i varningen.",
         "data": {
           "country": "Amazon-land"
         }
@@ -26,8 +26,9 @@
       "cannot_connect": "Kunde inte nå Amazon. Försök igen."
     },
     "abort": {
-      "already_configured": "Det Amazon-landet är redan konfigurerat.",
-      "reauth_successful": "Amazon autentiserades på nytt."
+      "already_configured": "Det Amazon-kontot är redan konfigurerat för det här landet.",
+      "reauth_successful": "Amazon autentiserades på nytt.",
+      "wrong_account": "Det är ett annat Amazon-konto än det som posten konfigurerades med. Logga in med det ursprungliga kontot, eller lägg till det andra kontot som en ny post."
     }
   },
   "options": {

@@ -71,7 +71,7 @@ PENDING_CAPABILITIES: frozenset[str] = frozenset({"delivery_window"})
 # preemptively: a single-backend carrier (the common case) keeps the flat
 # CAPABILITIES above.
 
-# One config entry per Amazon country. The picker offers these storefronts.
+# One config entry per Amazon account per country. The picker offers these storefronts.
 CONF_COUNTRY = "country"
 CONF_REFRESH_TOKEN = "refresh_token"
 CONF_DEVICE_SERIAL = "device_serial"

@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Amazon einrichten",
-        "description": "Wähle das Amazon-Land, in dem du einkaufst. Pakete werden aus deinem angemeldeten Konto für dieses Land gelesen. Um ein weiteres Land zu verfolgen, füge die Integration erneut hinzu. Bei Amazon-Shops in anderen Sprachen als Englisch werden einige Statustexte noch gesammelt. Wenn im Protokoll eine Warnung \"Unrecognised Amazon status\" erscheint, hilft es, sie über den Link in dieser Warnung zu melden.",
+        "description": "Wähle das Amazon-Land, in dem du einkaufst. Pakete werden aus deinem angemeldeten Konto für dieses Land gelesen. Um ein weiteres Land oder ein weiteres Amazon-Konto zu verfolgen, füge die Integration erneut hinzu. Bei Amazon-Shops in anderen Sprachen als Englisch werden einige Statustexte noch gesammelt. Wenn im Protokoll eine Warnung \"Unrecognised Amazon status\" erscheint, hilft es, sie über den Link in dieser Warnung zu melden.",
         "data": {
           "country": "Amazon-Land"
         }
@@ -26,8 +26,9 @@
       "cannot_connect": "Amazon war nicht erreichbar. Bitte versuche es erneut."
     },
     "abort": {
-      "already_configured": "Dieses Amazon-Land ist bereits eingerichtet.",
-      "reauth_successful": "Amazon wurde erfolgreich neu authentifiziert."
+      "already_configured": "Dieses Amazon-Konto ist für dieses Land bereits eingerichtet.",
+      "reauth_successful": "Amazon wurde erfolgreich neu authentifiziert.",
+      "wrong_account": "Das ist ein anderes Amazon-Konto als das, mit dem dieser Eintrag eingerichtet wurde. Melde dich mit dem ursprünglichen Konto an oder füge das andere Konto als neuen Eintrag hinzu."
     }
   },
   "options": {

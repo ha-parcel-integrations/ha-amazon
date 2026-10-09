@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Skonfiguruj Amazon",
-        "description": "Wybierz kraj Amazon, w którym robisz zakupy. Paczki są odczytywane z Twojego zalogowanego konta dla tego kraju. Aby śledzić inny kraj, dodaj integrację ponownie. W sklepach Amazon w językach innych niż angielski niektóre teksty statusów są wciąż zbierane. Jeśli dziennik pokazuje ostrzeżenie \"Unrecognised Amazon status\", pomoże zgłoszenie go przez link w tym ostrzeżeniu.",
+        "description": "Wybierz kraj Amazon, w którym robisz zakupy. Paczki są odczytywane z Twojego zalogowanego konta dla tego kraju. Aby śledzić inny kraj lub inne konto Amazon, dodaj integrację ponownie. W sklepach Amazon w językach innych niż angielski niektóre teksty statusów są wciąż zbierane. Jeśli dziennik pokazuje ostrzeżenie \"Unrecognised Amazon status\", pomoże zgłoszenie go przez link w tym ostrzeżeniu.",
         "data": {
           "country": "Kraj Amazon"
         }
@@ -26,8 +26,9 @@
       "cannot_connect": "Nie udało się połączyć z Amazon. Spróbuj ponownie."
     },
     "abort": {
-      "already_configured": "Ten kraj Amazon jest już skonfigurowany.",
-      "reauth_successful": "Ponowne uwierzytelnienie Amazon powiodło się."
+      "already_configured": "To konto Amazon jest już skonfigurowane dla tego kraju.",
+      "reauth_successful": "Ponowne uwierzytelnienie Amazon powiodło się.",
+      "wrong_account": "To jest inne konto Amazon niż to, za pomocą którego skonfigurowano ten wpis. Zaloguj się na pierwotne konto lub dodaj drugie konto jako nowy wpis."
     }
   },
   "options": {

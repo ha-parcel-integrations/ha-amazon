@@ -10,7 +10,7 @@
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
-A custom Home Assistant integration that tracks your [Amazon](https://www.amazon.com) orders. Sign in to your own Amazon account once, and every shipment of your recent orders is imported automatically — no tracking codes to enter. Add the integration once per Amazon country you shop on.
+A custom Home Assistant integration that tracks your [Amazon](https://www.amazon.com) orders. Sign in to your own Amazon account once, and every shipment of your recent orders is imported automatically — no tracking codes to enter. Add the integration once per Amazon country and account you shop with.
 
 > [!WARNING]
 > **Pre-1.0.** This integration reads the pages you see when you are signed in to Amazon, not an official tracking service. Amazon can change those pages or its sign-in at any time, in which case updates fail until the integration is updated, and you may be asked to sign in again. Only delivered parcels have been confirmed so far; the statuses for parcels still on their way are mapped from the tracking timeline, and an unrecognised status shows as `unknown` and logs a warning with a link to report it.
@@ -40,7 +40,7 @@ Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/)
 ## Features
 
 - Auto-imports every shipment of your recent orders — no per-parcel setup
-- One entry per Amazon country, each with its own sign-in
+- One entry per Amazon country and account, each with its own sign-in, so two people in a household can each add their own account on the same Amazon
 - Per-parcel sensor with the canonical status (`registered` / `in_transit` / `out_for_delivery` / `delivered` / …), Amazon's own status text and a link to the tracking page
 - The delivery carrier Amazon names (for example Dragonfly or DHL) on every parcel
 - Summary sensors: incoming parcels, next delivery, recently delivered parcels
@@ -78,7 +78,7 @@ Add the integration via **Settings → Devices & Services → Add Integration �
 
 A device named "*your name*'s Home Assistant Parcels" then appears in your Amazon account under *Manage Your Content and Devices*. That is this integration. Removing it there signs Home Assistant out, and Home Assistant then asks you to sign in again.
 
-Add the integration again to follow another country. If Amazon stops accepting the stored sign-in, Home Assistant asks you to repeat these steps.
+Add the integration again to follow another country or another Amazon account. Entries are named after the account, so two accounts on one country stay apart. If Amazon stops accepting the stored sign-in, Home Assistant asks you to repeat these steps.
 
 Each sign-in, whether for a second country or a fresh one after reauth, adds another (numbered) "Home Assistant Parcels" device to the device list in your Amazon account; the old ones can be removed there.
 

@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configurar Amazon",
-        "description": "Elige el país de Amazon en el que compras. Los paquetes se leen desde tu cuenta con sesión iniciada para ese país. Para seguir otro país, vuelve a añadir la integración. En las tiendas de Amazon en idiomas distintos del inglés, aún se están recopilando algunos textos de estado. Si el registro muestra una advertencia \"Unrecognised Amazon status\", ayuda informarla mediante el enlace de esa advertencia.",
+        "description": "Elige el país de Amazon en el que compras. Los paquetes se leen desde tu cuenta con sesión iniciada para ese país. Para seguir otro país u otra cuenta de Amazon, vuelve a añadir la integración. En las tiendas de Amazon en idiomas distintos del inglés, aún se están recopilando algunos textos de estado. Si el registro muestra una advertencia \"Unrecognised Amazon status\", ayuda informarla mediante el enlace de esa advertencia.",
         "data": {
           "country": "País de Amazon"
         }
@@ -26,8 +26,9 @@
       "cannot_connect": "No se pudo conectar con Amazon. Inténtalo de nuevo."
     },
     "abort": {
-      "already_configured": "Ese país de Amazon ya está configurado.",
-      "reauth_successful": "Amazon se ha vuelto a autenticar correctamente."
+      "already_configured": "Esa cuenta de Amazon ya está configurada para este país.",
+      "reauth_successful": "Amazon se ha vuelto a autenticar correctamente.",
+      "wrong_account": "Esa es una cuenta de Amazon distinta de la que se usó para configurar esta entrada. Inicia sesión con la cuenta original o añade la otra cuenta como una entrada nueva."
     }
   },
   "options": {
