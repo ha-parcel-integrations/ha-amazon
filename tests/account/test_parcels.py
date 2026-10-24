@@ -223,10 +223,10 @@ def test_only_recognised_not_yet_dispatched_text_is_registered(caplog):
         ("Dispatched 3 October", ParcelStatus.IN_TRANSIT),
         ("Arriving tomorrow", ParcelStatus.IN_TRANSIT),
         ("Delivered 3 October", ParcelStatus.DELIVERED),
-        ("Livré : 5 octobre", ParcelStatus.DELIVERED),
+        ("Livré : 7 octobre", ParcelStatus.DELIVERED),
         ("Livré aujourd'hui", ParcelStatus.DELIVERED),
         (
-            "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15",
+            "Arrive aujourd'hui dans la tranche horaire suivante : 14:00 - 16:30",
             ParcelStatus.OUT_FOR_DELIVERY,
         ),
     ],
@@ -423,11 +423,11 @@ def test_capabilities_match_what_normalize_parcel_actually_returns():
     assert "delivery_window" in CAPABILITIES
     windowed = active_record()
     windowed["delivery_window"] = [
-        "2026-10-24T11:00:00+02:00",
-        "2026-10-24T13:15:00+02:00",
+        "2026-10-24T14:00:00+02:00",
+        "2026-10-24T16:30:00+02:00",
     ]
-    assert normalize_parcel(windowed)["planned_from"] == "2026-10-24T11:00:00+02:00"
-    assert normalize_parcel(windowed)["planned_to"] == "2026-10-24T13:15:00+02:00"
+    assert normalize_parcel(windowed)["planned_from"] == "2026-10-24T14:00:00+02:00"
+    assert normalize_parcel(windowed)["planned_to"] == "2026-10-24T16:30:00+02:00"
     # A record without a predicted window keeps both null.
     assert active["planned_from"] is None and active["planned_to"] is None
 
@@ -435,8 +435,8 @@ def test_capabilities_match_what_normalize_parcel_actually_returns():
 def test_a_delivered_parcel_drops_its_stale_window():
     raw = delivered_record()
     raw["delivery_window"] = [
-        "2026-10-03T11:00:00+02:00",
-        "2026-10-03T13:15:00+02:00",
+        "2026-10-03T14:00:00+02:00",
+        "2026-10-03T16:30:00+02:00",
     ]
     parcel = normalize_parcel(raw)
     assert parcel["planned_from"] is None and parcel["planned_to"] is None

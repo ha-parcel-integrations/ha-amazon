@@ -1,5 +1,6 @@
 """Tests for the Amazon page client: auth, fan-out caps and failure mapping."""
 
+import json
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -11,6 +12,7 @@ from custom_components.amazon_orders.account.errors import (
     AmazonApiError,
     AmazonAuthError,
 )
+from custom_components.amazon_orders.account.pages import business_cards_found
 from custom_components.amazon_orders.account.parcels import normalize_parcel
 
 from ..fakes import FakeResponse, FakeSession
@@ -263,7 +265,7 @@ async def test_a_line_linking_straight_to_its_tracking_page_costs_one_read():
     session = _session(
         tile(
             "SHIPfr00001",
-            "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15",
+            "Arrive aujourd'hui dans la tranche horaire suivante : 14:00 - 16:30",
             None,
             placed_anchor="Commande effectuée le",
             placed=_placed(1),
@@ -285,13 +287,13 @@ async def test_a_line_linking_straight_to_its_tracking_page_costs_one_read():
                 events=[
                     (
                         "samedi 24 octobre",
-                        "10:42",
+                        "13:51",
                         "En cours de livraison",
                         "Ville, FR",
                     ),
                     (
                         "samedi 24 octobre",
-                        "5:29",
+                        "6:03",
                         "Le colis est arrivé à l'agence de livraison finale\n",
                         "Ville, FR",
                     ),
@@ -350,7 +352,7 @@ async def test_a_delivered_line_skips_the_feedback_survey_for_ship_track():
                 tracking_id=DELIVERED_CODE,
                 carrier_header="Livraison par Amazon",
                 short_status="DELIVERED",
-                events=[("samedi 24 octobre", "12:20", "Livré", "Ville, FR")],
+                events=[("samedi 24 octobre", "15:40", "Livré", "Ville, FR")],
             ),
         ),
     )
@@ -675,9 +677,15 @@ async def test_a_failing_orders_page_does_not_claim_the_layout_changed(caplog):
 
 
 def _business_session(*fragments) -> FakeSession:
+    """Script the Business list; a page with cards is followed by the empty one that ends it."""
     session = _session()
     session.add("GET", "/your-orders/orders", FakeResponse(200, business_shell()))
-    session.add("POST", "/ab/your-orders/deliveryHistory", *fragments)
+    pages = []
+    for response in fragments:
+        pages.append(response)
+        if response.status == 200 and business_cards_found(response._body):
+            pages.append(FakeResponse(200, business_history()))
+    session.add("POST", "/ab/your-orders/deliveryHistory", *pages)
     return session
 
 
@@ -720,7 +728,9 @@ async def test_a_business_account_reads_its_order_list_then_the_tracking_page():
 
     (record,) = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
 
-    ((url, kwargs),) = _posts(session)
+    (url, kwargs), (_, end) = _posts(session)
+    # The list ends on the first page with no card.
+    assert json.loads(end["data"]["deliveryHistoryRequestString"])["pageNumber"] == 1
     assert url == "https://www.amazon.fr/ab/your-orders/deliveryHistory"
     assert kwargs["headers"]["anti-csrftoken-a2z"] == BUSINESS_TOKEN
     assert kwargs["headers"]["X-Requested-With"] == "XMLHttpRequest"
@@ -791,7 +801,8 @@ async def test_a_stale_business_token_is_renewed_once():
     records = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
 
     assert len(records) == 1
-    assert len(_posts(session)) == 2
+    # Refused, renewed, then the page and the empty one after it.
+    assert len(_posts(session)) == 3
     assert sum(url.endswith("/your-orders/orders") for url in _gets(session)) == 2
 
 
@@ -893,3 +904,101 @@ async def test_business_lines_survive_a_restart_and_a_silent_empty_list():
 
     assert record["shipment_id"] == "SHIPab00001"
     assert record["tracking_id"] == ACTIVE_CODE
+
+
+def _page_numbers(session: FakeSession) -> list[int]:
+    return [
+        json.loads(kwargs["data"]["deliveryHistoryRequestString"])["pageNumber"]
+        for _, kwargs in _posts(session)
+    ]
+
+
+async def test_a_long_business_list_is_read_page_by_page():
+    session = _session()
+    session.add("GET", "/your-orders/orders", FakeResponse(200, business_shell()))
+    session.add(
+        "POST",
+        "/ab/your-orders/deliveryHistory",
+        FakeResponse(
+            200,
+            business_history(
+                business_card(
+                    business_order_path("000-0000006-0000001"), "Livré jeudi"
+                ),
+                count=1,
+            ),
+        ),
+        # An older order still on its way, on the second page.
+        FakeResponse(
+            200,
+            business_history(
+                business_card(
+                    business_tracker_path("SHIPab00002"), "Livraison prévue lundi"
+                ),
+                count=1,
+            ),
+        ),
+        FakeResponse(200, business_history()),
+    )
+    _business_track(
+        session, "SHIPab00002", milestone="SHIPPED", short_status="IN_TRANSIT"
+    )
+
+    records = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+    assert _page_numbers(session) == [0, 1, 2]
+    assert sorted(normalize_parcel(r)["status"] for r in records) == [
+        "delivered",
+        "in_transit",
+    ]
+
+
+async def test_the_business_list_stops_at_the_page_cap(monkeypatch, caplog):
+    monkeypatch.setattr(client_module, "MAX_BUSINESS_PAGES", 2)
+    session = _session()
+    session.add("GET", "/your-orders/orders", FakeResponse(200, business_shell()))
+    session.add(
+        "POST",
+        "/ab/your-orders/deliveryHistory",
+        FakeResponse(
+            200, business_history(business_card(business_order_path(), "Livré jeudi"))
+        ),
+    )
+    client = AmazonClient("amazon.fr", "refresh", session)
+
+    await client.async_get_parcels()
+    await client.async_get_parcels()
+
+    assert _page_numbers(session) == [0, 1, 0, 1]
+    assert caplog.text.count("longer than 2 pages") == 1
+
+
+async def test_a_business_page_without_a_counter_ends_on_no_card():
+    session = _session()
+    session.add("GET", "/your-orders/orders", FakeResponse(200, business_shell()))
+    without_counter = business_history(
+        business_card(business_order_path(), "Livré jeudi")
+    ).replace('data-noOfDeliveryCardsRendered="1"', "")
+    session.add(
+        "POST",
+        "/ab/your-orders/deliveryHistory",
+        FakeResponse(200, without_counter),
+        FakeResponse(
+            200, business_history().replace('data-noOfDeliveryCardsRendered="0"', "")
+        ),
+    )
+
+    records = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+    assert len(records) == 1
+    assert _page_numbers(session) == [0, 1]
+
+
+async def test_an_empty_page_after_the_first_does_not_warn(caplog):
+    session = _business_session(
+        FakeResponse(
+            200, business_history(business_card(business_order_path(), "Livré jeudi"))
+        )
+    )
+    await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+    assert "came back empty" not in caplog.text

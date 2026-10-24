@@ -127,6 +127,8 @@ ORDERS_PATHS = ("/your-orders/orders", "/gp/css/order-history")
 MAX_TRACK_LOADS = 10
 DELIVERED_LOOKBACK_DAYS = 7
 REQUEST_PAUSE_SECONDS = 1.0
+# Amazon Business lists its orders page by page (23 cards, then 18, ...).
+MAX_BUSINESS_PAGES = 5
 
 # Delivered-parcels retention: keep delivered parcels visible for the last N
 # days, or keep only the N most recent — identical across the suite.
