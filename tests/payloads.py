@@ -272,3 +272,83 @@ def untracked_record() -> dict:
         "track_path": None,
         "page_state": {},
     }
+
+
+BUSINESS_TOKEN = "FAKECSRFTOKEN" + "0" * 91
+
+
+def business_shell(*, legal_entity: str | None = "A00FAKELEGAL00") -> str:
+    """An Amazon Business orders page: no order line, only what the list call needs."""
+    entity = (
+        '<div id="hiddenFilterButtonListOrderedAndPaidBy" class="aok-hidden">'
+        f'<span id="button_yoAllOrders-{legal_entity}" class="selectedFilterButton"></span></div>'
+        if legal_entity
+        else ""
+    )
+    return (
+        "<html><head>"
+        f'<meta name="anti-csrftoken-a2z" content="{BUSINESS_TOKEN}" id="ab-your-orders-anticsrf-token">'
+        "</head><body>"
+        '<script type="a-state" data-a-state="{&quot;key&quot;:&quot;yourOrdersStateData&quot;}">'
+        '{"marketplaceId":"fakeMarketId","businessId":"fakeBizId0",'
+        '"loggedInCustomerId":"fakeCustomerId0000","sessionId":"fakeSessn"}</script>'
+        '<input type="hidden" name="originalRequestId" value="0FAKEREQUESTID000000" id="originalRequestId">'
+        f'{entity}<div id="yourOrderHistorySection" class="a-row"></div>'
+        "</body></html>"
+    )
+
+
+def business_tracker_path(shipment_id: str, order_id: str = ORDER_ID) -> str:
+    """Where an in-flight Business card links: its tracking page."""
+    return (
+        "/progress-tracker/package/ref=ab_ppx_yo_mob_b_track_package?_encoding=UTF8"
+        f"&orderId={order_id}&itemId=item0001&shipmentId={shipment_id}&vt=YOUR_ORDERS"
+    )
+
+
+def business_order_path(order_id: str = ORDER_ID) -> str:
+    """Where a delivered Business card links: its order page."""
+    return f"/gp/aw/ya/ref=ab_ppx_yo_mob_b_od?ie=UTF8&ac=X&oid={order_id}"
+
+
+def business_card(
+    href: str,
+    status: str,
+    *,
+    title: str = "Example item 1",
+    note: str | None = None,
+    cancelled: bool = False,
+) -> str:
+    """One card of the Business order list, in the page's own markup."""
+    kind = "cancelledDeliveryCard" if cancelled else "nonCancelledDeliveryCard"
+    secondary = (
+        '<p class="secondaryMessage">\n <span class="a-color-secondary">\n'
+        f" {escape(note)}\n </span>\n </p>\n"
+        if note
+        else ""
+    )
+    return (
+        f'<a href="{escape(href)}" class="a-touch-link a-box {kind}"><div class="a-box-inner">'
+        '<div class="a-row displayFlex"><div class="a-column a-span9"><div class="a-section">'
+        '<p class="primaryMessage">\n <span class="a-color-success a-text-bold">\n'
+        f" {status}\n </span>\n </p>\n{secondary}"
+        '<p class="itemTitle">\n <span class="a-truncate itemTitleTruncate a-size-base">'
+        f'<span class="a-truncate-full">{escape(title)}</span>'
+        f'<span class="a-truncate-cut a-hidden" aria-hidden="true">{escape(title)}</span></span>\n </p>'
+        "</div></div></div></div></a>"
+    )
+
+
+def business_history(
+    *cards: str, count: int | None = None, exception: bool = False
+) -> str:
+    """The fragment the Business order-list call returns."""
+    rendered = len(cards) if count is None else count
+    return (
+        '<div id="pageAsinsSection" class="a-section"><div id="pageAsins" class="a-section"></div></div>'
+        '<div id="yourOrderHistorySection" class="a-row">'
+        f'<p id="deliveryHistoryException" data-isexception="{str(exception).lower()}" class="aok-hidden"></p>'
+        f'<p id="noOfDeliveryCards" data-noofdeliverycardsrendered="{rendered}" class="aok-hidden"></p>'
+        + "".join(cards)
+        + "</div>"
+    )

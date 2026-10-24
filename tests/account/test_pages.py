@@ -1,5 +1,6 @@
 """Tests for the HTML page parsers."""
 
+import json
 from datetime import date, datetime, timezone
 
 import pytest
@@ -7,10 +8,14 @@ import pytest
 from custom_components.amazon_orders.account.pages import (
     _day_month,
     build_record,
+    business_card_count,
+    business_history_failed,
     delivery_photo_expiry,
     delivery_window,
     is_track_page_path,
     looks_signed_out,
+    parse_business_cards,
+    parse_business_shell,
     parse_delivery_photo,
     parse_order_tiles,
     parse_track_link,
@@ -20,6 +25,7 @@ from custom_components.amazon_orders.account.pages import (
 from ..payloads import (
     ACTIVE_CODE,
     ACTIVE_SHIPMENT,
+    BUSINESS_TOKEN,
     COUNTRY,
     DELIVERED_EVENTS,
     DELIVERED_SHIPMENT,
@@ -28,6 +34,11 @@ from ..payloads import (
     FAKE_PHOTO_URL,
     FEEDBACK_PATH,
     ORDER_ID,
+    business_card,
+    business_history,
+    business_order_path,
+    business_shell,
+    business_tracker_path,
     orders_page,
     pop_page,
     progress_tracker_path,
@@ -859,3 +870,129 @@ def test_a_named_courier_is_never_guessed():
     record = build_record("amazon.fr", _active_tiles(), None, track)
     assert record["carrier_code"] == "DHL_CONNECT"
     assert record["carrier_guessed"] is False
+
+
+# ---------------------------------------------------------------------------
+# Amazon Business
+# ---------------------------------------------------------------------------
+
+
+def test_business_shell_gives_the_list_call():
+    request = parse_business_shell(business_shell())
+    assert request is not None
+    assert request.token == BUSINESS_TOKEN
+    assert request.form["refMarker"] == "ab_ppx_yo_mob_pagination_0"
+    body = json.loads(request.form["deliveryHistoryRequestString"])
+    assert body["marketplaceId"] == "fakeMarketId"
+    assert body["businessId"] == "fakeBizId0"
+    assert body["sessionId"] == "fakeSessn"
+    assert body["pageNumber"] == 0
+    # An empty string here silently returns no order at all.
+    assert body["searchKeyword"] is None
+    assert '"searchKeyword": null' in request.form["deliveryHistoryRequestString"]
+    assert body["isDefaultFilterSelected"] is True
+    assert body["filters"]["time"]["id"] == "yoPast3months"
+    assert body["originalRequestId"] == "0FAKEREQUESTID000000"
+    assert body["legalEntities"] == ["A00FAKELEGAL00"]
+    # The page itself sends no customer id.
+    assert "customerId" not in body
+
+
+def test_business_shell_without_the_optional_values():
+    page = business_shell(legal_entity=None).replace(
+        '<input type="hidden" name="originalRequestId" value="0FAKEREQUESTID000000" id="originalRequestId">',
+        "",
+    )
+    body = json.loads(parse_business_shell(page).form["deliveryHistoryRequestString"])
+    assert "legalEntities" not in body
+    assert "originalRequestId" not in body
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        orders_page(tile(ACTIVE_SHIPMENT, "Arriving today", None)),
+        business_shell().replace('"sessionId":"fakeSessn"', '"sessionId":""'),
+        business_shell().replace('"sessionId":"fakeSessn"}', '"sessionId":}'),
+        business_shell().replace('id="ab-your-orders-anticsrf-token"', ""),
+    ],
+)
+def test_not_a_usable_business_shell(page):
+    assert parse_business_shell(page) is None
+
+
+def test_business_cards_in_every_state(caplog):
+    fragment = business_history(
+        business_card(business_tracker_path("SHIPab00001"), "Livraison prévue lundi"),
+        business_card(
+            business_order_path("000-0000006-0000004"),
+            "Remboursé",
+            title="Example item 4",
+            note="Votre retour est en transit. Votre remboursement a été émis.",
+        ),
+        business_card(
+            business_order_path("000-0000006-0000005"),
+            "Livré&nbsp;: hier",
+            title="Example item 5",
+        ),
+        business_card(
+            business_order_path("000-0000006-0000006"),
+            "Livré jeudi",
+            title="Example item 6",
+        ),
+        business_card(
+            business_order_path("000-0000006-0000007"),
+            "Livré le 16 Oct 2026",
+            title="Example item 7",
+        ),
+        business_card(
+            "/dp/B000TEST00/ref=ab_test",
+            "Annulée",
+            title="Example item 8",
+            cancelled=True,
+        ),
+        business_card(business_order_path(""), "Livré jeudi", title="No order id"),
+    )
+    transit, yesterday, thursday, dated = parse_business_cards(fragment, FR_TODAY)
+
+    assert transit.order_id == ORDER_ID
+    assert transit.shipment_id == "SHIPab00001"
+    assert transit.line_item_id == "item0001"
+    assert transit.title == "Example item 1"
+    assert transit.status_text == "Livraison prévue lundi"
+    assert transit.placed_on is None
+    assert transit.follow is True
+    assert transit.delivered is False
+
+    assert yesterday.status_text == "Livré : hier"
+    assert yesterday.delivered_on == date(2026, 10, 23)
+    assert yesterday.follow is False
+    assert thursday.delivered_on == date(2026, 10, 22)
+    assert dated.delivered_on == date(2026, 10, 16)
+    assert caplog.text == ""
+
+
+def test_a_delivered_business_card_keeps_its_key_whatever_its_place():
+    card = business_card(business_order_path(), "Livré jeudi", title="Example item 6")
+    other = business_card(business_order_path(), "Livré jeudi", title="Example item 9")
+    (alone,) = parse_business_cards(business_history(card), FR_TODAY)
+    _, moved = parse_business_cards(business_history(other, card), FR_TODAY)
+    assert alone.key == moved.key
+    assert alone.key != parse_business_cards(business_history(other), FR_TODAY)[0].key
+
+
+def test_business_card_with_unconfirmed_wording_asks_once(caplog):
+    fragment = business_history(
+        business_card(business_tracker_path("SHIPab00009"), "Expédié aujourd'hui")
+    )
+    (parsed,) = parse_business_cards(fragment, FR_TODAY)
+    assert parsed.status_text == "Expédié aujourd'hui"
+    assert caplog.text.count("confirm it is right") == 1
+
+
+def test_business_list_count_and_error_flag():
+    assert business_card_count(business_history()) == 0
+    assert business_card_count(business_history(count=23)) == 23
+    assert business_card_count("<div></div>") is None
+    assert business_history_failed(business_history(exception=True))
+    assert not business_history_failed(business_history())

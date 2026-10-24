@@ -15,10 +15,16 @@ from custom_components.amazon_orders.account.parcels import normalize_parcel
 from ..fakes import FakeResponse, FakeSession
 from ..payloads import (
     ACTIVE_CODE,
+    BUSINESS_TOKEN,
     COUNTRY,
     DELIVERED_CODE,
     DELIVERED_EVENTS,
     FEEDBACK_PATH,
+    business_card,
+    business_history,
+    business_order_path,
+    business_shell,
+    business_tracker_path,
     orders_page,
     pop_page,
     progress_tracker_path,
@@ -617,3 +623,182 @@ async def test_a_failing_orders_page_does_not_claim_the_layout_changed(caplog):
     with pytest.raises(AmazonApiError):
         await _client(session).async_get_parcels()
     assert "No order lines" not in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Amazon Business
+# ---------------------------------------------------------------------------
+
+
+def _business_session(*fragments) -> FakeSession:
+    session = _session()
+    session.add("GET", "/your-orders/orders", FakeResponse(200, business_shell()))
+    session.add("POST", "/ab/your-orders/deliveryHistory", *fragments)
+    return session
+
+
+def _business_track(session: FakeSession, shipment: str, **page) -> None:
+    session.add(
+        "GET",
+        f"shipmentId={shipment}&vt=YOUR_ORDERS",
+        FakeResponse(200, track_page(**page)),
+    )
+
+
+def _posts(session: FakeSession) -> list[tuple[str, dict]]:
+    return [
+        (url, kwargs)
+        for method, url, kwargs in session.calls
+        if method == "POST" and "deliveryHistory" in url
+    ]
+
+
+async def test_a_business_account_reads_its_order_list_then_the_tracking_page():
+    session = _business_session(
+        FakeResponse(
+            200,
+            business_history(
+                business_card(
+                    business_tracker_path("SHIPab00001"), "Livraison prévue lundi"
+                ),
+                business_card("/dp/B000TEST00/ref=x", "Annulée", cancelled=True),
+            ),
+        )
+    )
+    _business_track(
+        session,
+        "SHIPab00001",
+        tracking_id="6A00000000001",
+        carrier_header="Informations sur la livraison",
+        milestone="SHIPPED",
+        short_status="IN_TRANSIT",
+    )
+
+    (record,) = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+    ((url, kwargs),) = _posts(session)
+    assert url == "https://www.amazon.fr/ab/your-orders/deliveryHistory"
+    assert kwargs["headers"]["anti-csrftoken-a2z"] == BUSINESS_TOKEN
+    assert kwargs["headers"]["X-Requested-With"] == "XMLHttpRequest"
+    assert "iPhone" in kwargs["headers"]["User-Agent"]
+    assert '"searchKeyword": null' in kwargs["data"]["deliveryHistoryRequestString"]
+    # The orders page is not read a second time through the legacy path.
+    assert not any("order-history" in url for url in _gets(session))
+    parcel = normalize_parcel(record)
+    assert parcel["status"] == "in_transit"
+    assert parcel["barcode"] == "6A00000000001"
+    assert parcel["carrier"] == "La Poste"
+
+
+async def test_a_delivered_business_card_stays_the_same_parcel():
+    session = _business_session(
+        FakeResponse(
+            200,
+            business_history(
+                business_card(
+                    business_tracker_path("SHIPab00001"), "Livraison prévue lundi"
+                )
+            ),
+        ),
+        FakeResponse(
+            200,
+            business_history(business_card(business_order_path(), "Livré&nbsp;: hier")),
+        ),
+    )
+    _business_track(
+        session, "SHIPab00001", milestone="SHIPPED", short_status="IN_TRANSIT"
+    )
+    client = AmazonClient("amazon.fr", "refresh", session)
+
+    (first,) = await client.async_get_parcels()
+    _business_track(
+        session, "SHIPab00001", milestone="DELIVERED", short_status="DELIVERED"
+    )
+    (second,) = await client.async_get_parcels()
+
+    assert normalize_parcel(second)["barcode"] == normalize_parcel(first)["barcode"]
+    assert normalize_parcel(second)["status"] == "delivered"
+    assert second["track_path"] == business_tracker_path("SHIPab00001")
+
+
+async def test_a_business_card_already_delivered_costs_no_extra_read():
+    session = _business_session(
+        FakeResponse(
+            200, business_history(business_card(business_order_path(), "Livré jeudi"))
+        )
+    )
+
+    (record,) = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+    assert not any("/gp/aw/ya" in url for url in _gets(session))
+    assert normalize_parcel(record)["status"] == "delivered"
+    assert record["delivered_on"] is not None
+
+
+async def test_a_stale_business_token_is_renewed_once():
+    session = _business_session(
+        FakeResponse(403),
+        FakeResponse(
+            200,
+            business_history(business_card(business_order_path(), "Livré jeudi")),
+        ),
+    )
+
+    records = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+    assert len(records) == 1
+    assert len(_posts(session)) == 2
+    assert sum(url.endswith("/your-orders/orders") for url in _gets(session)) == 2
+
+
+async def test_a_business_token_refused_twice_is_an_auth_error():
+    session = _business_session(FakeResponse(403))
+    with pytest.raises(AmazonAuthError):
+        await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+    assert len(_posts(session)) == 2
+
+
+async def test_an_other_business_auth_failure_is_not_retried():
+    session = _business_session(FakeResponse(401))
+    with pytest.raises(AmazonAuthError):
+        await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+    assert len(_posts(session)) == 1
+
+
+async def test_a_business_list_error_fails_the_poll():
+    session = _business_session(FakeResponse(200, business_history(exception=True)))
+    with pytest.raises(AmazonApiError):
+        await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+
+async def test_a_renewed_shell_that_is_no_longer_business_fails_the_poll():
+    session = _business_session(FakeResponse(403))
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(200, business_shell()),
+        FakeResponse(200, orders_page()),
+    )
+    with pytest.raises(AmazonApiError):
+        await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+
+async def test_an_empty_business_list_warns_once(caplog):
+    session = _business_session(FakeResponse(200, business_history()))
+    client = AmazonClient("amazon.fr", "refresh", session)
+    assert await client.async_get_parcels() == []
+    assert await client.async_get_parcels() == []
+    assert caplog.text.count("Amazon Business order list came back empty") == 1
+
+
+async def test_a_business_list_of_only_cancelled_cards_does_not_warn(caplog):
+    session = _business_session(
+        FakeResponse(
+            200,
+            business_history(
+                business_card("/dp/B000TEST00/ref=x", "Annulée", cancelled=True)
+            ),
+        )
+    )
+    assert await AmazonClient("amazon.fr", "refresh", session).async_get_parcels() == []
+    assert "came back empty" not in caplog.text

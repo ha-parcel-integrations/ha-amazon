@@ -7,6 +7,7 @@ state does not carry (the order line's status, the event timeline).
 
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
@@ -84,6 +85,44 @@ _LA_POSTE_ID_RE = re.compile(r"\d[A-Z]\d{11}")
 _LA_POSTE_STOREFRONTS = {"amazon.fr"}
 LA_POSTE_GUESS = "LA_POSTE"
 
+# Amazon Business: the orders page is an empty shell and the list comes from a
+# separate call, whose parameters the shell carries.
+_BUSINESS_TOKEN_RE = re.compile(
+    r'<meta name="anti-csrftoken-a2z" content="([^"]+)"[^>]*id="ab-your-orders-anticsrf-token"'
+)
+_BUSINESS_STATE_RE = re.compile(
+    r"<script[^>]*yourOrdersStateData[^>]*>\s*(\{.*?\})\s*</script>", re.S
+)
+_BUSINESS_REQUEST_ID_RE = re.compile(
+    r'<input[^>]*name="originalRequestId" value="([^"]*)"'
+)
+_BUSINESS_ENTITY_RE = re.compile(
+    r'id="button_yoAllOrders-([^"]+)" class="selectedFilterButton"'
+)
+_BUSINESS_CARD_RE = re.compile(
+    r'<a href="([^"]*)" class="[^"]*\b(nonCancelledDeliveryCard|cancelledDeliveryCard)\b[^"]*">(.*?)</a>',
+    re.S,
+)
+_BUSINESS_STATUS_RE = re.compile(
+    r'<p class="primaryMessage">\s*<span[^>]*>([^<]*)</span>'
+)
+_BUSINESS_NOTE_RE = re.compile(
+    r'<p class="secondaryMessage">\s*<span[^>]*>([^<]*)</span>'
+)
+_BUSINESS_TITLE_RE = re.compile(r'<span class="a-truncate-full">([^<]*)</span>')
+_BUSINESS_COUNT_RE = re.compile(r'data-noofdeliverycardsrendered="(\d+)"')
+_BUSINESS_EXCEPTION_RE = re.compile(r'data-isexception="true"')
+BUSINESS_HISTORY_PATH = "/ab/your-orders/deliveryHistory"
+# The list as the page itself asks for it: last three months, newest first.
+_BUSINESS_FILTERS = {
+    "orderCondition": {"displayText": "Orders", "id": "yoOrdersTabination"},
+    "time": {"displayText": "past 3 months", "id": "yoPast3months"},
+    "sortBy": {"displayText": "Order Date", "id": "yoOrderDate"},
+    "users": {"displayText": "Ordered by you", "id": "yoOrderedByYou"},
+    "paymentType": {"displayText": "Paid by you", "id": "yoPaidByYou"},
+    "legalEntities": {"displayText": "All organizations", "id": "yoAllOrganizations"},
+}
+
 # Third-party map key the page embeds; it is not parcel data.
 _STATE_DROP = {"hereMapsApiKey"}
 
@@ -103,6 +142,8 @@ class OrderTile:
     placed_on: date | None
     delivered_on: date | None
     position: int = 0
+    # False for a line whose link leads to no tracking (a Business order page).
+    follow: bool = True
 
     @property
     def shipment_key(self) -> str:
@@ -226,6 +267,122 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
                 placed_on=placed_on,
                 delivered_on=delivered_on,
                 position=position,
+            )
+        )
+    return tiles
+
+
+@dataclass(frozen=True)
+class BusinessRequest:
+    """What the Business order-list call needs, read off the orders shell."""
+
+    token: str
+    form: dict[str, str]
+
+
+def parse_business_shell(page: str) -> BusinessRequest | None:
+    """Return the Business order-list call for an orders shell, else ``None``."""
+    token = _BUSINESS_TOKEN_RE.search(page)
+    state_match = _BUSINESS_STATE_RE.search(page)
+    if not token or not state_match:
+        return None
+    try:
+        state = json.loads(html.unescape(state_match.group(1)))
+    except ValueError:
+        return None
+    ids = {key: state.get(key) for key in ("marketplaceId", "businessId", "sessionId")}
+    if not all(isinstance(value, str) and value for value in ids.values()):
+        return None
+    # ``searchKeyword`` must be null: an empty string silently returns no order.
+    body: dict[str, Any] = {
+        **ids,
+        "pageNumber": 0,
+        "searchKeyword": None,
+        "isTesting": False,
+        "isDefaultFilterSelected": True,
+        "filters": _BUSINESS_FILTERS,
+    }
+    if request_id := _BUSINESS_REQUEST_ID_RE.search(page):
+        body["originalRequestId"] = request_id.group(1)
+    if entity := _BUSINESS_ENTITY_RE.search(page):
+        body["legalEntities"] = [entity.group(1)]
+    return BusinessRequest(
+        token=html.unescape(token.group(1)),
+        form={
+            "deliveryHistoryRequestString": json.dumps(body),
+            "refMarker": "ab_ppx_yo_mob_pagination_0",
+        },
+    )
+
+
+def business_history_failed(fragment: str) -> bool:
+    """Whether the Business order list reports a server-side error."""
+    return bool(_BUSINESS_EXCEPTION_RE.search(fragment))
+
+
+def business_card_count(fragment: str) -> int | None:
+    """How many cards the Business order list says it rendered."""
+    match = _BUSINESS_COUNT_RE.search(fragment)
+    return int(match.group(1)) if match else None
+
+
+def _text(raw: str) -> str:
+    return " ".join(html.unescape(raw).split())
+
+
+def parse_business_cards(fragment: str, today: date) -> list[OrderTile]:
+    """Return the order lines of a Business order list, in page order.
+
+    A card carries no order date and no package id; an in-flight card links
+    straight to its tracking page, a delivered one to its order page.
+    """
+    tiles: list[OrderTile] = []
+    for position, match in enumerate(_BUSINESS_CARD_RE.finditer(fragment)):
+        href = html.unescape(match.group(1))
+        body = match.group(3)
+        status = _BUSINESS_STATUS_RE.search(body)
+        status_text = _text(status.group(1)) if status else ""
+        kind, confirmed = classify_order_text(status_text)
+        if match.group(2) == "cancelledDeliveryCard" or kind == SKIP:
+            continue
+        query = {k.lower(): v for k, v in parse_qs(urlparse(href).query).items()}
+        order_id = (query.get("orderid") or query.get("oid") or [""])[0]
+        if not order_id:
+            continue
+        if kind is not None and not confirmed:
+            warn_once(
+                f"plausible-line={_mask(status_text)}",
+                f'The Amazon order-line text "{_mask(status_text)}" was read as'
+                f" {kind} from wording we have not seen confirmed yet; please"
+                " confirm it is right.",
+            )
+        title_match = _BUSINESS_TITLE_RE.search(body)
+        title = _text(title_match.group(1)) if title_match else ""
+        note = _BUSINESS_NOTE_RE.search(body)
+        # A delivered card names no item; its title keeps it apart from the
+        # order's other lines without depending on its place in the list.
+        line_item = (query.get("itemid") or [""])[0] or (
+            "t" + hashlib.sha1(title.encode()).hexdigest()[:10]
+        )
+        delivered_on = None
+        if kind is ParcelStatus.DELIVERED:
+            delivered_on = _day_month(status_text, today) or _relative_day(
+                status_text, today
+            )
+        tiles.append(
+            OrderTile(
+                order_id=order_id,
+                line_item_id=line_item,
+                shipment_id=(query.get("shipmentid") or [""])[0],
+                package_id="1",
+                pop_path=href,
+                title=title,
+                status_text=status_text,
+                status_note=_text(note.group(1)) if note else None,
+                placed_on=None,
+                delivered_on=delivered_on,
+                position=position,
+                follow=is_track_page_path(href),
             )
         )
     return tiles

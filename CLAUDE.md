@@ -143,6 +143,20 @@ the structured state a response carries over anything meant for display.
   instead of two. Only the tracking page's own path counts, never a sub-path
   under it: a delivered line's page links a delivery-feedback survey there
   ahead of the real tracking link, so the tracking-link pattern stays narrow.
+- **Amazon Business** (seen on amazon.fr): the orders page is an empty shell
+  and the list comes from a separate call whose parameters and anti-forgery
+  token the shell carries; the client switches to it only when the shell
+  says Business and the page has no consumer tile, so other accounts are
+  untouched. One page only (newest first, last three months, "ordered by
+  you"), enough for incoming parcels. A rejected token gets one fresh shell,
+  then reads as an auth error. An empty list warns once: a malformed call
+  returns the same empty list as an account without orders. In-flight cards
+  link to the tracking page; a delivered card links to an order page with no
+  tracking and is never followed, so the client remembers each line's
+  shipment and tracking link (keyed on order and title) to keep the same
+  parcel when its card turns delivered. A delivered card it never saw in
+  flight is keyed on its order and a digest of its title, never on its place
+  in the list.
 - **No outgoing parcels:** the account only lists what the user ordered.
 - **Not built:** browser automation, IMAP parsing, order-level sensors,
   alexapy as a requirement, and a separate `ha-amazon-logistics` repo (Amazon

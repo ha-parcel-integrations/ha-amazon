@@ -14,6 +14,7 @@ still moving. The contract the coordinator relies on:
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import logging
 from datetime import date, datetime, timedelta, timezone
 from http.cookies import SimpleCookie
@@ -33,11 +34,16 @@ from ..const import (
 from .auth import exchange_token_for_cookies, refresh_access_token
 from .errors import AmazonApiError, AmazonAuthError
 from .pages import (
+    BUSINESS_HISTORY_PATH,
     OrderTile,
     build_record,
+    business_card_count,
+    business_history_failed,
     is_track_page_path,
     looks_signed_out,
     page_timezone,
+    parse_business_cards,
+    parse_business_shell,
     parse_order_tiles,
     parse_track_link,
     parse_track_page,
@@ -75,6 +81,9 @@ class AmazonClient:
         self._last: dict[_ShipmentKey, tuple[dict[str, Any], datetime]] = {}
         # Day a shipment was first read as delivered without a delivery date.
         self._undated: dict[_ShipmentKey, date] = {}
+        # Business: a delivered card drops its shipment and tracking link, so
+        # the in-flight card's are kept to carry the parcel over.
+        self._business_lines: dict[tuple[str, str], tuple[str, str]] = {}
 
     async def _authenticate(self) -> None:
         """Renew the access token and mint fresh website cookies."""
@@ -97,15 +106,25 @@ class AmazonClient:
             cookie[name]["secure"] = bool(item.get("Secure", True))
             jar.update_cookies(cookie, URL(f"https://www.{self._domain}/"))
 
-    async def _fetch_page(self, path: str) -> str:
-        """GET one signed-in request, mapping every failure mode to our errors."""
+    async def _fetch_page(
+        self,
+        path: str,
+        *,
+        form: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> str:
+        """Load one signed-in page (a POST with ``form``), mapping every failure."""
         if self._requests:
             await asyncio.sleep(REQUEST_PAUSE_SECONDS)
         self._requests += 1
         url = path if path.startswith("http") else f"https://www.{self._domain}{path}"
-        async with self._session.get(
-            url, headers={"User-Agent": WEB_USER_AGENT}
-        ) as response:
+        sent = {"User-Agent": WEB_USER_AGENT, **(headers or {})}
+        request = (
+            self._session.post(url, data=form, headers=sent)
+            if form is not None
+            else self._session.get(url, headers=sent)
+        )
+        async with request as response:
             status = response.status
             if status in (401, 403):
                 raise AmazonAuthError(f"HTTP {status}", status_code=status)
@@ -131,7 +150,7 @@ class AmazonClient:
         failure: AmazonApiError | None = None
         for path in ORDERS_PATHS:
             try:
-                tiles = parse_order_tiles(await self._fetch_page(path), today)
+                page = await self._fetch_page(path)
             except AmazonAuthError:
                 raise
             except AmazonApiError as err:
@@ -139,8 +158,10 @@ class AmazonClient:
                     raise
                 failure = err
                 continue
-            if tiles:
+            if tiles := parse_order_tiles(page, today):
                 return tiles
+            if parse_business_shell(page) is not None:
+                return await self._fetch_business_tiles(path, page, today)
         if failure is not None:
             raise failure
         # An account with no recent orders gets here legitimately; the same
@@ -152,15 +173,80 @@ class AmazonClient:
         )
         return []
 
+    async def _fetch_business_tiles(
+        self, path: str, shell: str, today: date
+    ) -> list[OrderTile]:
+        """Read an Amazon Business order list, which the orders page loads itself."""
+        try:
+            fragment = await self._post_business(shell)
+        except AmazonAuthError as err:
+            if err.status_code != 403:
+                raise
+            # A stale anti-forgery token: a fresh shell carries a new one.
+            fragment = await self._post_business(await self._fetch_page(path))
+        if business_history_failed(fragment):
+            raise AmazonApiError("Amazon Business order list reported an error")
+        tiles = [
+            self._carry_business_line(tile)
+            for tile in parse_business_cards(fragment, today)
+        ]
+        listed = {(tile.order_id, tile.title) for tile in tiles}
+        self._business_lines = {
+            line: known
+            for line, known in self._business_lines.items()
+            if line in listed
+        }
+        if not tiles and not business_card_count(fragment):
+            warn_once(
+                "no-business-lines",
+                "The Amazon Business order list came back empty. If you have"
+                " orders from the last three months, Amazon may have changed"
+                " how the list is requested.",
+            )
+        return tiles
+
+    async def _post_business(self, shell: str) -> str:
+        request = parse_business_shell(shell)
+        if request is None:
+            raise AmazonApiError("Amazon Business orders page changed")
+        origin = f"https://www.{self._domain}"
+        return await self._fetch_page(
+            BUSINESS_HISTORY_PATH,
+            form=request.form,
+            headers={
+                "Accept": "text/html,*/*",
+                "X-Requested-With": "XMLHttpRequest",
+                "anti-csrftoken-a2z": request.token,
+                "Origin": origin,
+                "Referer": f"{origin}{ORDERS_PATHS[0]}",
+            },
+        )
+
+    def _carry_business_line(self, tile: OrderTile) -> OrderTile:
+        """Keep a Business parcel's shipment once its card reads as delivered."""
+        line = (tile.order_id, tile.title)
+        if tile.shipment_id:
+            self._business_lines[line] = (tile.shipment_id, tile.pop_path)
+            return tile
+        known = self._business_lines.get(line)
+        if known is None:
+            return tile
+        return dataclasses.replace(
+            tile, shipment_id=known[0], pop_path=known[1], follow=True
+        )
+
     async def _read_shipment(
         self, tiles: list[OrderTile], today: date
     ) -> dict[str, Any]:
         """Follow the order line to its tracking page and build the record."""
         lead_path = tiles[0].pop_path
+        track_path: str | None = None
         track_page: str | None = None
-        if is_track_page_path(lead_path):
+        if not tiles[0].follow:
+            pass  # A Business order page, which has no tracking on it.
+        elif is_track_page_path(lead_path):
             # amazon.fr links an in-flight line straight to its tracking page.
-            track_path: str | None = lead_path
+            track_path = lead_path
             track_page = await self._fetch_page(lead_path)
         else:
             track_path = parse_track_link(await self._fetch_page(lead_path))

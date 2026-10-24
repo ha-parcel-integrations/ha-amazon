@@ -41,6 +41,7 @@ Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/)
 
 - Auto-imports every shipment of your recent orders — no per-parcel setup
 - One entry per Amazon country and account, each with its own sign-in, so two people in a household can each add their own account on the same Amazon
+- Amazon Business accounts too (seen on amazon.fr): the orders placed by you in the last three months
 - Per-parcel sensor with the canonical status (`registered` / `in_transit` / `out_for_delivery` / `delivered` / …), Amazon's own status text and a link to the tracking page
 - The delivery carrier Amazon names (for example Dragonfly or DHL) on every parcel
 - Hands parcels over to the matching carrier integration when you have it set up, for a delivery window, pickup point and full history (see [Hand-off to carrier integrations](#hand-off-to-carrier-integrations))
