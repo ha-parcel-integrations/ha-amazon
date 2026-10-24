@@ -12,7 +12,7 @@ from homeassistant.core import CoreState, Event, HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .account.client import AmazonClient
-from .account.coordinator import AmazonCoordinator
+from .account.coordinator import AmazonCoordinator, business_lines_store
 from .const import CONF_COUNTRY, CONF_REFRESH_TOKEN, PLATFORMS
 from .handoff import HandOff
 
@@ -94,5 +94,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: AmazonConfigEntry) -> b
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: AmazonConfigEntry) -> None:
-    """Forget which parcels this entry handed to carrier integrations."""
+    """Forget what this entry stored: hand-offs and Business lines."""
     await HandOff(hass, entry.entry_id, entry.options).async_remove()
+    await business_lines_store(hass, entry.entry_id).async_remove()

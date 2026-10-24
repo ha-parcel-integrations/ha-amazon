@@ -692,3 +692,10 @@ def test_german_timeline_messages_are_mapped(message, status):
 )
 def test_french_timeline_messages_are_mapped(message, status):
     assert map_event_status(message) is status
+
+
+def test_a_curly_apostrophe_in_the_timeline_is_mapped():
+    assert (
+        map_event_status("Le colis a quitté les locaux de l’expéditeur")
+        is ParcelStatus.IN_TRANSIT
+    )

@@ -18,6 +18,7 @@ from custom_components.amazon_orders.const import (
     ParcelStatus,
 )
 
+from ..fakes import fake_client
 from ..payloads import (
     ACTIVE_CODE,
     COUNTRY,
@@ -50,7 +51,7 @@ def _entry() -> MockConfigEntry:
 async def test_update_splits_active_and_delivered(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.return_value = [active_record(), delivered_record()]
     coordinator = AmazonCoordinator(hass, client, entry)
 
@@ -64,7 +65,7 @@ async def test_update_splits_active_and_delivered(hass):
 async def test_update_handles_an_empty_account(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.return_value = []
     coordinator = AmazonCoordinator(hass, client, entry)
 
@@ -75,7 +76,7 @@ async def test_expired_session_triggers_reauth(hass):
     """An expired session must start reauth, not retry forever."""
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.side_effect = AmazonAuthError("HTTP 401")
     coordinator = AmazonCoordinator(hass, client, entry)
 
@@ -92,7 +93,7 @@ async def test_first_refresh_fires_nothing(hass):
     """Otherwise every restart floods the user with "registered" events."""
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.return_value = [active_record()]
     coordinator = AmazonCoordinator(hass, client, entry)
 
@@ -120,7 +121,7 @@ async def test_event_carries_device_id(hass):
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, entry.entry_id)},
     )
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
 
     events = []
@@ -138,7 +139,7 @@ async def test_event_carries_device_id(hass):
 async def test_fires_status_changed_event(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
 
     events = []
@@ -159,7 +160,7 @@ async def test_delivery_fires_delivered_event_and_not_status_changed(hass):
     """The hop to delivered fires exactly one, dedicated event."""
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
 
     delivered = []
@@ -184,7 +185,7 @@ async def test_no_events_for_parcel_first_seen_delivered(hass):
     """A parcel already delivered when it first appears fires nothing."""
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
 
     fired = []
@@ -203,7 +204,7 @@ async def test_no_events_for_parcel_first_seen_delivered(hass):
 async def test_fires_registered_event_for_new_parcel(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
 
     events = []
@@ -240,7 +241,7 @@ def _with_window(monkeypatch, window: dict[str, str | None]):
 async def test_fires_delivery_time_changed_event(hass, monkeypatch):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
     window = {"from": "2026-04-29T13:00:00Z", "to": "2026-04-29T15:00:00Z"}
     _with_window(monkeypatch, window)
@@ -265,7 +266,7 @@ async def test_losing_the_eta_is_silent(hass, monkeypatch):
     """value -> null just means the carrier lost the window; not worth an alert."""
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
     window = {"from": "2026-04-29T13:00:00Z", "to": "2026-04-29T15:00:00Z"}
     _with_window(monkeypatch, window)
@@ -310,7 +311,7 @@ async def test_device_id_is_resolved_once(hass):
 async def test_a_record_without_any_key_fires_no_events(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
     fired = []
     hass.bus.async_listen(f"{DOMAIN}_parcel_registered", lambda e: fired.append(e))
@@ -331,7 +332,7 @@ async def test_a_record_without_any_key_fires_no_events(hass):
 async def test_a_line_with_no_recognised_status_and_no_tracking_is_not_incoming(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     coordinator = AmazonCoordinator(hass, client, entry)
     unreadable = active_record()
     unreadable.update(
@@ -350,3 +351,31 @@ async def test_a_line_with_no_recognised_status_and_no_tracking_is_not_incoming(
     assert len(coordinator.unresolved) == 1
     assert coordinator.unresolved[0]["status"] == ParcelStatus.UNKNOWN
     assert coordinator.delivered == []
+
+
+async def test_business_lines_are_stored_and_restored(hass, hass_storage):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    key = f"{DOMAIN}.business_lines.{entry.entry_id}"
+    hass_storage[key] = {
+        "version": 1,
+        "key": key,
+        "data": {"lines": [["000-1", "Item", "SHIP1", "/progress-tracker/package?x"]]},
+    }
+    client = fake_client()
+    client.async_get_parcels.return_value = []
+    client.business_lines = [["000-1", "Item", "SHIP1", "/progress-tracker/package?x"]]
+    coordinator = AmazonCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    client.restore_business_lines.assert_called_once_with(
+        [["000-1", "Item", "SHIP1", "/progress-tracker/package?x"]]
+    )
+
+    client.business_lines = [["000-2", "Other", "SHIP2", "/progress-tracker/package?y"]]
+    await coordinator._async_update_data()
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+    assert hass_storage[key]["data"]["lines"] == client.business_lines
+    # Loaded once, not on every poll.
+    client.restore_business_lines.assert_called_once()

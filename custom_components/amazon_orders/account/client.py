@@ -190,12 +190,14 @@ class AmazonClient:
             self._carry_business_line(tile)
             for tile in parse_business_cards(fragment, today)
         ]
-        listed = {(tile.order_id, tile.title) for tile in tiles}
-        self._business_lines = {
-            line: known
-            for line, known in self._business_lines.items()
-            if line in listed
-        }
+        # An empty list may be a silent failure; it must not forget anything.
+        if tiles:
+            listed = {(tile.order_id, tile.title) for tile in tiles}
+            self._business_lines = {
+                line: known
+                for line, known in self._business_lines.items()
+                if line in listed
+            }
         if not tiles and not business_card_count(fragment):
             warn_once(
                 "no-business-lines",
@@ -221,6 +223,22 @@ class AmazonClient:
                 "Referer": f"{origin}{ORDERS_PATHS[0]}",
             },
         )
+
+    @property
+    def business_lines(self) -> list[list[str]]:
+        """The remembered Business lines, in a shape that can be stored."""
+        return [
+            [order, title, shipment, path]
+            for (order, title), (shipment, path) in self._business_lines.items()
+        ]
+
+    def restore_business_lines(self, lines: list[list[str]]) -> None:
+        """Take back the Business lines remembered before a restart."""
+        self._business_lines = {
+            (line[0], line[1]): (line[2], line[3])
+            for line in lines
+            if isinstance(line, list) and len(line) == 4
+        }
 
     def _carry_business_line(self, tile: OrderTile) -> OrderTile:
         """Keep a Business parcel's shipment once its card reads as delivered."""

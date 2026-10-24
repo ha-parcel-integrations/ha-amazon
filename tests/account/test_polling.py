@@ -7,7 +7,7 @@ never fully stops, and a 429 triggers the Section 3 backoff.
 """
 
 from datetime import datetime, timedelta, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -32,6 +32,7 @@ from custom_components.amazon_orders.const import (
     STAGGER_MINUTES,
 )
 
+from ..fakes import fake_client
 from ..payloads import COUNTRY, active_record
 
 UTC = timezone.utc
@@ -182,7 +183,7 @@ def _entry() -> MockConfigEntry:
 async def test_update_interval_never_none_with_an_empty_account(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.return_value = []
     coordinator = AmazonCoordinator(hass, client, entry)
 
@@ -195,7 +196,7 @@ async def test_update_interval_never_none_with_an_empty_account(hass):
 async def test_update_interval_is_hot_for_an_out_for_delivery_parcel(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.return_value = [active_record()]
     coordinator = AmazonCoordinator(hass, client, entry)
 
@@ -207,7 +208,7 @@ async def test_update_interval_is_hot_for_an_out_for_delivery_parcel(hass):
 async def test_429_raises_update_failed_with_retry_after(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.side_effect = AmazonApiError(
         "HTTP 429", status_code=429, retry_after=120
     )
@@ -222,7 +223,7 @@ async def test_429_raises_update_failed_with_retry_after(hass):
 async def test_429_backoff_grows_without_a_retry_after_header(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.side_effect = AmazonApiError(
         "HTTP 429", status_code=429, retry_after=None
     )
@@ -240,7 +241,7 @@ async def test_429_backoff_grows_without_a_retry_after_header(hass):
 async def test_503_is_backed_off_like_a_429(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.side_effect = AmazonApiError(
         "HTTP 503", status_code=503, retry_after=30
     )
@@ -256,7 +257,7 @@ async def test_non_429_api_error_still_propagates(hass):
     """The existing 5xx-is-not-caught behaviour must survive Section 3's addition."""
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.side_effect = AmazonApiError("HTTP 500", status_code=500)
     coordinator = AmazonCoordinator(hass, client, entry)
 
@@ -267,7 +268,7 @@ async def test_non_429_api_error_still_propagates(hass):
 async def test_failed_poll_drops_the_overnight_interval(hass):
     entry = _entry()
     entry.add_to_hass(hass)
-    client = AsyncMock()
+    client = fake_client()
     client.async_get_parcels.return_value = []
     coordinator = AmazonCoordinator(hass, client, entry)
     coordinator.update_interval = timedelta(hours=5, minutes=40)

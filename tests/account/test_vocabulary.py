@@ -118,3 +118,10 @@ def test_month_names(name, number):
 
 def test_every_month_number_is_reachable():
     assert set(MONTHS.values()) == set(range(1, 13))
+
+
+def test_a_curly_apostrophe_reads_like_a_straight_one():
+    assert classify_order_text("Arrive aujourd’hui entre 11:00 et 13:15") == (
+        ParcelStatus.OUT_FOR_DELIVERY,
+        True,
+    )

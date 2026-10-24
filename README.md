@@ -114,13 +114,13 @@ So when a carrier has its own integration in the
 [ha-parcel-integrations](https://ha-parcel-integrations.github.io/carriers/)
 family and you have it set up, this integration hands the parcel over to it and
 stops listing it, so you do not see it twice. Today that covers
-**DHL** (the `dhl` integration), **Colis Privé**, **Dragonfly** and
-**La Poste**.
+**DHL** (the `dhl` integration), **Colis Privé** and **Dragonfly**.
 
 On amazon.fr, a tracking page sometimes names no courier at all. When its
 tracking number has the Colissimo shape (a digit, a letter, then 11 digits), the
-parcel is taken to be La Poste's and handed to the `laposte` integration; the log
-says once that the courier was guessed, so you can tell us if it was wrong.
+parcel is shown as La Poste's, but it stays here: a guess is never handed over.
+The log says once that the courier was guessed, so you can tell us if it was
+right.
 
 - It is on by default and can be turned off under **Configure**; the last step
   of adding the integration asks about it too. Turning it off lists those parcels

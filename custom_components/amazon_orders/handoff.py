@@ -50,6 +50,9 @@ def _hand_off_target(parcel: dict[str, Any]) -> str | None:
     # A stand-in barcode is not something a carrier can look up.
     if raw.get("barcode_source") != "tracking_id" or not parcel.get("barcode"):
         return None
+    # A wrong guess would hide the parcel here and strand it at the carrier.
+    if raw.get("carrier_guessed"):
+        return None
     target = HAND_OFF_CARRIERS.get(raw.get("carrier_code"))
     return target[0] if target else None
 

@@ -184,7 +184,5 @@ HAND_OFF_CARRIERS = {
     "DHL_CONNECT": ("dhl", "DHL", "dhl"),
     "COLIS_PRIVE_BELU": ("colis_prive", "Colis Privé", "colis-prive"),
     "DRAGONFLY": ("dragonfly", "Dragonfly", "dragonfly"),
-    # Guessed on amazon.fr from the tracking id when the page names no courier.
-    "LA_POSTE": ("laposte", "La Poste", "laposte"),
 }
 SERVICE_TRACK_PARCEL = "track_parcel"

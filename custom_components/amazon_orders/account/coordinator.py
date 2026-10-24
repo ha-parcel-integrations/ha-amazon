@@ -13,6 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -41,6 +42,13 @@ _LOGGER = logging.getLogger(__name__)
 # capped at ``BACKOFF_CAP_SECONDS``.
 BACKOFF_BASE_SECONDS = 60
 BACKOFF_CAP_SECONDS = 3600
+
+BUSINESS_LINES_VERSION = 1
+
+
+def business_lines_store(hass: HomeAssistant, entry_id: str) -> Store[dict]:
+    """Where an entry keeps its Business lines across restarts."""
+    return Store(hass, BUSINESS_LINES_VERSION, f"{DOMAIN}.business_lines.{entry_id}")
 
 
 def _stagger_minutes(entry_id: str) -> int:
@@ -139,6 +147,10 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         )
         self._client = client
         self.handoff = HandOff(hass, entry.entry_id, entry.options)
+        # A delivered Business card names no shipment; what the client learnt
+        # in flight must outlive a restart or the parcel changes barcode.
+        self._business_store = business_lines_store(hass, entry.entry_id)
+        self._business_saved: list[list[str]] | None = None
         # Every parcel of the last poll, handed-off ones included, so the
         # hand-off can run again once Home Assistant has started.
         self._all_parcels: list[dict] = []
@@ -219,6 +231,10 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         special handling, because retrying it forever would never recover; a
         429 needs its own handling too, for the Section 3 backoff.
         """
+        if self._business_saved is None:
+            stored = await self._business_store.async_load() or {}
+            self._business_saved = list(stored.get("lines", []))
+            self._client.restore_business_lines(self._business_saved)
         try:
             raws = await self._client.async_get_parcels()
         except AmazonAuthError as err:
@@ -234,6 +250,9 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
                 f"Amazon rate-limited (HTTP {err.status_code})", retry_after=retry_after
             ) from err
         self._consecutive_429 = 0
+        if (lines := self._client.business_lines) != self._business_saved:
+            await self._business_store.async_save({"lines": lines})
+            self._business_saved = lines
 
         include_history = self._include_history
         self._all_parcels = [

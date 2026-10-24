@@ -20,6 +20,7 @@ from ..payloads import (
     DELIVERED_CODE,
     DELIVERED_EVENTS,
     FEEDBACK_PATH,
+    ORDER_ID,
     business_card,
     business_history,
     business_order_path,
@@ -802,3 +803,37 @@ async def test_a_business_list_of_only_cancelled_cards_does_not_warn(caplog):
     )
     assert await AmazonClient("amazon.fr", "refresh", session).async_get_parcels() == []
     assert "came back empty" not in caplog.text
+
+
+async def test_business_lines_survive_a_restart_and_a_silent_empty_list():
+    session = _business_session(
+        FakeResponse(200, business_history()),
+        FakeResponse(
+            200,
+            business_history(business_card(business_order_path(), "Livré&nbsp;: hier")),
+        ),
+    )
+    _business_track(
+        session, "SHIPab00001", milestone="DELIVERED", short_status="DELIVERED"
+    )
+    before = AmazonClient("amazon.fr", "refresh", session)
+    before.restore_business_lines(
+        [
+            [
+                ORDER_ID,
+                "Example item 1",
+                "SHIPab00001",
+                business_tracker_path("SHIPab00001"),
+            ]
+        ]
+    )
+    stored = before.business_lines
+    after = AmazonClient("amazon.fr", "refresh", session)
+    after.restore_business_lines([*stored, ["not", "a", "line"], "junk"])
+
+    assert await after.async_get_parcels() == []
+    assert after.business_lines == stored
+    (record,) = await after.async_get_parcels()
+
+    assert record["shipment_id"] == "SHIPab00001"
+    assert record["tracking_id"] == ACTIVE_CODE

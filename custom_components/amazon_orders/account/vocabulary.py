@@ -133,7 +133,7 @@ STATUS_PREFIXES: tuple[str, ...] = tuple(prefix for prefix, _, _ in _TEXT)
 
 def classify_order_text(text: str | None) -> tuple[Kind | None, bool]:
     """Return what an order-line status means and whether that is confirmed."""
-    lowered = (text or "").strip().lower()
+    lowered = (text or "").strip().lower().replace("’", "'")
     for prefix, kind, confirmed in _TEXT:
         if lowered.startswith(prefix):
             return kind, confirmed

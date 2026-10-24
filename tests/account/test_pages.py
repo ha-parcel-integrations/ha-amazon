@@ -707,6 +707,7 @@ def test_french_tracking_id_label_is_the_fallback_to_the_state():
         ("Livré samedi", date(2026, 10, 17)),
         ("Livré le 16 Oct 2026", date(2026, 10, 16)),
         ("Livré", None),
+        ("Livré aujourd’hui", date(2026, 10, 24)),
     ],
 )
 def test_french_relative_delivery_days(text, expected):
@@ -861,6 +862,19 @@ def test_no_guess_off_amazon_fr_or_for_another_id_shape(domain, tracking_id):
     record = build_record(domain, _active_tiles(), None, _unnamed_courier(tracking_id))
     assert record["carrier_code"] is None
     assert record["carrier_guessed"] is False
+
+
+def test_an_unread_courier_header_is_never_guessed_over(caplog):
+    track = parse_track_page(
+        track_page(
+            tracking_id=COLISSIMO_ID, carrier_header="Livré par Unknown Couriers"
+        ),
+        FR_TODAY,
+    )
+    record = build_record("amazon.fr", _active_tiles(), None, track)
+    assert record["carrier_code"] is None
+    assert record["carrier_guessed"] is False
+    assert "guessed" not in caplog.text
 
 
 def test_a_named_courier_is_never_guessed():

@@ -154,7 +154,9 @@ the structured state a response carries over anything meant for display.
   link to the tracking page; a delivered card links to an order page with no
   tracking and is never followed, so the client remembers each line's
   shipment and tracking link (keyed on order and title) to keep the same
-  parcel when its card turns delivered. A delivered card it never saw in
+  parcel when its card turns delivered. That memory is persisted per entry
+  (a `Store`, removed with the entry) so a restart does not change the
+  barcode, and an empty list never prunes it. A delivered card it never saw in
   flight is keyed on its order and a digest of its title, never on its place
   in the list.
 - **No outgoing parcels:** the account only lists what the user ordered.
@@ -177,10 +179,13 @@ which exposes more (delivery window, pickup point, full history).
 - **Mapping is a fixed table** from Amazon `carrier_code` to HA domain
   (`DHL_CONNECT -> dhl`, `COLIS_PRIVE_BELU -> colis_prive`,
   `DRAGONFLY -> dragonfly`). DHL goes to `dhl`, never `dhl_nl` (no
-  `track_parcel` there). `LA_POSTE -> laposte` is not an Amazon code: on
-  amazon.fr only, a tracking page naming no courier whose id has the Colissimo
-  shape is guessed as La Poste (`raw["carrier_guessed"]`, one-shot warning).
-  Never guess on another storefront or over a named courier.
+  `track_parcel` there). On amazon.fr only, a tracking page naming no courier
+  (no header, or the generic one) whose id has the Colissimo shape is shown
+  as La Poste (`carrier_code: "LA_POSTE"`, not an Amazon code;
+  `raw["carrier_guessed"]`, one-shot warning). Never guess on another
+  storefront or over a header we could not read, and **never hand off a
+  guess** (maintainer decision): a wrong one would hide the parcel here and
+  strand it at the carrier. Lift that only once a real hand-off confirms it.
 - **Hand off only when `hass.services.has_service(domain, "track_parcel")`**,
   and only after `EVENT_HOMEASSISTANT_STARTED`: during startup the carrier may
   not have registered its service yet, which would read as "not installed".

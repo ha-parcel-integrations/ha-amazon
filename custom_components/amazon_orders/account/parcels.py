@@ -132,7 +132,7 @@ def _event_status(message: str | None) -> ParcelStatus | None:
     if not message:
         return None
     # Amazon ends some timeline messages with a full stop and some without.
-    text = message.strip().lower().rstrip(".!")
+    text = message.strip().lower().rstrip(".!").replace("’", "'")
     mapped = _EVENT_MAP.get(text)
     if mapped is not None:
         return mapped

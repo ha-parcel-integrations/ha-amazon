@@ -83,6 +83,8 @@ _WINDOW_TOLERANCE = timedelta(hours=1)
 # A courier the page does not name: the Colissimo id shape, amazon.fr only.
 _LA_POSTE_ID_RE = re.compile(r"\d[A-Z]\d{11}")
 _LA_POSTE_STOREFRONTS = {"amazon.fr"}
+# Delivery-card headers that name no courier, seen on a real page.
+_UNNAMED_CARRIER_HEADERS = {"informations sur la livraison"}
 LA_POSTE_GUESS = "LA_POSTE"
 
 # Amazon Business: the orders page is an empty shell and the list comes from a
@@ -482,7 +484,7 @@ _WORD_RE = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?")
 
 def _relative_day(text: str, today: date) -> date | None:
     """Resolve "today", "yesterday" or a weekday name in an order-line text."""
-    for word in _WORD_RE.findall(text.lower()):
+    for word in _WORD_RE.findall(text.lower().replace("’", "'")):
         if word in _TODAY_WORDS:
             return today
         if word in _YESTERDAY_WORDS:
@@ -655,6 +657,9 @@ def delivery_window(state: dict[str, Any], read_at: datetime) -> tuple[str, str]
 def _guess_carrier(domain: str, track: TrackInfo) -> str | None:
     """Name the courier from the tracking id when the page does not."""
     if domain not in _LA_POSTE_STOREFRONTS or not track.tracking_id:
+        return None
+    header = (track.carrier_header or "").lower()
+    if header and header not in _UNNAMED_CARRIER_HEADERS:
         return None
     if not _LA_POSTE_ID_RE.fullmatch(track.tracking_id):
         return None

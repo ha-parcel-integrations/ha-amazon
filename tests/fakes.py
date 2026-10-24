@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import urlparse
 
 import aiohttp
@@ -79,3 +79,11 @@ class FakeSession:
 def connector_error() -> aiohttp.ClientConnectorError:
     """A connection failure, as raised for an unresolvable host."""
     return aiohttp.ClientConnectorError(MagicMock(), OSError("no route"))
+
+
+def fake_client() -> AsyncMock:
+    """A stand-in ``AmazonClient`` for coordinator tests; script ``async_get_parcels``."""
+    client = AsyncMock()
+    client.business_lines = []
+    client.restore_business_lines = MagicMock()
+    return client
