@@ -99,8 +99,13 @@ the structured state a response carries over anything meant for display.
   warns once even when the timeline resolves the status (maintainer decision): that warning is
   how the milestone map grows, so don't silence it.
 - **`None` on purpose:** `sender`, `receiver`, `weight`, `dimensions`,
-  `pickup_point`. `delivery_window` is in `PENDING_CAPABILITIES` until a real
-  in-flight parcel shows a parseable date.
+  `pickup_point`.
+- **Delivery window** only when the tracking page predicts one: the times come
+  from the promise text, the day from the countdown to the window's end, and the
+  two must agree within an hour or the window is dropped with a one-shot
+  warning. Never on a delivered parcel. Seen on amazon.fr only.
+- **Delivered day** from the order line's date, else from a relative word
+  (today, yesterday, a French weekday within the past week).
 - **Delivery photo** (`raw["delivery_photo_url"]`, not a canonical field — a
   contract addition was considered and deliberately not made). Only Amazon's own
   fleet renders the card; a third-party carrier's page has none and the field is
@@ -158,7 +163,10 @@ which exposes more (delivery window, pickup point, full history).
 - **Mapping is a fixed table** from Amazon `carrier_code` to HA domain
   (`DHL_CONNECT -> dhl`, `COLIS_PRIVE_BELU -> colis_prive`,
   `DRAGONFLY -> dragonfly`). DHL goes to `dhl`, never `dhl_nl` (no
-  `track_parcel` there).
+  `track_parcel` there). `LA_POSTE -> laposte` is not an Amazon code: on
+  amazon.fr only, a tracking page naming no courier whose id has the Colissimo
+  shape is guessed as La Poste (`raw["carrier_guessed"]`, one-shot warning).
+  Never guess on another storefront or over a named courier.
 - **Hand off only when `hass.services.has_service(domain, "track_parcel")`**,
   and only after `EVENT_HOMEASSISTANT_STARTED`: during startup the carrier may
   not have registered its service yet, which would read as "not installed".

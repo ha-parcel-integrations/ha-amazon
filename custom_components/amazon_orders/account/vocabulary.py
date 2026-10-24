@@ -35,6 +35,7 @@ _CONFIRMED_TEXT: tuple[tuple[str, Kind], ...] = (
     ("arrive aujourd'hui", ParcelStatus.OUT_FOR_DELIVERY),
     ("arrive", ParcelStatus.IN_TRANSIT),
     ("annulé", SKIP),
+    ("livraison prévue", ParcelStatus.IN_TRANSIT),
 )
 
 _PLAUSIBLE_TEXT: tuple[tuple[str, Kind], ...] = (
@@ -60,7 +61,6 @@ _PLAUSIBLE_TEXT: tuple[tuple[str, Kind], ...] = (
     ("terugbetaald", SKIP),
     # fr
     ("arrivée prévue", ParcelStatus.IN_TRANSIT),
-    ("livraison prévue", ParcelStatus.IN_TRANSIT),
     ("pas encore expédié", ParcelStatus.REGISTERED),
     ("expédié", ParcelStatus.IN_TRANSIT),
     ("en cours de livraison", ParcelStatus.OUT_FOR_DELIVERY),

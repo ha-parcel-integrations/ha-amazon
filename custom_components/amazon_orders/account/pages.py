@@ -73,6 +73,17 @@ _POD_SIGNED_AT = "X-Amz-Date"
 _POD_VALID_FOR = "X-Amz-Expires"
 _POD_SRC_RE = re.compile(r'\b(data-src|src)="([^"]+)"')
 
+# "11:00 - 13:15" in the promise message, with the countdown to its end.
+_WINDOW_RE = re.compile(
+    r"(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)\s*[-–]\s*(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)"
+)
+_WINDOW_END_KEY = "timeUntilPredictedDeliveryWindowEnd"
+_WINDOW_TOLERANCE = timedelta(hours=1)
+# A courier the page does not name: the Colissimo id shape, amazon.fr only.
+_LA_POSTE_ID_RE = re.compile(r"\d[A-Z]\d{11}")
+_LA_POSTE_STOREFRONTS = {"amazon.fr"}
+LA_POSTE_GUESS = "LA_POSTE"
+
 # Third-party map key the page embeds; it is not parcel data.
 _STATE_DROP = {"hereMapsApiKey"}
 
@@ -201,7 +212,7 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
                 _day_month(status_text, placed_on, forward=True)
                 if placed_on
                 else _day_month(status_text, today)
-            )
+            ) or _relative_day(status_text, today)
         tiles.append(
             OrderTile(
                 order_id=order_id,
@@ -300,6 +311,28 @@ _YESTERDAY_WORDS = {
     "igår",
     "wczoraj",
 }
+
+
+# Seen on amazon.fr delivered lines: "Livré jeudi", within the past week.
+_WEEKDAYS = {
+    name: number
+    for number, name in enumerate(
+        ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
+    )
+}
+_WORD_RE = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?")
+
+
+def _relative_day(text: str, today: date) -> date | None:
+    """Resolve "today", "yesterday" or a weekday name in an order-line text."""
+    for word in _WORD_RE.findall(text.lower()):
+        if word in _TODAY_WORDS:
+            return today
+        if word in _YESTERDAY_WORDS:
+            return today - timedelta(days=1)
+        if word in _WEEKDAYS:
+            return today - timedelta(days=(today.weekday() - _WEEKDAYS[word]) % 7 or 7)
+    return None
 
 
 def _parse_time(text: str) -> time | None:
@@ -427,11 +460,63 @@ def parse_track_page(page: str, today: date) -> TrackInfo:
     )
 
 
+def delivery_window(state: dict[str, Any], read_at: datetime) -> tuple[str, str] | None:
+    """Return the predicted delivery window from a tracking page's state.
+
+    The message names only the times, in the account's language; the countdown
+    to the window's end says which day they fall on and confirms the reading.
+    """
+    countdown = state.get(_WINDOW_END_KEY)
+    promise = state.get("promise")
+    message = promise.get("promiseMessage") if isinstance(promise, dict) else None
+    zone = _zone(
+        state.get("timezone") if isinstance(state.get("timezone"), str) else None
+    )
+    if not isinstance(countdown, int) or isinstance(countdown, bool) or zone is None:
+        return None
+    match = _WINDOW_RE.search(message) if isinstance(message, str) else None
+    start = _parse_time(match.group(1)) if match else None
+    end = _parse_time(match.group(2)) if match else None
+    expected_end = (read_at + timedelta(milliseconds=countdown)).astimezone(zone)
+    if start is not None and end is not None:
+        day = expected_end.date()
+        window_from = datetime.combine(day, start, tzinfo=zone)
+        window_to = datetime.combine(day, end, tzinfo=zone)
+        if (
+            window_from < window_to
+            and abs(window_to - expected_end) <= _WINDOW_TOLERANCE
+        ):
+            return window_from.isoformat(), window_to.isoformat()
+    warn_once(
+        f"delivery-window={_mask(message or '')}",
+        f'Amazon announced the delivery window "{_mask(message or "")}" in a'
+        " shape we could not read, so it is left out; please share it.",
+    )
+    return None
+
+
+def _guess_carrier(domain: str, track: TrackInfo) -> str | None:
+    """Name the courier from the tracking id when the page does not."""
+    if domain not in _LA_POSTE_STOREFRONTS or not track.tracking_id:
+        return None
+    if not _LA_POSTE_ID_RE.fullmatch(track.tracking_id):
+        return None
+    warn_once(
+        "carrier-guess=la-poste",
+        "An amazon.fr tracking page named no courier, so La Poste (Colissimo)"
+        " was guessed from the shape of the tracking id; please confirm the"
+        " courier your parcel came with.",
+    )
+    return LA_POSTE_GUESS
+
+
 def build_record(
     domain: str,
     tiles: list[OrderTile],
     track_path: str | None,
     track: TrackInfo | None,
+    *,
+    read_at: datetime | None = None,
 ) -> dict[str, Any]:
     """Assemble the raw shipment record the parcel mapping works on.
 
@@ -441,6 +526,11 @@ def build_record(
     lead = tiles[0]
     tracking_id = track.tracking_id if track else None
     progress = (track.state.get("progressTracker") if track else None) or {}
+    carrier_code = track.carrier_code if track else None
+    guessed = None
+    if track and carrier_code is None:
+        guessed = _guess_carrier(domain, track)
+    window = delivery_window(track.state, read_at) if track and read_at else None
     return {
         "domain": domain,
         "order_id": lead.order_id,
@@ -448,7 +538,8 @@ def build_record(
         "package_id": lead.package_id,
         "barcode_source": "tracking_id" if tracking_id else "shipment_key",
         "tracking_id": tracking_id,
-        "carrier_code": track.carrier_code if track else None,
+        "carrier_code": carrier_code or guessed,
+        "carrier_guessed": guessed is not None,
         "delivery_photo_url": track.delivery_photo_url if track else None,
         "delivery_photo_expires": track.delivery_photo_expires if track else None,
         "carrier_header": track.carrier_header if track else None,
@@ -456,6 +547,7 @@ def build_record(
         "order_status_note": lead.status_note,
         "delivered_on": lead.delivered_on.isoformat() if lead.delivered_on else None,
         "milestone": progress.get("lastReachedMilestone") if progress else None,
+        "delivery_window": list(window) if window else None,
         "events": track.events if track else [],
         "items": [tile.title for tile in tiles],
         "pop_path": lead.pop_path,

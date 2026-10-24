@@ -93,6 +93,8 @@ _CARRIER_NAMES = {
     "DHL_CONNECT": "DHL",
     "Amazon": "Amazon",
     "COLIS_PRIVE_BELU": "Colis Privé",
+    # Not an Amazon code: guessed from the tracking id (pages._guess_carrier).
+    "LA_POSTE": "La Poste",
 }
 
 # Status texts we have already warned about, so each unmapped one is logged
@@ -359,10 +361,13 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
     The **keys of the returned dict are the contract**: every carrier in the
     suite returns exactly these, in this order. A key is ``None`` when Amazon
     does not expose it — never omitted. Amazon's pages carry no sender,
-    receiver, weight, dimensions, pickup point or reliable delivery window.
+    receiver, weight, dimensions or pickup point; the delivery window only
+    when the tracking page predicts one.
     """
     status = resolve_status(raw)
     delivered = status is ParcelStatus.DELIVERED
+    window = raw.get("delivery_window")
+    planned_from, planned_to = window if window and not delivered else (None, None)
 
     return {
         "carrier": _carrier(raw),
@@ -373,8 +378,8 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "raw_status": _raw_status(raw),
         "delivered": delivered,
         "delivered_at": _delivered_at(raw) if delivered else None,
-        "planned_from": None,
-        "planned_to": None,
+        "planned_from": planned_from,
+        "planned_to": planned_to,
         "pickup": False,
         "pickup_point": None,
         "url": tracking_url(raw),

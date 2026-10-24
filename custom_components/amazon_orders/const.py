@@ -42,8 +42,9 @@ KNOWN_CAPABILITIES = frozenset(
 #
 # Amazon exposes no weight, dimensions or pickup point to the account.
 # ``url`` is the shipment's own tracking link (or the order's, when a shipment
-# has none), ``history`` is the timestamped tracking timeline.
-CAPABILITIES = frozenset({"url", "history"})
+# has none), ``history`` is the timestamped tracking timeline,
+# ``delivery_window`` comes from a tracking page that predicts one.
+CAPABILITIES = frozenset({"url", "history", "delivery_window"})
 
 # Fields whose support is not confirmed yet — typically a carrier built without
 # a real parcel to check against. Leave this empty once the open questions are
@@ -54,7 +55,7 @@ CAPABILITIES = frozenset({"url", "history"})
 # into CAPABILITIES. A multi-backend carrier declares
 # PENDING_CAPABILITIES_BY_VARIANT with the same keys as its
 # CAPABILITIES_BY_VARIANT instead (omit backends with nothing pending).
-PENDING_CAPABILITIES: frozenset[str] = frozenset({"delivery_window"})
+PENDING_CAPABILITIES: frozenset[str] = frozenset()
 
 # If this carrier ever grows a second backend with a genuinely different
 # payload shape (a country-specific API, not just a config option), replace
@@ -183,5 +184,7 @@ HAND_OFF_CARRIERS = {
     "DHL_CONNECT": ("dhl", "DHL", "dhl"),
     "COLIS_PRIVE_BELU": ("colis_prive", "Colis Privé", "colis-prive"),
     "DRAGONFLY": ("dragonfly", "Dragonfly", "dragonfly"),
+    # Guessed on amazon.fr from the tracking id when the page names no courier.
+    "LA_POSTE": ("laposte", "La Poste", "laposte"),
 }
 SERVICE_TRACK_PARCEL = "track_parcel"

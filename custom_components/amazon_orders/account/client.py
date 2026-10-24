@@ -173,7 +173,12 @@ class AmazonClient:
             if zone_name := page_timezone(track_page):
                 await dt_util.async_get_time_zone(zone_name)
             track = parse_track_page(track_page, today)
-            if track.tracking_id is None and not track.events:
+            # A line not yet dispatched has neither, legitimately.
+            if (
+                track.tracking_id is None
+                and not track.events
+                and track.state.get("shortStatus") != "ORDER_PLACED"
+            ):
                 warn_once(
                     "empty-track-page",
                     "A shipment tracking page held no tracking id and no timeline;"
@@ -189,7 +194,9 @@ class AmazonClient:
                 " find, so its carrier, tracking id and timeline are missing;"
                 " Amazon may use a different tracking page on this storefront.",
             )
-        return build_record(self._domain, tiles, track_path, track)
+        return build_record(
+            self._domain, tiles, track_path, track, read_at=datetime.now(timezone.utc)
+        )
 
     def _is_final(
         self,

@@ -1,6 +1,6 @@
 """Tests for the HTML page parsers."""
 
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -8,6 +8,7 @@ from custom_components.amazon_orders.account.pages import (
     _day_month,
     build_record,
     delivery_photo_expiry,
+    delivery_window,
     is_track_page_path,
     looks_signed_out,
     parse_delivery_photo,
@@ -598,10 +599,8 @@ def test_french_delivered_and_cancelled_lines(caplog):
     assert (
         delivered.status_note == "Votre colis a été déposé dans la boîte aux lettres."
     )
-    # No day in the text: the shipment is dated by its timeline, else finalised
-    # the day after it first read as delivered.
     assert today.delivered is True
-    assert today.delivered_on is None
+    assert today.delivered_on == FR_TODAY
     assert february.placed_on == date(2026, 2, 1)
     assert february.delivered_on == date(2026, 2, 3)
     assert caplog.text == ""
@@ -685,3 +684,178 @@ def test_french_tracking_id_label_is_the_fallback_to_the_state():
         tracking_id=ACTIVE_CODE, tracking_label="Numéro de suivi :", state=False
     )
     assert parse_track_page(page, FR_TODAY).tracking_id == ACTIVE_CODE
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Livré : hier", date(2026, 10, 23)),
+        ("Livré aujourd'hui", date(2026, 10, 24)),
+        # 2026-10-24 is a Saturday.
+        ("Livré jeudi", date(2026, 10, 22)),
+        ("Livré samedi", date(2026, 10, 17)),
+        ("Livré le 16 Oct 2026", date(2026, 10, 16)),
+        ("Livré", None),
+    ],
+)
+def test_french_relative_delivery_days(text, expected):
+    (parsed,) = parse_order_tiles(
+        orders_page(_fr_tile(DELIVERED_SHIPMENT, text, placed="10 octobre 2026")),
+        FR_TODAY,
+    )
+    assert parsed.delivered_on == expected
+
+
+def test_business_wording_is_confirmed(caplog):
+    (parsed,) = parse_order_tiles(
+        orders_page(
+            _fr_tile(
+                ACTIVE_SHIPMENT, "Livraison prévue lundi", placed="23 octobre 2026"
+            )
+        ),
+        FR_TODAY,
+    )
+    assert parsed.status_text == "Livraison prévue lundi"
+    assert caplog.text == ""
+
+
+# ---------------------------------------------------------------------------
+# delivery window
+# ---------------------------------------------------------------------------
+
+# 2026-10-24 10:07:44 UTC is 12:07:44 in Paris; the window ends 13:15.
+READ_AT = datetime(2026, 10, 24, 10, 7, 44, tzinfo=timezone.utc)
+FR_STATE = {
+    "timezone": "Europe/Paris",
+    "promise": {
+        "promiseMessage": "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15"
+    },
+    "timeUntilPredictedDeliveryWindowEnd": 4035981,
+}
+
+
+def test_delivery_window_from_the_promise_and_its_countdown():
+    assert delivery_window(FR_STATE, READ_AT) == (
+        "2026-10-24T11:00:00+02:00",
+        "2026-10-24T13:15:00+02:00",
+    )
+
+
+def test_delivery_window_with_twelve_hour_times():
+    state = {
+        **FR_STATE,
+        "promise": {"promiseMessage": "Arriving today 11:00 AM - 1:15 PM"},
+    }
+    assert delivery_window(state, READ_AT) == (
+        "2026-10-24T11:00:00+02:00",
+        "2026-10-24T13:15:00+02:00",
+    )
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {**FR_STATE, "timeUntilPredictedDeliveryWindowEnd": None},
+        {**FR_STATE, "timeUntilPredictedDeliveryWindowEnd": True},
+        {**FR_STATE, "timezone": None},
+        {
+            "timezone": "Europe/Paris",
+            "promise": {"promiseMessage": "Livraison prévue lundi"},
+        },
+    ],
+)
+def test_delivery_window_needs_the_countdown_and_a_zone(state, caplog):
+    assert delivery_window(state, READ_AT) is None
+    assert caplog.text == ""
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Arrive aujourd'hui",
+        # Times that do not end where the countdown says.
+        "Arrive aujourd'hui dans la tranche horaire suivante : 16:00 - 18:00",
+        "Arrive aujourd'hui dans la tranche horaire suivante : 13:15 - 11:00",
+    ],
+)
+def test_an_unreadable_window_is_left_out_and_reported_once(message, caplog):
+    state = {**FR_STATE, "promise": {"promiseMessage": message}}
+    assert delivery_window(state, READ_AT) is None
+    assert delivery_window(state, READ_AT) is None
+    assert caplog.text.count("delivery window") == 1
+
+
+def test_record_carries_the_window_when_read_with_a_time():
+    page = track_page(state=True, timezone="Europe/Paris")
+    track = parse_track_page(page, FR_TODAY)
+    track.state.update(FR_STATE)
+    tiles = parse_order_tiles(
+        orders_page(tile(ACTIVE_SHIPMENT, "Arriving today", None)), TODAY
+    )
+    assert build_record(COUNTRY, tiles, None, track)["delivery_window"] is None
+    assert build_record(COUNTRY, tiles, None, track, read_at=READ_AT)[
+        "delivery_window"
+    ] == [
+        "2026-10-24T11:00:00+02:00",
+        "2026-10-24T13:15:00+02:00",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# courier not named on the page
+# ---------------------------------------------------------------------------
+
+COLISSIMO_ID = "6A00000000001"
+
+
+def _unnamed_courier(tracking_id: str | None = COLISSIMO_ID):
+    return parse_track_page(
+        track_page(
+            tracking_id=tracking_id,
+            carrier_header="Informations sur la livraison",
+            tracking_label="Numéro de suivi :",
+            milestone="SHIPPED",
+            short_status="IN_TRANSIT",
+            timezone="Europe/Paris",
+        ),
+        FR_TODAY,
+    )
+
+
+def _active_tiles():
+    return parse_order_tiles(
+        orders_page(tile(ACTIVE_SHIPMENT, "Arriving today", None)), TODAY
+    )
+
+
+def test_an_unnamed_courier_with_a_colissimo_id_is_guessed_as_la_poste(caplog):
+    track = _unnamed_courier()
+    assert track.carrier_code is None
+    record = build_record("amazon.fr", _active_tiles(), None, track)
+    build_record("amazon.fr", _active_tiles(), None, track)
+    assert record["carrier_code"] == "LA_POSTE"
+    assert record["carrier_guessed"] is True
+    assert caplog.text.count("La Poste (Colissimo) was guessed") == 1
+
+
+@pytest.mark.parametrize(
+    "domain,tracking_id",
+    [
+        ("amazon.com.be", COLISSIMO_ID),
+        ("amazon.fr", "FR0000000001"),
+        ("amazon.fr", None),
+    ],
+)
+def test_no_guess_off_amazon_fr_or_for_another_id_shape(domain, tracking_id):
+    record = build_record(domain, _active_tiles(), None, _unnamed_courier(tracking_id))
+    assert record["carrier_code"] is None
+    assert record["carrier_guessed"] is False
+
+
+def test_a_named_courier_is_never_guessed():
+    track = parse_track_page(
+        track_page(tracking_id=COLISSIMO_ID, carrier="DHL_CONNECT"), FR_TODAY
+    )
+    record = build_record("amazon.fr", _active_tiles(), None, track)
+    assert record["carrier_code"] == "DHL_CONNECT"
+    assert record["carrier_guessed"] is False

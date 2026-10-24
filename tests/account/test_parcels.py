@@ -420,9 +420,32 @@ def test_capabilities_match_what_normalize_parcel_actually_returns():
     ):
         if flag not in CAPABILITIES:
             assert delivered[field] is None and active[field] is None
-    # Pending: not confirmed by a real parcel yet, so it must still be null.
-    assert "delivery_window" in PENDING_CAPABILITIES
+    assert "delivery_window" in CAPABILITIES
+    windowed = active_record()
+    windowed["delivery_window"] = [
+        "2026-10-24T11:00:00+02:00",
+        "2026-10-24T13:15:00+02:00",
+    ]
+    assert normalize_parcel(windowed)["planned_from"] == "2026-10-24T11:00:00+02:00"
+    assert normalize_parcel(windowed)["planned_to"] == "2026-10-24T13:15:00+02:00"
+    # A record without a predicted window keeps both null.
     assert active["planned_from"] is None and active["planned_to"] is None
+
+
+def test_a_delivered_parcel_drops_its_stale_window():
+    raw = delivered_record()
+    raw["delivery_window"] = [
+        "2026-10-03T11:00:00+02:00",
+        "2026-10-03T13:15:00+02:00",
+    ]
+    parcel = normalize_parcel(raw)
+    assert parcel["planned_from"] is None and parcel["planned_to"] is None
+
+
+def test_guessed_la_poste_is_named_and_handed_off_like_a_real_code():
+    raw = in_transit_record("6A00000000001")
+    raw["carrier_code"] = "LA_POSTE"
+    assert normalize_parcel(raw)["carrier"] == "La Poste"
 
 
 def test_normalize_delivered_parcel():

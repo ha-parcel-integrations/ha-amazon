@@ -117,6 +117,13 @@ async def test_each_carrier_gets_its_own_service_call(hass):
     assert [c["tracking_code"] for c in colis] == ["AMZNL000000000004"]
 
 
+async def test_a_guessed_la_poste_parcel_goes_to_laposte(hass):
+    laposte = _register(hass, "laposte", "track_parcel")
+    await _setup(hass, [_record("6A00000000001", "LA_POSTE")])
+    assert laposte == [{"tracking_code": "6A00000000001"}]
+    assert _incoming(hass) == "0"
+
+
 async def test_missing_carrier_raises_one_issue_per_carrier_domain(hass):
     entry, fetch = await _setup(
         hass,

@@ -340,6 +340,39 @@ async def test_a_delivered_line_skips_the_feedback_survey_for_ship_track():
     assert normalize_parcel(record)["status"] == "delivered"
 
 
+async def test_a_not_yet_dispatched_tracking_page_is_not_reported_empty(caplog):
+    path = progress_tracker_path("SHIPfr00007")
+    session = _session(
+        tile(
+            "SHIPfr00007",
+            "Livraison prévue mardi",
+            None,
+            placed_anchor="Commande effectuée le",
+            placed=_placed(1),
+            href=path,
+        )
+    )
+    session.add(
+        "GET",
+        "progress-tracker/package?",
+        FakeResponse(
+            200,
+            track_page(
+                tracking_id=None,
+                carrier=None,
+                milestone="ORDERED",
+                short_status="ORDER_PLACED",
+                timezone="Europe/Paris",
+            ),
+        ),
+    )
+
+    (record,) = await _client(session).async_get_parcels()
+
+    assert normalize_parcel(record)["status"] == "registered"
+    assert "held no tracking id" not in caplog.text
+
+
 async def test_order_lines_of_one_shipment_cost_one_read():
     session = _session(
         _active_tile("SHIPactive1", line_item="lineitem0001"),
