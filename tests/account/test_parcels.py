@@ -8,6 +8,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.amazon_orders.account.parcels import (
@@ -503,15 +504,29 @@ def test_shipment_key_includes_the_package_when_it_is_not_the_first():
     assert normalize_parcel(raw)["barcode"] is None
 
 
-def test_delivered_without_events_uses_the_order_line_day():
+async def test_delivered_without_events_uses_the_order_line_day(hass):
+    # The day is the user's: midnight in Home Assistant's zone, never UTC.
+    await hass.config.async_set_time_zone("Europe/Paris")
     raw = untracked_record()
     raw["order_status"] = "Delivered 3 October"
     raw["delivered_on"] = "2026-10-03"
     parcel = normalize_parcel(raw)
     assert parcel["delivered"] is True
-    assert parcel["delivered_at"] == "2026-10-03T00:00:00+00:00"
+    assert parcel["delivered_at"] == "2026-10-03T00:00:00+02:00"
     raw["delivered_on"] = None
     assert normalize_parcel(raw)["delivered_at"] is None
+    raw["delivered_on"] = "not a day"
+    assert normalize_parcel(raw)["delivered_at"] is None
+
+
+async def test_a_parcel_delivered_today_by_its_card_stays_in_the_last_day(hass):
+    await hass.config.async_set_time_zone("Europe/Paris")
+    raw = untracked_record()
+    raw["order_status"] = "Livré aujourd'hui"
+    raw["delivered_on"] = dt_util.now().date().isoformat()
+    parcel = normalize_parcel(raw)
+    assert parse_iso(parcel["delivered_at"]) <= dt_util.now()
+    assert apply_delivered_filter([parcel], _entry("days", 1)) == [parcel]
 
 
 def test_delivered_at_is_the_newest_delivered_event():

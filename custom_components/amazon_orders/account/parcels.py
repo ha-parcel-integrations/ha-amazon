@@ -11,9 +11,10 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.util import dt as dt_util
 
 from ..const import (
     CONF_DELIVERED_FILTER_AMOUNT,
@@ -338,8 +339,12 @@ def _delivered_at(raw: dict) -> str | None:
     ]
     if stamps:
         return max(stamps)[1]
-    day = parse_iso(raw.get("delivered_on"))
-    return day.isoformat() if day else None
+    try:
+        day = date.fromisoformat(str(raw.get("delivered_on")))
+    except ValueError:
+        return None
+    # A bare day is the user's day: midnight in Home Assistant's zone, not UTC.
+    return dt_util.start_of_local_day(day).isoformat()
 
 
 def _raw_status(raw: dict) -> str | None:

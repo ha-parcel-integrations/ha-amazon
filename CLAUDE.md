@@ -115,7 +115,8 @@ the structured state a response carries over anything meant for display.
   two must agree within an hour or the window is dropped with a one-shot
   warning. Never on a delivered parcel. Seen on amazon.fr only.
 - **Delivered day** from the order line's date, else from a relative word
-  (today, yesterday, a French weekday within the past week). A delivered text
+  (today, yesterday, a French weekday within the past week). A day with no
+  delivered event is midnight in Home Assistant's zone, never UTC. A delivered text
   longer than the bare status word that gives no day warns once, so the
   wording can be added.
 - **Delivery photo** (`raw["delivery_photo_url"]`, not a canonical field — a
