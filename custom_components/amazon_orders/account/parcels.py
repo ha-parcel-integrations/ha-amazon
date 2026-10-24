@@ -34,9 +34,12 @@ NEW_ISSUE_URL = (
     "?template=unrecognised_status.yml"
 )
 
-# Progress-tracker milestones. Only ``DELIVERED`` has been observed; the
-# other milestone names are resolved through the timeline instead.
+# Progress-tracker milestones, only the ones a real page has shown; any other
+# name is resolved through the timeline instead.
 _MILESTONE_MAP: dict[str, ParcelStatus] = {
+    "ORDERED": ParcelStatus.REGISTERED,
+    "SHIPPED": ParcelStatus.IN_TRANSIT,
+    "OUT_FOR_DELIVERY": ParcelStatus.OUT_FOR_DELIVERY,
     "DELIVERED": ParcelStatus.DELIVERED,
 }
 
@@ -44,6 +47,9 @@ _MILESTONE_MAP: dict[str, ParcelStatus] = {
 # is reported once so the map can grow. ``PICKED_UP`` is the recipient
 # collecting the parcel, e.g. from a parcel locker.
 _SHORT_STATUS_MAP: dict[str, ParcelStatus] = {
+    "ORDER_PLACED": ParcelStatus.REGISTERED,
+    "IN_TRANSIT": ParcelStatus.IN_TRANSIT,
+    "OUT_FOR_DELIVERY": ParcelStatus.OUT_FOR_DELIVERY,
     "DELIVERED": ParcelStatus.DELIVERED,
     "PICKED_UP": ParcelStatus.DELIVERED,
 }
@@ -75,6 +81,11 @@ _EVENT_MAP: dict[str, ParcelStatus] = {
     "im briefkasten hinterlegt": ParcelStatus.DELIVERED,
     "lieferung in der nähe von haustür oder veranda abgelegt": ParcelStatus.DELIVERED,
     "die sendung wurde vom empfänger abgeholt": ParcelStatus.DELIVERED,
+    # fr, seen on an amazon.fr tracking page
+    "le colis a quitté les locaux de l'expéditeur": ParcelStatus.IN_TRANSIT,
+    "le colis est arrivé à l'agence de livraison finale": ParcelStatus.IN_TRANSIT,
+    "en cours de livraison": ParcelStatus.OUT_FOR_DELIVERY,
+    "livré": ParcelStatus.DELIVERED,
 }
 
 _CARRIER_NAMES = {
@@ -123,7 +134,7 @@ def _event_status(message: str | None) -> ParcelStatus | None:
     mapped = _EVENT_MAP.get(text)
     if mapped is not None:
         return mapped
-    if text.startswith(("delivered", "bezorgd", "zugestellt")):
+    if text.startswith(("delivered", "bezorgd", "zugestellt", "livré")):
         return ParcelStatus.DELIVERED
     return None
 

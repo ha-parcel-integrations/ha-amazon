@@ -35,6 +35,7 @@ from .errors import AmazonApiError, AmazonAuthError
 from .pages import (
     OrderTile,
     build_record,
+    is_track_page_path,
     looks_signed_out,
     page_timezone,
     parse_order_tiles,
@@ -155,11 +156,18 @@ class AmazonClient:
         self, tiles: list[OrderTile], today: date
     ) -> dict[str, Any]:
         """Follow the order line to its tracking page and build the record."""
-        pop_page = await self._fetch_page(tiles[0].pop_path)
-        track_path = parse_track_link(pop_page)
+        lead_path = tiles[0].pop_path
+        track_page: str | None = None
+        if is_track_page_path(lead_path):
+            # amazon.fr links an in-flight line straight to its tracking page.
+            track_path: str | None = lead_path
+            track_page = await self._fetch_page(lead_path)
+        else:
+            track_path = parse_track_link(await self._fetch_page(lead_path))
+            if track_path:
+                track_page = await self._fetch_page(track_path)
         track = None
-        if track_path:
-            track_page = await self._fetch_page(track_path)
+        if track_page is not None:
             # Load the page's zone off the event loop; the parser then finds
             # it already cached.
             if zone_name := page_timezone(track_page):

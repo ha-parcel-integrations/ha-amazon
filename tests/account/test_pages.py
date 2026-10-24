@@ -8,6 +8,7 @@ from custom_components.amazon_orders.account.pages import (
     _day_month,
     build_record,
     delivery_photo_expiry,
+    is_track_page_path,
     looks_signed_out,
     parse_delivery_photo,
     parse_order_tiles,
@@ -24,9 +25,11 @@ from ..payloads import (
     FAKE_MAPS_KEY,
     FAKE_PHOTO_EXPIRES,
     FAKE_PHOTO_URL,
+    FEEDBACK_PATH,
     ORDER_ID,
     orders_page,
     pop_page,
+    progress_tracker_path,
     tile,
     track_page,
     track_path,
@@ -532,3 +535,153 @@ def test_an_unreadable_timeline_date_drops_its_events_and_warns_once(caplog):
     assert parse_track_page(page, TODAY).events == []
     parse_track_page(page, TODAY)
     assert caplog.text.count('date "Someday #"') == 1
+
+
+# ---------------------------------------------------------------------------
+# amazon.fr
+# ---------------------------------------------------------------------------
+
+FR_TODAY = date(2026, 10, 24)
+FR_TITLE = "Example item, Blue, 2 pack, 30 cm, XL"
+
+
+def _fr_tile(shipment: str, status: str, note: str | None = None, **kwargs) -> str:
+    return tile(
+        shipment,
+        status,
+        note,
+        placed_anchor="Commande effectuée le",
+        title=FR_TITLE,
+        **kwargs,
+    )
+
+
+def test_french_in_flight_line_is_split_on_its_placed_date(caplog):
+    page = orders_page(
+        _fr_tile(
+            ACTIVE_SHIPMENT,
+            "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15",
+            placed="23 octobre 2026",
+            href=progress_tracker_path(ACTIVE_SHIPMENT),
+        )
+    )
+    (parsed,) = parse_order_tiles(page, FR_TODAY)
+    assert parsed.title == FR_TITLE
+    assert parsed.placed_on == date(2026, 10, 23)
+    assert parsed.status_text.startswith("Arrive aujourd'hui")
+    assert parsed.shipment_id == ACTIVE_SHIPMENT
+    assert parsed.delivered is False
+    assert caplog.text == ""
+
+
+def test_french_delivered_and_cancelled_lines(caplog):
+    page = orders_page(
+        _fr_tile(
+            DELIVERED_SHIPMENT,
+            "Livré : 2 octobre",
+            "Votre colis a été déposé dans la boîte aux lettres.",
+            placed="26 septembre 2026",
+        ),
+        _fr_tile(
+            "SHIPcancel1",
+            "Annulé(s)",
+            "Votre commande a été annulée.",
+            placed="26 septembre 2026",
+        ),
+        _fr_tile("SHIPtoday01", "Livré aujourd'hui", placed="23 octobre 2026"),
+        _fr_tile("SHIPfeb0001", "Livré : 3 février", placed="1 février 2026"),
+    )
+    delivered, today, february = parse_order_tiles(page, FR_TODAY)
+    assert delivered.delivered is True
+    assert delivered.placed_on == date(2026, 9, 26)
+    assert delivered.delivered_on == date(2026, 10, 2)
+    assert (
+        delivered.status_note == "Votre colis a été déposé dans la boîte aux lettres."
+    )
+    # No day in the text: the shipment is dated by its timeline, else finalised
+    # the day after it first read as delivered.
+    assert today.delivered is True
+    assert today.delivered_on is None
+    assert february.placed_on == date(2026, 2, 1)
+    assert february.delivered_on == date(2026, 2, 3)
+    assert caplog.text == ""
+
+
+def test_english_placed_anchor_still_splits_the_title():
+    (parsed,) = parse_order_tiles(
+        orders_page(tile(ACTIVE_SHIPMENT, "Arriving today", None, title=FR_TITLE)),
+        TODAY,
+    )
+    assert parsed.title == FR_TITLE
+    assert parsed.placed_on == date(2026, 10, 2)
+
+
+@pytest.mark.parametrize(
+    "path,expected",
+    [
+        (progress_tracker_path(ACTIVE_SHIPMENT), True),
+        ("/progress-tracker/package/ref=ab_ppx_test?orderId=" + ORDER_ID, True),
+        (track_path(ACTIVE_SHIPMENT), True),
+        ("https://www.amazon.fr/progress-tracker/package?orderId=" + ORDER_ID, True),
+        (FEEDBACK_PATH, False),
+        ("/your-orders/pop?orderId=" + ORDER_ID, False),
+        ("/your-orders/order-details?orderId=" + ORDER_ID, False),
+    ],
+)
+def test_is_track_page_path(path, expected):
+    assert is_track_page_path(path) is expected
+
+
+def test_delivered_pop_page_picks_ship_track_over_the_feedback_survey():
+    path = track_path(DELIVERED_SHIPMENT)
+    page = (
+        f'<html><body><a href="{FEEDBACK_PATH}">Comment s&#39;est passée la'
+        f' livraison ?</a><a href="{path}">Suivre votre colis</a></body></html>'
+    )
+    assert parse_track_link(page) == path
+
+
+def test_french_tracking_page_reads_carrier_tracking_id_and_timeline(caplog):
+    page = track_page(
+        tracking_id=ACTIVE_CODE,
+        carrier_header="Livraison par Amazon",
+        tracking_label="Numéro de suivi :",
+        milestone="OUT_FOR_DELIVERY",
+        short_status="OUT_FOR_DELIVERY",
+        timezone="Europe/Paris",
+        events=[
+            ("samedi 24 octobre", "10:42", "En cours de livraison", "Ville, FR"),
+            (
+                "samedi 24 octobre",
+                "5:29",
+                "Le colis est arrivé à l'agence de livraison finale\n",
+                "Ville, FR",
+            ),
+            (
+                "vendredi 23 octobre",
+                "",
+                "Le colis a quitté les locaux de l'expéditeur",
+                "",
+            ),
+        ],
+    )
+    info = parse_track_page(page, FR_TODAY)
+    assert info.tracking_id == ACTIVE_CODE
+    assert info.carrier_code == "Amazon"
+    assert info.state["shortStatus"] == "OUT_FOR_DELIVERY"
+    assert [(e["timestamp"], e["message"]) for e in info.events] == [
+        ("2026-10-24T10:42:00+02:00", "En cours de livraison"),
+        (
+            "2026-10-24T05:29:00+02:00",
+            "Le colis est arrivé à l'agence de livraison finale",
+        ),
+        ("2026-10-23T00:00:00+02:00", "Le colis a quitté les locaux de l'expéditeur"),
+    ]
+    assert caplog.text == ""
+
+
+def test_french_tracking_id_label_is_the_fallback_to_the_state():
+    page = track_page(
+        tracking_id=ACTIVE_CODE, tracking_label="Numéro de suivi :", state=False
+    )
+    assert parse_track_page(page, FR_TODAY).tracking_id == ACTIVE_CODE

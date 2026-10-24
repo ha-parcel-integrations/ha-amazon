@@ -36,11 +36,13 @@ def tile(
     placed: str = "2 October 2026",
     title: str = "Example Widget, Blue",
     package_id: str = "1",
+    placed_anchor: str = "Order placed",
+    href: str | None = None,
 ) -> str:
     """One order line, labelled the way the page labels it."""
     tail = f", {status}" + (f", {note}" if note else "") if status else ""
-    label = escape(f"{title}, Order placed {placed}{tail}")
-    href = (
+    label = escape(f"{title}, {placed_anchor} {placed}{tail}")
+    href = href or (
         "/-/en/your-orders/pop?ref=ppx_test&orderId="
         + order_id
         + "&lineItemId="
@@ -80,12 +82,30 @@ def track_path(shipment_id: str, order_id: str = ORDER_ID) -> str:
     )
 
 
+def progress_tracker_path(shipment_id: str, order_id: str = ORDER_ID) -> str:
+    """The tracking page an amazon.fr in-flight order line links to directly."""
+    return (
+        "/progress-tracker/package?ref=ppx_test&orderId="
+        f"{order_id}&_encoding=UTF8&shipmentId={shipment_id}"
+        "&packageIndex=0&vt=NOTIFICATIONS"
+    )
+
+
+# A delivered line's pop page links this survey ahead of the real tracking page.
+FEEDBACK_PATH = (
+    "/progress-tracker/package/delivery-information/delivery-feedback"
+    f"?ref=ppx_test&orderId={ORDER_ID}&shipmentId={DELIVERED_SHIPMENT}&packageIndex=0"
+)
+
+
 def track_page(
     *,
     tracking_id: str | None = ACTIVE_CODE,
     carrier: str | None = "DRAGONFLY",
     carrier_header: str | None = None,
+    tracking_label: str = "Tracking ID:",
     milestone: str | None = "DELIVERED",
+    short_status: str | None = None,
     events: list[tuple[str, str, str, str]] | None = None,
     timezone: str | None = "Europe/Amsterdam",
     state: bool = True,
@@ -102,7 +122,7 @@ def track_page(
         )
     if tracking_id:
         parts.append(
-            f'<div class="pt-delivery-card-trackingId">Tracking ID: {tracking_id}</div>'
+            f'<div class="pt-delivery-card-trackingId">{tracking_label} {tracking_id}</div>'
         )
     if delivery_photo:
         # The visible images are lazy-loaded (real URL in data-src, placeholder
@@ -138,6 +158,8 @@ def track_page(
         }
         if timezone:
             payload["timezone"] = timezone
+        if short_status:
+            payload["shortStatus"] = short_status
         if tracking_id:
             payload["trackingId"] = tracking_id
         parts.append(

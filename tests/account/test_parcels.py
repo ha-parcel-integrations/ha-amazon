@@ -135,6 +135,29 @@ def test_unmapped_short_status_falls_back_and_is_reported_once(caplog):
     assert caplog.text.count("short_status=SOMETHING_UNSEEN") == 1
 
 
+@pytest.mark.parametrize(
+    "milestone,short_status,expected",
+    [
+        ("ORDERED", None, ParcelStatus.REGISTERED),
+        ("SHIPPED", None, ParcelStatus.IN_TRANSIT),
+        ("OUT_FOR_DELIVERY", None, ParcelStatus.OUT_FOR_DELIVERY),
+        (None, "ORDER_PLACED", ParcelStatus.REGISTERED),
+        (None, "IN_TRANSIT", ParcelStatus.IN_TRANSIT),
+        (None, "OUT_FOR_DELIVERY", ParcelStatus.OUT_FOR_DELIVERY),
+    ],
+)
+def test_observed_milestones_and_short_statuses_resolve_silently(
+    milestone, short_status, expected, caplog
+):
+    raw = untracked_record()
+    raw["order_status"] = "Something unseen"
+    raw["milestone"] = milestone
+    raw["page_state"] = {"shortStatus": short_status} if short_status else {}
+    with caplog.at_level(logging.WARNING):
+        assert resolve_status(raw) is expected
+    assert caplog.text == ""
+
+
 def test_newest_mappable_event_decides_not_the_oldest():
     raw = in_transit_record()
     raw["milestone"] = None
@@ -200,9 +223,15 @@ def test_only_recognised_not_yet_dispatched_text_is_registered(caplog):
         ("Dispatched 3 October", ParcelStatus.IN_TRANSIT),
         ("Arriving tomorrow", ParcelStatus.IN_TRANSIT),
         ("Delivered 3 October", ParcelStatus.DELIVERED),
+        ("Livré : 5 octobre", ParcelStatus.DELIVERED),
+        ("Livré aujourd'hui", ParcelStatus.DELIVERED),
+        (
+            "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15",
+            ParcelStatus.OUT_FOR_DELIVERY,
+        ),
     ],
 )
-def test_confirmed_english_order_text_resolves_silently(text, expected, caplog):
+def test_confirmed_order_text_resolves_silently(text, expected, caplog):
     raw = untracked_record()
     raw["order_status"] = text
     with caplog.at_level(logging.WARNING):
@@ -215,7 +244,6 @@ def test_confirmed_english_order_text_resolves_silently(text, expected, caplog):
     [
         ("Out for delivery", ParcelStatus.OUT_FOR_DELIVERY),
         ("Verwacht 3 oktober", ParcelStatus.IN_TRANSIT),
-        ("Livré le 3 octobre", ParcelStatus.DELIVERED),
         ("Zugestellt am 3. Oktober", ParcelStatus.DELIVERED),
         ("Entregado el 3 de octubre", ParcelStatus.DELIVERED),
         ("Nog niet verzonden", ParcelStatus.REGISTERED),
@@ -495,7 +523,7 @@ def test_unread_carrier_header_is_reported_once(caplog):
     assert normalize_parcel(raw)["carrier"] == "Amazon"
     assert normalize_parcel(raw)["carrier"] == "Amazon"
     assert caplog.text.count("Bezorgd door Testcarrier #") == 1
-    assert "12" not in caplog.text
+    assert "Testcarrier 12" not in caplog.text
     assert "issues/new" in caplog.text
 
 
@@ -622,4 +650,22 @@ def test_delivered_filter_keeps_unparseable_timestamp():
     ],
 )
 def test_german_timeline_messages_are_mapped(message, status):
+    assert map_event_status(message) is status
+
+
+@pytest.mark.parametrize(
+    "message,status",
+    [
+        ("Le colis a quitté les locaux de l'expéditeur", ParcelStatus.IN_TRANSIT),
+        # The page ends this one with a newline.
+        (
+            "Le colis est arrivé à l'agence de livraison finale\n",
+            ParcelStatus.IN_TRANSIT,
+        ),
+        ("En cours de livraison", ParcelStatus.OUT_FOR_DELIVERY),
+        ("Livré", ParcelStatus.DELIVERED),
+        ("Livré à un voisin", ParcelStatus.DELIVERED),
+    ],
+)
+def test_french_timeline_messages_are_mapped(message, status):
     assert map_event_status(message) is status

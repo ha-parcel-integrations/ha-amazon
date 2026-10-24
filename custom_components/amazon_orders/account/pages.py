@@ -23,17 +23,23 @@ from .vocabulary import MONTHS, SKIP, STATUS_PREFIXES, classify_order_text
 _TILE_RE = re.compile(
     r'<a class="item-card__link" href="([^"]*)" aria-label="([^"]*)"', re.S
 )
+_PLACED_ANCHOR = r"(?:Order placed|Commande effectuée le)"
 _PLACED_RE = re.compile(
-    r"Order placed (\d{1,2} [A-Za-z]+ \d{4})(?:, (?P<tail>.*))?$", re.S
+    _PLACED_ANCHOR + r" (\d{1,2} [^\W\d_]+ \d{4})(?:, (?P<tail>.*))?$", re.S
 )
+_TITLE_END_RE = re.compile(", " + _PLACED_ANCHOR)
 _ORDER_ID_RE = re.compile(r"\d{3}-\d{7}-\d{7}")
 # "3 October", "3. Oktober", "3 de octubre", "3 Oct. 2026".
 _DAY_MONTH_RE = re.compile(
     r"(\d{1,2})\.?\s+(?:de\s+)?([^\W\d_]+)\.?(?:\s+(?:de\s+)?(\d{4}))?"
 )
 _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
+# A sub-path such as the delivery-feedback survey is not a tracking page.
+_TRACK_PAGE_PATH_RE = re.compile(
+    r"/(?:progress-tracker/package|gp/your-account/ship-track)(?:/ref=[^/]*)?/?$"
+)
 _CARRIER_RE = re.compile(
-    r"(?:Delivery By|Bezorging door|Levering door|Versendet mit|Versand durch|Zustellung durch)"
+    r"(?:Delivery By|Livraison par|Bezorging door|Levering door|Versendet mit|Versand durch|Zustellung durch)"
     r" ([A-Za-z0-9_]+)"
 )
 # amazon.de names the courier plainly instead of by its internal code.
@@ -42,7 +48,9 @@ _CARRIER_HEADER_RE = re.compile(
     r'(?:pt-delivery-card-wrapper"><div><h3|tracking-event-carrier-header">\s*<h2)'
     r"[^>]*>\s*([^<]*?)\s*</h[23]>"
 )
-_TRACKING_ID_RE = re.compile(r"Tracking[\s-]?ID:\s*([A-Za-z0-9-]+)", re.I)
+_TRACKING_ID_RE = re.compile(
+    r"(?:Tracking[\s-]?ID|Numéro de suivi)\s*:\s*([A-Za-z0-9-]+)", re.I
+)
 _STATE_RE = re.compile(r"<script[^>]*page-state[^>]*>\s*(\{.*?\})\s*</script>", re.S)
 _EVENT_PART_RE = re.compile(
     r'<span class="tracking-event-(date|time|message|location)">([^<]*)</span>'
@@ -172,7 +180,7 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
         # "<title>, Order placed <date>, <status>[, <note>]".
         placed = _PLACED_RE.search(label)
         placed_on = _day_month(placed.group(1), today) if placed else None
-        title = label.split(", Order placed")[0]
+        title = _TITLE_END_RE.split(label, maxsplit=1)[0]
         if placed:
             status_text, _, note = (placed.group("tail") or "").partition(", ")
         else:
@@ -232,6 +240,11 @@ def _split_unanchored_label(label: str) -> tuple[str, str, str]:
                 ", ".join(segments[index + 1 :]),
             )
     return label, "", ""
+
+
+def is_track_page_path(path: str) -> bool:
+    """Whether an order-line link already points at the tracking page itself."""
+    return bool(_TRACK_PAGE_PATH_RE.search(urlparse(path).path))
 
 
 def parse_track_link(page: str) -> str | None:

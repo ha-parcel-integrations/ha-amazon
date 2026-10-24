@@ -10,14 +10,18 @@ from custom_components.amazon_orders.account.errors import (
     AmazonApiError,
     AmazonAuthError,
 )
+from custom_components.amazon_orders.account.parcels import normalize_parcel
 
 from ..fakes import FakeResponse, FakeSession
 from ..payloads import (
     ACTIVE_CODE,
     COUNTRY,
+    DELIVERED_CODE,
     DELIVERED_EVENTS,
+    FEEDBACK_PATH,
     orders_page,
     pop_page,
+    progress_tracker_path,
     tile,
     track_page,
     track_path,
@@ -228,6 +232,112 @@ async def test_delivered_shipment_without_a_tracking_page_is_final_too():
     await client.async_get_parcels()
 
     assert sum("pop?" in url for url in _gets(session)) == 1
+
+
+async def test_a_line_linking_straight_to_its_tracking_page_costs_one_read():
+    path = progress_tracker_path("SHIPfr00001")
+    session = _session(
+        tile(
+            "SHIPfr00001",
+            "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15",
+            None,
+            placed_anchor="Commande effectuée le",
+            placed=_placed(1),
+            href=path,
+        )
+    )
+    session.add(
+        "GET",
+        "progress-tracker/package?",
+        FakeResponse(
+            200,
+            track_page(
+                tracking_id=ACTIVE_CODE,
+                carrier_header="Livraison par Amazon",
+                tracking_label="Numéro de suivi :",
+                milestone="OUT_FOR_DELIVERY",
+                short_status="OUT_FOR_DELIVERY",
+                timezone="Europe/Paris",
+                events=[
+                    (
+                        "samedi 24 octobre",
+                        "10:42",
+                        "En cours de livraison",
+                        "Ville, FR",
+                    ),
+                    (
+                        "samedi 24 octobre",
+                        "5:29",
+                        "Le colis est arrivé à l'agence de livraison finale\n",
+                        "Ville, FR",
+                    ),
+                    (
+                        "vendredi 23 octobre",
+                        "",
+                        "Le colis a quitté les locaux de l'expéditeur",
+                        "",
+                    ),
+                ],
+            ),
+        ),
+    )
+
+    (record,) = await _client(session).async_get_parcels()
+
+    assert _gets(session)[1:] == [f"https://www.{COUNTRY}{path}"]
+    assert record["track_path"] == path
+    parcel = normalize_parcel(record, include_history=True)
+    assert parcel["barcode"] == ACTIVE_CODE
+    assert parcel["carrier"] == "Amazon"
+    assert parcel["status"] == "out_for_delivery"
+    assert [entry["status"] for entry in parcel["history"]] == [
+        "in_transit",
+        "in_transit",
+        "out_for_delivery",
+    ]
+
+
+async def test_a_delivered_line_skips_the_feedback_survey_for_ship_track():
+    path = track_path("SHIPfr00002")
+    session = _session(
+        tile(
+            "SHIPfr00002",
+            f"Livré : {_day(1)}",
+            None,
+            placed_anchor="Commande effectuée le",
+            placed=_placed(3),
+        )
+    )
+    session.add(
+        "GET",
+        "pop?",
+        FakeResponse(
+            200,
+            f'<html><body><a href="{FEEDBACK_PATH}">Avis</a>'
+            f'<a href="{path}">Suivre</a></body></html>',
+        ),
+    )
+    session.add(
+        "GET",
+        "ship-track?",
+        FakeResponse(
+            200,
+            track_page(
+                tracking_id=DELIVERED_CODE,
+                carrier_header="Livraison par Amazon",
+                short_status="DELIVERED",
+                events=[("samedi 24 octobre", "12:20", "Livré", "Ville, FR")],
+            ),
+        ),
+    )
+
+    (record,) = await _client(session).async_get_parcels()
+
+    gets = _gets(session)
+    assert len(gets) == 3
+    assert "ship-track" in gets[2]
+    assert not any("delivery-feedback" in url for url in gets)
+    assert normalize_parcel(record)["status"] == "delivered"
 
 
 async def test_order_lines_of_one_shipment_cost_one_read():
