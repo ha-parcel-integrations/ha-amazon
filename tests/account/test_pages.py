@@ -581,14 +581,14 @@ def test_french_in_flight_line_is_split_on_its_placed_date(caplog):
     page = orders_page(
         _fr_tile(
             ACTIVE_SHIPMENT,
-            "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15",
-            placed="23 octobre 2026",
+            "Arrive aujourd'hui dans la tranche horaire suivante : 14:00 - 16:30",
+            placed="21 octobre 2026",
             href=progress_tracker_path(ACTIVE_SHIPMENT),
         )
     )
     (parsed,) = parse_order_tiles(page, FR_TODAY)
     assert parsed.title == FR_TITLE
-    assert parsed.placed_on == date(2026, 10, 23)
+    assert parsed.placed_on == date(2026, 10, 21)
     assert parsed.status_text.startswith("Arrive aujourd'hui")
     assert parsed.shipment_id == ACTIVE_SHIPMENT
     assert parsed.delivered is False
@@ -599,23 +599,23 @@ def test_french_delivered_and_cancelled_lines(caplog):
     page = orders_page(
         _fr_tile(
             DELIVERED_SHIPMENT,
-            "Livré : 2 octobre",
+            "Livré : 30 septembre",
             "Votre colis a été déposé dans la boîte aux lettres.",
-            placed="26 septembre 2026",
+            placed="18 septembre 2026",
         ),
         _fr_tile(
             "SHIPcancel1",
             "Annulé(s)",
             "Votre commande a été annulée.",
-            placed="26 septembre 2026",
+            placed="18 septembre 2026",
         ),
-        _fr_tile("SHIPtoday01", "Livré aujourd'hui", placed="23 octobre 2026"),
+        _fr_tile("SHIPtoday01", "Livré aujourd'hui", placed="21 octobre 2026"),
         _fr_tile("SHIPfeb0001", "Livré : 3 février", placed="1 février 2026"),
     )
     delivered, today, february = parse_order_tiles(page, FR_TODAY)
     assert delivered.delivered is True
-    assert delivered.placed_on == date(2026, 9, 26)
-    assert delivered.delivered_on == date(2026, 10, 2)
+    assert delivered.placed_on == date(2026, 9, 18)
+    assert delivered.delivered_on == date(2026, 9, 30)
     assert (
         delivered.status_note == "Votre colis a été déposé dans la boîte aux lettres."
     )
@@ -669,10 +669,10 @@ def test_french_tracking_page_reads_carrier_tracking_id_and_timeline(caplog):
         short_status="OUT_FOR_DELIVERY",
         timezone="Europe/Paris",
         events=[
-            ("samedi 24 octobre", "10:42", "En cours de livraison", "Ville, FR"),
+            ("samedi 24 octobre", "13:51", "En cours de livraison", "Ville, FR"),
             (
                 "samedi 24 octobre",
-                "5:29",
+                "6:03",
                 "Le colis est arrivé à l'agence de livraison finale\n",
                 "Ville, FR",
             ),
@@ -689,9 +689,9 @@ def test_french_tracking_page_reads_carrier_tracking_id_and_timeline(caplog):
     assert info.carrier_code == "Amazon"
     assert info.state["shortStatus"] == "OUT_FOR_DELIVERY"
     assert [(e["timestamp"], e["message"]) for e in info.events] == [
-        ("2026-10-24T10:42:00+02:00", "En cours de livraison"),
+        ("2026-10-24T13:51:00+02:00", "En cours de livraison"),
         (
-            "2026-10-24T05:29:00+02:00",
+            "2026-10-24T06:03:00+02:00",
             "Le colis est arrivé à l'agence de livraison finale",
         ),
         ("2026-10-23T00:00:00+02:00", "Le colis a quitté les locaux de l'expéditeur"),
@@ -714,7 +714,7 @@ def test_french_tracking_id_label_is_the_fallback_to_the_state():
         # 2026-10-24 is a Saturday.
         ("Livré jeudi", date(2026, 10, 22)),
         ("Livré samedi", date(2026, 10, 17)),
-        ("Livré le 16 Oct 2026", date(2026, 10, 16)),
+        ("Livré le 14 Oct 2026", date(2026, 10, 14)),
         ("Livré", None),
         ("Livré aujourd’hui", date(2026, 10, 24)),
     ],
@@ -731,7 +731,7 @@ def test_business_wording_is_confirmed(caplog):
     (parsed,) = parse_order_tiles(
         orders_page(
             _fr_tile(
-                ACTIVE_SHIPMENT, "Livraison prévue lundi", placed="23 octobre 2026"
+                ACTIVE_SHIPMENT, "Livraison prévue lundi", placed="21 octobre 2026"
             )
         ),
         FR_TODAY,
@@ -744,32 +744,32 @@ def test_business_wording_is_confirmed(caplog):
 # delivery window
 # ---------------------------------------------------------------------------
 
-# 2026-10-24 10:07:44 UTC is 12:07:44 in Paris; the window ends 13:15.
-READ_AT = datetime(2026, 10, 24, 10, 7, 44, tzinfo=timezone.utc)
+# 2026-10-24 11:30 UTC is 13:30 in Paris; the window ends at 16:30.
+READ_AT = datetime(2026, 10, 24, 11, 30, tzinfo=timezone.utc)
 FR_STATE = {
     "timezone": "Europe/Paris",
     "promise": {
-        "promiseMessage": "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15"
+        "promiseMessage": "Arrive aujourd'hui dans la tranche horaire suivante : 14:00 - 16:30"
     },
-    "timeUntilPredictedDeliveryWindowEnd": 4035981,
+    "timeUntilPredictedDeliveryWindowEnd": 10_812_000,
 }
 
 
 def test_delivery_window_from_the_promise_and_its_countdown():
     assert delivery_window(FR_STATE, READ_AT) == (
-        "2026-10-24T11:00:00+02:00",
-        "2026-10-24T13:15:00+02:00",
+        "2026-10-24T14:00:00+02:00",
+        "2026-10-24T16:30:00+02:00",
     )
 
 
 def test_delivery_window_with_twelve_hour_times():
     state = {
         **FR_STATE,
-        "promise": {"promiseMessage": "Arriving today 11:00 AM - 1:15 PM"},
+        "promise": {"promiseMessage": "Arriving today 2:00 PM - 4:30 PM"},
     }
     assert delivery_window(state, READ_AT) == (
-        "2026-10-24T11:00:00+02:00",
-        "2026-10-24T13:15:00+02:00",
+        "2026-10-24T14:00:00+02:00",
+        "2026-10-24T16:30:00+02:00",
     )
 
 
@@ -796,7 +796,7 @@ def test_delivery_window_needs_the_countdown_and_a_zone(state, caplog):
         "Arrive aujourd'hui",
         # Times that do not end where the countdown says.
         "Arrive aujourd'hui dans la tranche horaire suivante : 16:00 - 18:00",
-        "Arrive aujourd'hui dans la tranche horaire suivante : 13:15 - 11:00",
+        "Arrive aujourd'hui dans la tranche horaire suivante : 16:30 - 14:00",
     ],
 )
 def test_an_unreadable_window_is_left_out_and_reported_once(message, caplog):
@@ -817,8 +817,8 @@ def test_record_carries_the_window_when_read_with_a_time():
     assert build_record(COUNTRY, tiles, None, track, read_at=READ_AT)[
         "delivery_window"
     ] == [
-        "2026-10-24T11:00:00+02:00",
-        "2026-10-24T13:15:00+02:00",
+        "2026-10-24T14:00:00+02:00",
+        "2026-10-24T16:30:00+02:00",
     ]
 
 
@@ -904,31 +904,53 @@ def test_business_shell_gives_the_list_call():
     request = parse_business_shell(business_shell())
     assert request is not None
     assert request.token == BUSINESS_TOKEN
-    assert request.form["refMarker"] == "ab_ppx_yo_mob_pagination_0"
-    body = json.loads(request.form["deliveryHistoryRequestString"])
+    form = request.form(0)
+    assert form["refMarker"] == "ab_ppx_yo_mob_pagination_0"
+    body = json.loads(form["deliveryHistoryRequestString"])
     assert body["marketplaceId"] == "fakeMarketId"
     assert body["businessId"] == "fakeBizId0"
     assert body["sessionId"] == "fakeSessn"
     assert body["pageNumber"] == 0
     # An empty string here silently returns no order at all.
     assert body["searchKeyword"] is None
-    assert '"searchKeyword": null' in request.form["deliveryHistoryRequestString"]
-    assert body["isDefaultFilterSelected"] is True
+    assert '"searchKeyword": null' in form["deliveryHistoryRequestString"]
+    assert body["isDefaultFilterSelected"] is False
     assert body["filters"]["time"]["id"] == "yoPast3months"
+    # Every order of the account: any buyer, any payer, any organisation.
+    assert body["filters"]["users"]["id"] == "yoOrderedByAll"
+    assert body["filters"]["paymentType"]["id"] == "yoAllPayments"
+    assert body["filters"]["legalEntities"]["id"] == "yoAllOrganizations"
     assert body["originalRequestId"] == "0FAKEREQUESTID000000"
-    assert body["legalEntities"] == ["A00FAKELEGAL00"]
+    assert "legalEntities" not in body
     # The page itself sends no customer id.
     assert "customerId" not in body
 
 
 def test_business_shell_without_the_optional_values():
-    page = business_shell(legal_entity=None).replace(
+    page = business_shell().replace(
         '<input type="hidden" name="originalRequestId" value="0FAKEREQUESTID000000" id="originalRequestId">',
         "",
     )
-    body = json.loads(parse_business_shell(page).form["deliveryHistoryRequestString"])
-    assert "legalEntities" not in body
+    body = json.loads(
+        parse_business_shell(page).form(0)["deliveryHistoryRequestString"]
+    )
     assert "originalRequestId" not in body
+
+
+def test_each_business_page_has_its_own_number_and_marker():
+    form = parse_business_shell(business_shell()).form(3)
+    assert json.loads(form["deliveryHistoryRequestString"])["pageNumber"] == 3
+    assert form["refMarker"] == "ab_ppx_yo_mob_pagination_3"
+
+
+def test_the_business_counters_are_read_whatever_their_case():
+    # Amazon sends them camelCase; a browser's DOM shows them lower-cased.
+    for fragment in (
+        business_history(count=23, exception=True),
+        business_history(count=23, exception=True).lower(),
+    ):
+        assert business_card_count(fragment) == 23
+        assert business_history_failed(fragment)
 
 
 @pytest.mark.parametrize(
@@ -965,7 +987,7 @@ def test_business_cards_in_every_state(caplog):
         ),
         business_card(
             business_order_path("000-0000006-0000007"),
-            "Livré le 16 Oct 2026",
+            "Livré le 14 Oct 2026",
             title="Example item 7",
         ),
         business_card(
@@ -990,7 +1012,7 @@ def test_business_cards_in_every_state(caplog):
     assert yesterday.delivered_on == date(2026, 10, 23)
     assert yesterday.follow is False
     assert thursday.delivered_on == date(2026, 10, 22)
-    assert dated.delivered_on == date(2026, 10, 16)
+    assert dated.delivered_on == date(2026, 10, 14)
     assert caplog.text == ""
 
 

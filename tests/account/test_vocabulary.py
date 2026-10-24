@@ -27,10 +27,10 @@ from custom_components.amazon_orders.const import ParcelStatus
         ("Vandaag bezorgd", ParcelStatus.DELIVERED),
         ("Wordt vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
         ("Wordt morgen bezorgd", ParcelStatus.IN_TRANSIT),
-        ("Livré : 5 octobre", ParcelStatus.DELIVERED),
+        ("Livré : 7 octobre", ParcelStatus.DELIVERED),
         ("Livré aujourd'hui", ParcelStatus.DELIVERED),
         (
-            "Arrive aujourd'hui dans la tranche horaire suivante : 11:00 - 13:15",
+            "Arrive aujourd'hui dans la tranche horaire suivante : 14:00 - 16:30",
             ParcelStatus.OUT_FOR_DELIVERY,
         ),
         ("Arrive demain", ParcelStatus.IN_TRANSIT),
@@ -121,7 +121,7 @@ def test_every_month_number_is_reachable():
 
 
 def test_a_curly_apostrophe_reads_like_a_straight_one():
-    assert classify_order_text("Arrive aujourd’hui entre 11:00 et 13:15") == (
+    assert classify_order_text("Arrive aujourd’hui entre 14:00 et 16:30") == (
         ParcelStatus.OUT_FOR_DELIVERY,
         True,
     )

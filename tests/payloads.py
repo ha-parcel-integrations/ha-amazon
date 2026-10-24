@@ -277,14 +277,8 @@ def untracked_record() -> dict:
 BUSINESS_TOKEN = "FAKECSRFTOKEN" + "0" * 91
 
 
-def business_shell(*, legal_entity: str | None = "A00FAKELEGAL00") -> str:
+def business_shell() -> str:
     """An Amazon Business orders page: no order line, only what the list call needs."""
-    entity = (
-        '<div id="hiddenFilterButtonListOrderedAndPaidBy" class="aok-hidden">'
-        f'<span id="button_yoAllOrders-{legal_entity}" class="selectedFilterButton"></span></div>'
-        if legal_entity
-        else ""
-    )
     return (
         "<html><head>"
         f'<meta name="anti-csrftoken-a2z" content="{BUSINESS_TOKEN}" id="ab-your-orders-anticsrf-token">'
@@ -293,7 +287,7 @@ def business_shell(*, legal_entity: str | None = "A00FAKELEGAL00") -> str:
         '{"marketplaceId":"fakeMarketId","businessId":"fakeBizId0",'
         '"loggedInCustomerId":"fakeCustomerId0000","sessionId":"fakeSessn"}</script>'
         '<input type="hidden" name="originalRequestId" value="0FAKEREQUESTID000000" id="originalRequestId">'
-        f'{entity}<div id="yourOrderHistorySection" class="a-row"></div>'
+        '<div id="yourOrderHistorySection" class="a-row"></div>'
         "</body></html>"
     )
 
@@ -347,8 +341,8 @@ def business_history(
     return (
         '<div id="pageAsinsSection" class="a-section"><div id="pageAsins" class="a-section"></div></div>'
         '<div id="yourOrderHistorySection" class="a-row">'
-        f'<p id="deliveryHistoryException" data-isexception="{str(exception).lower()}" class="aok-hidden"></p>'
-        f'<p id="noOfDeliveryCards" data-noofdeliverycardsrendered="{rendered}" class="aok-hidden"></p>'
+        f'<p id="deliveryHistoryException" data-isException="{str(exception).lower()}" class="aok-hidden"></p>'
+        f'<p id="noOfDeliveryCards" data-noOfDeliveryCardsRendered="{rendered}" class="aok-hidden"></p>'
         + "".join(cards)
         + "</div>"
     )

@@ -74,7 +74,7 @@ _POD_SIGNED_AT = "X-Amz-Date"
 _POD_VALID_FOR = "X-Amz-Expires"
 _POD_SRC_RE = re.compile(r'\b(data-src|src)="([^"]+)"')
 
-# "11:00 - 13:15" in the promise message, with the countdown to its end.
+# "14:00 - 16:30" in the promise message, with the countdown to its end.
 _WINDOW_RE = re.compile(
     r"(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)\s*[-–]\s*(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)"
 )
@@ -98,9 +98,6 @@ _BUSINESS_STATE_RE = re.compile(
 _BUSINESS_REQUEST_ID_RE = re.compile(
     r'<input[^>]*name="originalRequestId" value="([^"]*)"'
 )
-_BUSINESS_ENTITY_RE = re.compile(
-    r'id="button_yoAllOrders-([^"]+)" class="selectedFilterButton"'
-)
 _BUSINESS_CARD_RE = re.compile(
     r'<a href="([^"]*)" class="[^"]*\b(nonCancelledDeliveryCard|cancelledDeliveryCard)\b[^"]*">(.*?)</a>',
     re.S,
@@ -112,16 +109,20 @@ _BUSINESS_NOTE_RE = re.compile(
     r'<p class="secondaryMessage">\s*<span[^>]*>([^<]*)</span>'
 )
 _BUSINESS_TITLE_RE = re.compile(r'<span class="a-truncate-full">([^<]*)</span>')
-_BUSINESS_COUNT_RE = re.compile(r'data-noofdeliverycardsrendered="(\d+)"')
-_BUSINESS_EXCEPTION_RE = re.compile(r'data-isexception="true"')
+# Sent camelCase; a browser's DOM shows them lower-cased.
+_BUSINESS_COUNT_RE = re.compile(r'data-noofdeliverycardsrendered="(\d+)"', re.I)
+_BUSINESS_EXCEPTION_RE = re.compile(r'data-isexception="true"', re.I)
 BUSINESS_HISTORY_PATH = "/ab/your-orders/deliveryHistory"
-# The list as the page itself asks for it: last three months, newest first.
+# Every order of the account from the last three months, newest first: any
+# buyer, any payer, any organisation. The page's own fallback is the narrowest
+# option (yours, paid by you). Only the ids are read. Never pair "ordered by
+# all" with "paid by you": that silently returns nothing.
 _BUSINESS_FILTERS = {
     "orderCondition": {"displayText": "Orders", "id": "yoOrdersTabination"},
     "time": {"displayText": "past 3 months", "id": "yoPast3months"},
     "sortBy": {"displayText": "Order Date", "id": "yoOrderDate"},
-    "users": {"displayText": "Ordered by you", "id": "yoOrderedByYou"},
-    "paymentType": {"displayText": "Paid by you", "id": "yoPaidByYou"},
+    "users": {"displayText": "Ordered by all", "id": "yoOrderedByAll"},
+    "paymentType": {"displayText": "All payments", "id": "yoAllPayments"},
     "legalEntities": {"displayText": "All organizations", "id": "yoAllOrganizations"},
 }
 
@@ -281,7 +282,16 @@ class BusinessRequest:
     """What the Business order-list call needs, read off the orders shell."""
 
     token: str
-    form: dict[str, str]
+    body: dict[str, Any]
+
+    def form(self, page_number: int) -> dict[str, str]:
+        """Build the form for one page of the list (0 is the newest)."""
+        return {
+            "deliveryHistoryRequestString": json.dumps(
+                {**self.body, "pageNumber": page_number}
+            ),
+            "refMarker": f"ab_ppx_yo_mob_pagination_{page_number}",
+        }
 
 
 def parse_business_shell(page: str) -> BusinessRequest | None:
@@ -303,20 +313,12 @@ def parse_business_shell(page: str) -> BusinessRequest | None:
         "pageNumber": 0,
         "searchKeyword": None,
         "isTesting": False,
-        "isDefaultFilterSelected": True,
+        "isDefaultFilterSelected": False,
         "filters": _BUSINESS_FILTERS,
     }
     if request_id := _BUSINESS_REQUEST_ID_RE.search(page):
         body["originalRequestId"] = request_id.group(1)
-    if entity := _BUSINESS_ENTITY_RE.search(page):
-        body["legalEntities"] = [entity.group(1)]
-    return BusinessRequest(
-        token=html.unescape(token.group(1)),
-        form={
-            "deliveryHistoryRequestString": json.dumps(body),
-            "refMarker": "ab_ppx_yo_mob_pagination_0",
-        },
-    )
+    return BusinessRequest(token=html.unescape(token.group(1)), body=body)
 
 
 def business_history_failed(fragment: str) -> bool:

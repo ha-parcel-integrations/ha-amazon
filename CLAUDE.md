@@ -152,8 +152,14 @@ the structured state a response carries over anything meant for display.
   and the list comes from a separate call whose parameters and anti-forgery
   token the shell carries; the client switches to it only when the shell
   says Business and the page has no consumer tile, so other accounts are
-  untouched. One page only (newest first, last three months, "ordered by
-  you"), enough for incoming parcels. A rejected token gets one fresh shell,
+  untouched. It asks for **every** order of the last three months (any
+  buyer, any payer, any organisation; maintainer decision, so parcels the
+  organisation pays for are not missed), never the page's own fallback,
+  which is the narrowest option. It reads page after page, as the page does
+  on scroll, until one comes back with no card, capped at
+  `MAX_BUSINESS_PAGES` with a one-shot warning: pages vary in size, and the
+  list is sorted by order date, so a parcel still on its way can sit past
+  the first page. A rejected token gets one fresh shell,
   then reads as an auth error. An empty list warns once: a malformed call
   returns the same empty list as an account without orders. So do a card
   with no order and fewer readable cards than the list says it rendered,

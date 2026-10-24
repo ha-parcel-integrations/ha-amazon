@@ -26,6 +26,7 @@ from yarl import URL
 
 from ..const import (
     DELIVERED_LOOKBACK_DAYS,
+    MAX_BUSINESS_PAGES,
     MAX_TRACK_LOADS,
     ORDERS_PATHS,
     REQUEST_PAUSE_SECONDS,
@@ -35,6 +36,7 @@ from .auth import exchange_token_for_cookies, refresh_access_token
 from .errors import AmazonApiError, AmazonAuthError
 from .pages import (
     BUSINESS_HISTORY_PATH,
+    BusinessRequest,
     OrderTile,
     build_record,
     business_card_count,
@@ -61,6 +63,13 @@ WEB_USER_AGENT = (
 )
 
 _ShipmentKey = tuple[str, str, str]
+
+
+def _business_request(shell: str) -> BusinessRequest:
+    request = parse_business_shell(shell)
+    if request is None:
+        raise AmazonApiError("Amazon Business orders page changed")
+    return request
 
 
 class AmazonClient:
@@ -177,20 +186,50 @@ class AmazonClient:
     async def _fetch_business_tiles(
         self, path: str, shell: str, today: date
     ) -> list[OrderTile]:
-        """Read an Amazon Business order list, which the orders page loads itself."""
-        try:
-            fragment = await self._post_business(shell)
-        except AmazonAuthError as err:
-            if err.status_code != 403:
-                raise
-            # A stale anti-forgery token: a fresh shell carries a new one.
-            fragment = await self._post_business(await self._fetch_page(path))
-        if business_history_failed(fragment):
-            raise AmazonApiError("Amazon Business order list reported an error")
-        tiles = [
-            self._carry_business_line(tile)
-            for tile in parse_business_cards(fragment, today)
-        ]
+        """Read an Amazon Business order list, which the orders page loads itself.
+
+        Page after page, as the page does on scroll, until one comes back with
+        no card.
+        """
+        request = _business_request(shell)
+        renewed = False
+        tiles: list[OrderTile] = []
+        first_rendered: int | None = None
+        for page_number in range(MAX_BUSINESS_PAGES):
+            try:
+                fragment = await self._post_business(request, page_number)
+            except AmazonAuthError as err:
+                if err.status_code != 403 or renewed:
+                    raise
+                # A stale anti-forgery token: a fresh shell carries a new one.
+                renewed = True
+                request = _business_request(await self._fetch_page(path))
+                fragment = await self._post_business(request, page_number)
+            if business_history_failed(fragment):
+                raise AmazonApiError("Amazon Business order list reported an error")
+            rendered = business_card_count(fragment)
+            found = business_cards_found(fragment)
+            if rendered and rendered > found:
+                warn_once(
+                    "unread-business-cards",
+                    "Amazon showed more Business order cards than could be read,"
+                    " so some parcels may be missing; Amazon may have changed how"
+                    " the cards look.",
+                )
+            if page_number == 0:
+                first_rendered = rendered
+            tiles.extend(
+                self._carry_business_line(tile)
+                for tile in parse_business_cards(fragment, today)
+            )
+            if not (found if rendered is None else rendered):
+                break
+        else:
+            warn_once(
+                "business-pages-capped",
+                f"The Amazon Business order list is longer than {MAX_BUSINESS_PAGES}"
+                " pages; older orders are not read.",
+            )
         # An empty list may be a silent failure; it must not forget anything.
         if tiles:
             listed = {(tile.order_id, tile.title) for tile in tiles}
@@ -199,15 +238,7 @@ class AmazonClient:
                 for line, known in self._business_lines.items()
                 if line in listed
             }
-        rendered = business_card_count(fragment)
-        if rendered and rendered > business_cards_found(fragment):
-            warn_once(
-                "unread-business-cards",
-                "Amazon showed more Business order cards than could be read,"
-                " so some parcels may be missing; Amazon may have changed how"
-                " the cards look.",
-            )
-        if not tiles and not rendered:
+        if not tiles and not first_rendered:
             warn_once(
                 "no-business-lines",
                 "The Amazon Business order list came back empty. If you have"
@@ -216,14 +247,11 @@ class AmazonClient:
             )
         return tiles
 
-    async def _post_business(self, shell: str) -> str:
-        request = parse_business_shell(shell)
-        if request is None:
-            raise AmazonApiError("Amazon Business orders page changed")
+    async def _post_business(self, request: BusinessRequest, page_number: int) -> str:
         origin = f"https://www.{self._domain}"
         return await self._fetch_page(
             BUSINESS_HISTORY_PATH,
-            form=request.form,
+            form=request.form(page_number),
             headers={
                 "Accept": "text/html,*/*",
                 "X-Requested-With": "XMLHttpRequest",
