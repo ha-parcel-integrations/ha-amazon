@@ -75,7 +75,9 @@ the structured state a response carries over anything meant for display.
   diagnostics. Never fall back to a password login.
 - **Auth failure -> reauth once, then polling pauses** (`AmazonAuthError` ->
   `ConfigEntryAuthFailed`). 429 and 503 back off through the coordinator.
-- **Fan-out is capped** (`MAX_TRACK_LOADS` shipments per cycle, stalest first;
+- **Fan-out is capped** (`MAX_TRACK_LOADS` shipments that load a page per
+  cycle, stalest first; a delivered Business card loads none, so it is never
+  counted and never waits;
   a delivered shipment is cached once it has a delivery date, or from the day
   after it first read as delivered without one; nothing delivered longer ago than
   `DELIVERED_LOOKBACK_DAYS` is followed). The **idle tier**

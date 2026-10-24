@@ -397,7 +397,14 @@ class AmazonClient:
 
         never = datetime.min.replace(tzinfo=timezone.utc)
         work.sort(key=lambda key: self._last[key][1] if key in self._last else never)
-        for key in work[:MAX_TRACK_LOADS]:
+        # Only a shipment that loads a page counts against the cap; a
+        # delivered Business card is read off the list and costs nothing.
+        loads = 0
+        for key in work:
+            if groups[key][0].follow:
+                if loads >= MAX_TRACK_LOADS:
+                    continue
+                loads += 1
             record = await self._read_shipment(groups[key], today)
             self._last[key] = (record, datetime.now(timezone.utc))
             if self._is_final(key, groups[key], record, today):

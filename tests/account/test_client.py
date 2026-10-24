@@ -1005,3 +1005,43 @@ async def test_an_empty_page_after_the_first_does_not_warn(caplog):
     )
     await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
     assert "came back empty" not in caplog.text
+
+
+async def test_delivered_business_cards_do_not_use_up_the_page_loads():
+    delivered = [
+        business_card(
+            business_order_path(f"000-0000006-00000{n:02d}"),
+            "Livré jeudi",
+            title=f"Delivered item {n}",
+        )
+        for n in range(11)
+    ]
+    session = _business_session(
+        FakeResponse(
+            200,
+            business_history(
+                business_card(
+                    business_tracker_path("SHIPab00001"), "Livraison prévue lundi"
+                ),
+                business_card(
+                    business_tracker_path("SHIPab00002"),
+                    "Livraison prévue mardi",
+                    title="Example item 2",
+                ),
+                *delivered,
+            ),
+        )
+    )
+    _business_track(
+        session, "SHIPab00001", milestone="SHIPPED", short_status="IN_TRANSIT"
+    )
+    _business_track(
+        session, "SHIPab00002", milestone="SHIPPED", short_status="IN_TRANSIT"
+    )
+
+    records = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()
+
+    statuses = sorted(normalize_parcel(record)["status"] for record in records)
+    assert statuses == ["delivered"] * 11 + ["in_transit"] * 2
+    page_loads = [url for url in _gets(session) if "progress-tracker" in url]
+    assert len(page_loads) == 2 <= client_module.MAX_TRACK_LOADS
