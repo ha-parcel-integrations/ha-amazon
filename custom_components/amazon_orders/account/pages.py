@@ -19,7 +19,13 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from ..const import ParcelStatus
 from .parcels import warn_once
-from .vocabulary import MONTHS, SKIP, STATUS_PREFIXES, classify_order_text
+from .vocabulary import (
+    MONTHS,
+    SKIP,
+    STATUS_PREFIXES,
+    UNNAMED_CARRIER_HEADERS,
+    classify_order_text,
+)
 
 _TILE_RE = re.compile(
     r'<a class="item-card__link" href="([^"]*)" aria-label="([^"]*)"', re.S
@@ -83,8 +89,6 @@ _WINDOW_TOLERANCE = timedelta(hours=1)
 # A courier the page does not name: the Colissimo id shape, amazon.fr only.
 _LA_POSTE_ID_RE = re.compile(r"\d[A-Z]\d{11}")
 _LA_POSTE_STOREFRONTS = {"amazon.fr"}
-# Delivery-card headers that name no courier, seen on a real page.
-_UNNAMED_CARRIER_HEADERS = {"informations sur la livraison"}
 LA_POSTE_GUESS = "LA_POSTE"
 
 # Amazon Business: the orders page is an empty shell and the list comes from a
@@ -689,7 +693,7 @@ def _guess_carrier(domain: str, track: TrackInfo) -> str | None:
     if domain not in _LA_POSTE_STOREFRONTS or not track.tracking_id:
         return None
     header = (track.carrier_header or "").lower()
-    if header and header not in _UNNAMED_CARRIER_HEADERS:
+    if header and header not in UNNAMED_CARRIER_HEADERS:
         return None
     if not _LA_POSTE_ID_RE.fullmatch(track.tracking_id):
         return None

@@ -565,6 +565,14 @@ def test_unread_carrier_header_is_reported_once(caplog):
     assert "issues/new" in caplog.text
 
 
+def test_generic_carrier_header_is_not_reported_as_unreadable(caplog):
+    raw = active_record()
+    raw["carrier_code"] = None
+    raw["carrier_header"] = "Delivery info"
+    assert normalize_parcel(raw)["carrier"] == "Amazon"
+    assert "could not read" not in caplog.text
+
+
 def test_tracked_shipment_without_any_carrier_is_reported_once(caplog):
     raw = active_record()
     raw["carrier_code"] = None
@@ -574,6 +582,11 @@ def test_tracked_shipment_without_any_carrier_is_reported_once(caplog):
     assert "named no delivery carrier" not in caplog.text
 
     raw["tracking_id"] = tracking_id
+    raw["milestone"] = "ORDERED"
+    normalize_parcel(raw)
+    assert "named no delivery carrier" not in caplog.text
+
+    raw["milestone"] = "SHIPPED"
     normalize_parcel(raw)
     normalize_parcel(raw)
     assert caplog.text.count("named no delivery carrier") == 1

@@ -24,7 +24,7 @@ from ..const import (
     HISTORY_MAX_EVENTS,
     ParcelStatus,
 )
-from .vocabulary import classify_order_text
+from .vocabulary import UNNAMED_CARRIER_HEADERS, classify_order_text
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -294,14 +294,14 @@ def _carrier(raw: dict) -> str:
     code = raw.get("carrier_code")
     if not code:
         header = raw.get("carrier_header")
-        if header:
+        if header and header.lower() not in UNNAMED_CARRIER_HEADERS:
             masked = re.sub(r"\d+", "#", header)
             warn_once(
                 f"carrier-header={masked}",
                 f'Amazon named the delivery carrier as "{masked}", which we'
                 " could not read; please share it so it can be recognised.",
             )
-        elif raw.get("tracking_id"):
+        elif raw.get("tracking_id") and raw.get("milestone") != "ORDERED":
             warn_once(
                 "carrier=missing",
                 "Amazon's tracking page named no delivery carrier we could"
