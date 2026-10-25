@@ -2,11 +2,13 @@
 
 import json
 from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 
 import pytest
 
 from custom_components.amazon_orders.account.pages import (
     _day_month,
+    arrival_days,
     build_record,
     business_card_count,
     business_cards_found,
@@ -22,6 +24,7 @@ from custom_components.amazon_orders.account.pages import (
     parse_track_link,
     parse_track_page,
 )
+from custom_components.amazon_orders.account.parcels import normalize_parcel
 
 from ..payloads import (
     ACTIVE_CODE,
@@ -1072,3 +1075,46 @@ def test_business_list_count_and_error_flag():
     assert business_cards_found(business_history(card, card, count=3)) == 2
     assert business_history_failed(business_history(exception=True))
     assert not business_history_failed(business_history())
+
+
+# ---------------------------------------------------------------------------
+# whole-day window from an "Arriving ..." order line
+# ---------------------------------------------------------------------------
+
+ARRIVAL_TODAY = date(2026, 10, 25)
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Arriving tomorrow", (date(2026, 10, 26), date(2026, 10, 26))),
+        ("Arriving today", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
+        ("Arriving Oct 27", (date(2026, 10, 27), date(2026, 10, 27))),
+        ("Arriving Oct 27-29", (date(2026, 10, 27), date(2026, 10, 29))),
+        ("Arriving Oct 30-Nov 2", (date(2026, 10, 30), date(2026, 11, 2))),
+        ("Arriving Jan 3", (date(2027, 1, 3), date(2027, 1, 3))),
+        ("Arriving today 11:00 AM - 1:15 PM", None),
+        ("Arriving Foo 3", None),
+        ("Arriving Feb 31", None),
+        ("Morgen", None),
+        (None, None),
+    ],
+)
+def test_arrival_days(text, expected):
+    assert arrival_days(text, ARRIVAL_TODAY) == expected
+
+
+def test_an_arriving_line_gives_a_whole_day_window():
+    zone = ZoneInfo("Europe/Amsterdam")
+    read_at = datetime(2026, 10, 25, 19, 0, tzinfo=zone)
+    tiles = parse_order_tiles(
+        orders_page(tile(ACTIVE_SHIPMENT, "Arriving tomorrow", None)), TODAY
+    )
+    record = build_record("amazon.nl", tiles, None, None, read_at=read_at)
+    assert record["delivery_window"] == [
+        "2026-10-26T00:00:00+01:00",
+        "2026-10-26T23:59:59+01:00",
+    ]
+    parcel = normalize_parcel(record)
+    assert parcel["planned_from"] == "2026-10-26T00:00:00+01:00"
+    assert parcel["planned_to"] == "2026-10-26T23:59:59+01:00"

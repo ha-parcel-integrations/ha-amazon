@@ -338,7 +338,7 @@ class AmazonClient:
                 " Amazon may use a different tracking page on this storefront.",
             )
         return build_record(
-            self._domain, tiles, track_path, track, read_at=datetime.now(timezone.utc)
+            self._domain, tiles, track_path, track, read_at=dt_util.now()
         )
 
     def _is_final(

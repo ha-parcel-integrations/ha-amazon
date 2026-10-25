@@ -114,6 +114,14 @@ the structured state a response carries over anything meant for display.
   from the promise text, the day from the countdown to the window's end, and the
   two must agree within an hour or the window is dropped with a one-shot
   warning. Never on a delivered parcel. Seen on amazon.fr only.
+  Fallback: an order line naming only a day (`Arriving tomorrow`, `today`,
+  `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`; English forms only, matched
+  whole so a timed line never qualifies) gives a whole-day window, 00:00 to
+  23:59:59 in the page's zone, else the HA zone `read_at` carries. The timed
+  window wins when both exist. No other language until a real line shows its
+  wording. No structured date exists to prefer: an in-flight tracking page's
+  `promise.promiseMessage` carries the same text as the order line
+  ("Arriving tomorrow", seen 2026-10-25), `secondaryPromiseIdentifier` is `NONE`.
 - **Delivered day** from the order line's date, else from a relative word
   (today, yesterday, a French weekday within the past week). A day with no
   delivered event is midnight in Home Assistant's zone, never UTC. A delivered text
