@@ -238,6 +238,10 @@ which exposes more (delivery window, pickup point, full history).
   the docs site; not fixable, ignorable. It is deleted when the carrier's
   service appears, or with the last Amazon entry, never when the parcels
   needing it go away (that would re-nag a user who ignored it).
+- **Covered by an account-based sibling:** `HAND_OFF_COVERED_BY` (`dhl` ->
+  `dhl_nl`) means a set-up `dhl_nl` entry stops the `dhl` Repair issue (and
+  clears a raised one). The parcel is still shown here, not handed off; the
+  aggregator de-duplicates.
 - **Carrier in the suite without `track_parcel`** (account-based: PostNL, DPD,
   …): no hand-off, no Repair issue. The carrier account already shows the
   parcel; de-duplication is the aggregator's job (carrier record wins over the

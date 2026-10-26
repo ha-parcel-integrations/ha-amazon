@@ -162,6 +162,15 @@ async def test_missing_carrier_raises_one_issue_per_carrier_domain(hass):
     assert track == [{"tracking_code": DRAGONFLY_CODE}]
 
 
+async def test_an_account_integration_covering_the_carrier_raises_no_issue(hass):
+    MockConfigEntry(domain="dhl_nl").add_to_hass(hass)
+    await _setup(hass, [_record(DHL_CODE, "DHL_CONNECT")])
+
+    # No hand-off possible, but dhl_nl already lists the parcel: nothing to fix.
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id("dhl")) is None
+    assert _incoming(hass) == "1"
+
+
 async def test_a_carrier_outside_the_table_is_left_alone(hass):
     """An account-based carrier (no track_parcel) or an unknown one: no call, no issue."""
     entry, _ = await _setup(

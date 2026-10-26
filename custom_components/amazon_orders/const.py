@@ -187,4 +187,7 @@ HAND_OFF_CARRIERS = {
     "COLIS_PRIVE_BELU": ("colis_prive", "Colis Privé", "colis-prive"),
     "DRAGONFLY": ("dragonfly", "Dragonfly", "dragonfly"),
 }
+# Account-based integrations that already list the carrier's parcels without a
+# hand-off: with one of them set up, the carrier is not "missing".
+HAND_OFF_COVERED_BY = {"dhl": ("dhl_nl",)}
 SERVICE_TRACK_PARCEL = "track_parcel"

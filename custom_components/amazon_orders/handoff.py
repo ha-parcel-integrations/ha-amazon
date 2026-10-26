@@ -25,6 +25,7 @@ from .const import (
     DOCS_CARRIERS_URL,
     DOMAIN,
     HAND_OFF_CARRIERS,
+    HAND_OFF_COVERED_BY,
     SERVICE_TRACK_PARCEL,
 )
 
@@ -123,6 +124,13 @@ class HandOff:
             return False
         return True
 
+    def _covered(self, domain: str) -> bool:
+        """Whether an account-based integration already lists this carrier's parcels."""
+        return any(
+            self._hass.config_entries.async_entries(other)
+            for other in HAND_OFF_COVERED_BY.get(domain, ())
+        )
+
     def _sync_issues(self, needed: set[str]) -> None:
         """Raise an issue for a missing carrier; clear it once the carrier is there.
 
@@ -130,7 +138,9 @@ class HandOff:
         ignored it would be nagged again by the next such parcel.
         """
         for domain, name, slug in HAND_OFF_CARRIERS.values():
-            if self._hass.services.has_service(domain, SERVICE_TRACK_PARCEL):
+            if self._hass.services.has_service(
+                domain, SERVICE_TRACK_PARCEL
+            ) or self._covered(domain):
                 ir.async_delete_issue(self._hass, DOMAIN, issue_id(domain))
             elif domain in needed:
                 url = f"{DOCS_CARRIERS_URL}#{slug}"
