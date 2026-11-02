@@ -72,6 +72,7 @@ def parse_track_page(page: str, today: date):
 def delivery_window(state: dict, read_at: datetime):
     return _delivery_window(state, read_at, _resolved(state.get("timezone")))
 
+
 # ---------------------------------------------------------------------------
 # order lines
 # ---------------------------------------------------------------------------
