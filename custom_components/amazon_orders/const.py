@@ -27,7 +27,7 @@ class ParcelStatus(StrEnum):
     UNKNOWN = "unknown"  # Raw status we have not mapped yet
 
 
-PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
+PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.IMAGE, Platform.SENSOR]
 
 # Every optional key the parcel contract defines. CAPABILITIES below must be a
 # subset of this — it exists so a typo in CAPABILITIES fails a test instead of

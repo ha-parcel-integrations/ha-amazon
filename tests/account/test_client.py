@@ -22,6 +22,7 @@ from ..payloads import (
     COUNTRY,
     DELIVERED_CODE,
     DELIVERED_EVENTS,
+    FAKE_PHOTO_URL,
     FEEDBACK_PATH,
     ORDER_ID,
     business_card,
@@ -145,6 +146,72 @@ async def test_poll_authenticates_then_reads_orders_pop_and_track():
     assert "ship-track" in gets[2]
     # Page loads identify as a mobile browser.
     assert "iPhone" in session.calls[2][2]["headers"]["User-Agent"]
+
+
+async def test_the_photo_link_stays_with_the_client_not_the_record():
+    session = _session(_delivered_tile("D1"))
+    _shipment(session, "D1", delivery_photo=FAKE_PHOTO_URL)
+    client = _client(session)
+
+    [record] = await client.async_get_parcels()
+
+    assert "amazonaws" not in str(record)
+    assert record["delivery_photo_entity_id"] is None
+    shipment = (record["order_id"], record["shipment_id"], record["package_id"])
+    assert client.delivery_photo_url(shipment) == FAKE_PHOTO_URL
+    assert client.delivery_photo_url(("other", "x", "1")) is None
+
+
+async def test_the_photo_link_is_forgotten_with_its_shipment():
+    session = _session(_delivered_tile("D1"))
+    _shipment(session, "D1", delivery_photo=FAKE_PHOTO_URL)
+    client = _client(session)
+    [record] = await client.async_get_parcels()
+    shipment = (record["order_id"], record["shipment_id"], record["package_id"])
+
+    session.add("GET", "your-orders/orders", FakeResponse(body=orders_page()))
+    session.add("GET", "order-history", FakeResponse(body=orders_page()))
+    assert await client.async_get_parcels() == []
+
+    assert client.delivery_photo_url(shipment) is None
+
+
+async def test_fetching_a_photo_returns_its_bytes_and_type():
+    session = FakeSession()
+    session.add(
+        "GET", "amazonaws", FakeResponse(body=b"jpeg", content_type="image/jpeg")
+    )
+    assert await _client(session).async_fetch_photo(FAKE_PHOTO_URL) == (
+        b"jpeg",
+        "image/jpeg",
+    )
+
+
+async def test_fetching_a_dead_photo_link_raises():
+    session = FakeSession()
+    session.add("GET", "amazonaws", FakeResponse(status=403))
+    with pytest.raises(AmazonApiError):
+        await _client(session).async_fetch_photo(FAKE_PHOTO_URL)
+
+
+@pytest.mark.parametrize("zone", ["Nowhere/Land", "../etc/passwd", "x" * 5000])
+async def test_an_unusable_page_zone_leaves_timestamps_naive(zone):
+    session = _session(_delivered_tile("D1"))
+    _shipment(session, "D1", events=DELIVERED_EVENTS[:1], timezone=zone)
+
+    [record] = await _client(session).async_get_parcels()
+
+    assert record["events"][0]["timestamp"].endswith(":00")
+    assert "+" not in record["events"][0]["timestamp"]
+
+
+async def test_a_page_zone_dates_the_timeline():
+    session = _session(_delivered_tile("D1"))
+    _shipment(session, "D1", events=DELIVERED_EVENTS[:1], timezone="Europe/Amsterdam")
+
+    [record] = await _client(session).async_get_parcels()
+
+    assert record["events"][0]["timestamp"].endswith("+02:00")
 
 
 async def test_exchanged_cookies_land_in_the_session_jar():

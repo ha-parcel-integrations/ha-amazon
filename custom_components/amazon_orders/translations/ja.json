@@ -106,6 +106,11 @@
         "name": "配達"
       }
     },
+    "image": {
+      "delivery_photo": {
+        "name": "配達写真 {barcode}"
+      }
+    },
     "sensor": {
       "incoming_parcels": {
         "name": "到着予定の荷物",

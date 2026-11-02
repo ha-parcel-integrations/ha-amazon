@@ -127,23 +127,26 @@ the structured state a response carries over anything meant for display.
   delivered event is midnight in Home Assistant's zone, never UTC. A delivered text
   longer than the bare status word that gives no day warns once, so the
   wording can be added.
-- **Delivery photo** (`raw["delivery_photo_url"]`, not a canonical field — a
-  contract addition was considered and deliberately not made). Only Amazon's own
-  fleet renders the card; a third-party carrier's page has none and the field is
-  `None`. It lives on the tracking page we already fetch, so it costs no extra
-  request. Parse it from the lazy `data-src`, never `src` (a `data:` placeholder),
-  and keep the `<noscript>` twin as the fallback anchor — it has no class, so it
-  survives a class rename. The URL is a **presigned S3 link** (confirmed by the
-  reporter, 2026-10-11): no cookie needed, so a phone can load it, but it dies a
-  fixed number of seconds after it was signed — and signing happens when *we* read
-  the page, not when the parcel was delivered. `raw["delivery_photo_expires"]` is
-  that moment, derived from the URL's own parameters, so a dashboard can hide a
-  dead image. **The tripwire:** a delivered shipment enters `client._final` and is
-  never re-read, so its link is frozen at that one poll and the observed 72 h of
-  validity runs out while the parcel is still inside `DELIVERED_LOOKBACK_DAYS`.
-  Accepted, not a bug to fix by re-polling delivered parcels — the notification
-  case fires minutes after the read. Don't hardcode the bucket host: it is
-  regional and only one storefront's has been seen.
+- **The delivery photo is an `image` entity, and its link never reaches `raw`**
+  (maintainer decision, 2026-11-03, after the hacs/default review). The URL is a
+  **presigned S3 link** (confirmed by the reporter, 2026-10-11): it opens without
+  signing in and shows the user's front door, while anything in `raw` reaches
+  attributes and recorded event payloads. So the client keeps the link to itself
+  (`delivery_photo_url()`), not in the record, and Home Assistant serves the bytes
+  behind its own authentication. `raw["delivery_photo_entity_id"]` is what an
+  automation gets instead. Only Amazon's own fleet renders the card. Parse it from
+  the lazy `data-src`, never `src` (a `data:` placeholder), and keep the
+  `<noscript>` twin as the fallback anchor — it has no class, so it survives a
+  class rename. Don't hardcode the bucket host: it is regional and only one
+  storefront's has been seen. **Two tripwires:** photos are synced *before*
+  `_fire_change_events`, through the platform's awaitable add, because an
+  automation on the delivered event loads the image at once; don't move that to a
+  coordinator listener. And the link dies about 72 h after we read the page, while
+  a delivered shipment enters `client._final` and is never re-read, so the bytes
+  are downloaded straight away and kept in memory (only for parcels the delivered
+  list shows). A restart re-reads the page and so gets a fresh link. A card that
+  appears only after the parcel went final is not seen until a restart: no capture
+  has shown that lag, so a shipment isn't held back for it.
 - **The timeline is in the account's language.** `_EVENT_MAP` holds only wording
   a real account has shown (English, plus Dutch, German and French from the
   Belgian, German and French storefronts) — unlike

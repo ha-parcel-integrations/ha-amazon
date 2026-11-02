@@ -1,14 +1,13 @@
 # Notify with Amazon's proof-of-delivery photo once a parcel is delivered.
 #
 # Only Amazon's own fleet takes a photo: a parcel carried by a third party
-# (Dragonfly, DHL, Colis Privé) has no ``delivery_photo_url`` and this
+# (Dragonfly, DHL, Colis Privé) has no ``delivery_photo_entity_id`` and this
 # automation then sends the notification without an image rather than a
 # broken one.
 #
-# The link Amazon hands out is temporary — roughly three days from the moment
-# the integration read the tracking page. That is no problem here, because
-# this fires on delivery, when the link is minutes old. For a dashboard card
-# showing older parcels, check ``raw.delivery_photo_expires`` first.
+# The photo's image entity already exists when this event fires. Home
+# Assistant serves it behind its own sign-in, so the companion app loads it
+# with your account.
 
 alias: "Amazon: delivered, with photo"
 description: Notify when an Amazon parcel is delivered, including the delivery photo.
@@ -27,4 +26,6 @@ actions:
         {{ trigger.event.data.barcode }} – {{ trigger.event.data.raw_status or 'delivered' }}
       data:
         clickAction: "{{ trigger.event.data.url }}"
-        image: "{{ trigger.event.data.raw.delivery_photo_url | default('', true) }}"
+        image: >-
+          {% set photo = trigger.event.data.raw.delivery_photo_entity_id %}
+          {{ '/api/image_proxy/' ~ photo if photo else '' }}

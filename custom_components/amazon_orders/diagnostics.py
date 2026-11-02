@@ -36,8 +36,8 @@ TO_REDACT = {
     "page_state",
     "order_status_note",
     "location",
-    # a photo of the user's own front door
-    "delivery_photo_url",
+    # named after the tracking id
+    "delivery_photo_entity_id",
 }
 
 

@@ -5,15 +5,20 @@ Fetching and event firing only — the parcel mapping lives in :mod:`.parcels`.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import aiohttp
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -45,6 +50,21 @@ BACKOFF_BASE_SECONDS = 60
 BACKOFF_CAP_SECONDS = 3600
 
 BUSINESS_LINES_VERSION = 1
+PHOTO_TIMEOUT_SECONDS = 30
+
+
+@dataclass
+class DeliveryPhoto:
+    """A parcel's delivery photo; the link is never published."""
+
+    url: str
+    content: bytes | None = None
+    content_type: str | None = None
+
+
+def photo_unique_id(entry_id: str, barcode: str) -> str:
+    """Return the unique id of a parcel's delivery-photo entity."""
+    return f"{entry_id}_delivery_photo_{barcode}"
 
 
 def business_lines_store(hass: HomeAssistant, entry_id: str) -> Store[dict]:
@@ -163,6 +183,9 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         self._all_parcels: list[dict] = []
         self.delivered: list[dict] = []
         self.unresolved: list[dict] = []
+        # Barcode -> delivery photo, for the parcels the delivered list shows.
+        self.photos: dict[str, DeliveryPhoto] = {}
+        self._photo_entity_sync: Callable[[], Awaitable[None]] | None = None
         # Consecutive 429 responses, for the exponential backoff in Section 3.
         # Reset to 0 on any success.
         self._consecutive_429 = 0
@@ -195,6 +218,76 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
     def delivered_codes(self) -> set[str]:
         """Always empty — nothing per-parcel to skip in the account model."""
         return set()
+
+    @property
+    def listing_complete(self) -> bool:
+        """Whether every listed shipment has been read since the last restart."""
+        return self._client.listing_complete
+
+    @callback
+    def async_set_photo_entity_sync(
+        self, sync: Callable[[], Awaitable[None]]
+    ) -> CALLBACK_TYPE:
+        """Register what brings the image entities in line with ``photos``."""
+        self._photo_entity_sync = sync
+
+        @callback
+        def _remove() -> None:
+            self._photo_entity_sync = None
+
+        return _remove
+
+    async def async_load_photo(self, barcode: str) -> DeliveryPhoto | None:
+        """Return a parcel's photo, downloading it if that has not worked yet."""
+        photo = self.photos.get(barcode)
+        if photo is None or photo.content is not None:
+            return photo
+        try:
+            async with asyncio.timeout(PHOTO_TIMEOUT_SECONDS):
+                (
+                    photo.content,
+                    photo.content_type,
+                ) = await self._client.async_fetch_photo(photo.url)
+        except (aiohttp.ClientError, TimeoutError, AmazonApiError) as err:
+            # Only the type: a client error's text carries the signed link.
+            _LOGGER.debug("Could not fetch a delivery photo: %s", type(err).__name__)
+        return photo
+
+    async def _async_sync_photos(self) -> None:
+        """Have every delivered parcel's photo in place before events fire.
+
+        An automation triggered by the delivered event loads the image right
+        away. The photo is downloaded straight away too: the link dies a few
+        days after it was read, and a delivered parcel is not read again.
+        """
+        photos: dict[str, DeliveryPhoto] = {}
+        for parcel in self.delivered:
+            barcode = parcel.get("barcode")
+            url = self._client.delivery_photo_url(_shipment(parcel))
+            if barcode and url:
+                known = self.photos.get(barcode)
+                photos[barcode] = (
+                    known if known and known.content else DeliveryPhoto(url)
+                )
+        self.photos = photos
+        for barcode in photos:
+            await self.async_load_photo(barcode)
+        if self._photo_entity_sync is not None:
+            await self._photo_entity_sync()
+
+        registry = er.async_get(self.hass)
+        for parcel in self.delivered:
+            barcode = parcel.get("barcode")
+            if barcode not in photos:
+                continue
+            parcel["raw"] = {
+                **parcel["raw"],
+                "delivery_photo_entity_id": registry.async_get_entity_id(
+                    "image",
+                    DOMAIN,
+                    photo_unique_id(self.config_entry.entry_id, barcode),
+                ),
+            }
 
     def _device_id(self) -> str | None:
         """Resolve (and cache) this entry's device id for event payloads."""
@@ -295,6 +388,7 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         )
         self.delivered = apply_delivered_filter(delivered_sorted, self.config_entry)
         normalized_active = sort_parcels_by_ts(active, "planned_from")
+        await self._async_sync_photos()
 
         # Events and remembered state cover every parcel; the retention option
         # only limits what the delivered sensor shows.

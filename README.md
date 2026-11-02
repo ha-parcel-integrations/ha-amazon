@@ -47,8 +47,8 @@ Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/)
 - Hands parcels over to the matching carrier integration when you have it set up, for a delivery window, pickup point and full history (see [Hand-off to carrier integrations](#hand-off-to-carrier-integrations))
 - Summary sensors: incoming parcels, next delivery, recently delivered parcels
 - Read-only **Deliveries** calendar
+- Amazon's proof-of-delivery photo as an image entity, for parcels Amazon's own fleet delivers (see [Delivery photo](#delivery-photo))
 - Events + device triggers for no-code automations (parcel registered, status changed, delivered)
-- Amazon's proof-of-delivery photo, for parcels Amazon's own fleet delivers (see [Delivery photo](#delivery-photo))
 - Opt-in per-parcel status history
 - Manual refresh button and a diagnostic last-update sensor
 
@@ -179,6 +179,7 @@ Standard HA removal applies: **Settings → Devices & Services → Amazon → �
 | `sensor.amazon_orders_awaiting_pickup` | Incoming parcels that are ready to collect at a pickup point |
 | `sensor.amazon_orders_delivered_parcels` | Recently delivered parcels (see the retention option) |
 | `calendar.amazon_orders_deliveries` | Read-only calendar of expected deliveries, no extra API calls |
+| `image.amazon_orders_delivery_photo_<code>` | One per delivered parcel with a photo in the delivered list (see [Delivery photo](#delivery-photo)) |
 | `sensor.amazon_orders_last_successful_update` | Diagnostic: when Amazon was last polled successfully |
 
 A delivered parcel moves from its per-parcel sensor to the delivered sensor automatically.
@@ -205,28 +206,23 @@ Amazon writes the tracking timeline in the language of your account. English, Du
 
 ## Delivery photo
 
-When Amazon's own fleet delivers a parcel it usually takes a photo of where it left it. The integration reads that photo's URL off the tracking page it already fetches — no extra request — and puts it on the parcel as `raw.delivery_photo_url`, so you can use it in a notification or on a dashboard:
+When Amazon's own fleet delivers a parcel it usually takes a photo of where it left it. The integration shows that photo as an image entity, served by Home Assistant behind its own sign-in. Use it on a dashboard like any image entity, or in a notification.
+
+The entity exists and holds the photo by the time the `amazon_orders_parcel_delivered` event fires, and the event names it in `raw.delivery_photo_entity_id` (`null` when there is no photo), so an automation can use it right away:
 
 ```yaml
-image: "{{ trigger.event.data.raw.delivery_photo_url }}"
+image: >-
+  {% set photo = trigger.event.data.raw.delivery_photo_entity_id %}
+  {{ '/api/image_proxy/' ~ photo if photo else '' }}
 ```
 
 A ready-to-paste automation is in [`examples/automations/notify_with_delivery_photo.yaml`](examples/automations/notify_with_delivery_photo.yaml).
 
-Two things to know:
+Things to know:
 
-- **Only Amazon's own fleet.** A parcel carried by Dragonfly, DHL or Colis Privé has no photo, and both fields are `null`.
-- **The link expires about three days after it is read.** Amazon hands out a temporary link, so your phone or browser can load it without being signed in — but not forever, and the clock starts when the integration read the tracking page, not when the parcel was delivered. A notification sent on delivery is well inside that window; a dashboard card showing a parcel from last week is not. `raw.delivery_photo_expires` carries the moment the link dies (ISO 8601, UTC), so a card can hide a broken image:
-
-```jinja
-{% if parcel.raw.delivery_photo_expires > now().isoformat() %}
-  ...show the photo...
-{% endif %}
-```
-
-The integration never downloads the image itself; it only passes the link on.
-
-Diagnostics redact the URL: it is a picture of your own front door, and diagnostics get pasted into public issues.
+- **Only Amazon's own fleet.** A parcel carried by Dragonfly, DHL or Colis Privé has no photo and no entity.
+- **It lasts as long as the parcel is in the delivered list** (see the retention option). The entity then goes away.
+- **The photo has to be on the tracking page at the moment the parcel reads as delivered.** Amazon Business parcels that are delivered don't load that page, so they usually have no photo.
 
 ## Events
 

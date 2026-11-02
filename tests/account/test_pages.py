@@ -2,7 +2,7 @@
 
 import json
 from datetime import date, datetime, timezone
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import pytest
 
@@ -13,16 +13,20 @@ from custom_components.amazon_orders.account.pages import (
     business_card_count,
     business_cards_found,
     business_history_failed,
-    delivery_photo_expiry,
-    delivery_window,
     is_track_page_path,
     looks_signed_out,
+    page_timezone,
     parse_business_cards,
     parse_business_shell,
     parse_delivery_photo,
     parse_order_tiles,
     parse_track_link,
-    parse_track_page,
+)
+from custom_components.amazon_orders.account.pages import (
+    delivery_window as _delivery_window,
+)
+from custom_components.amazon_orders.account.pages import (
+    parse_track_page as _parse_track_page,
 )
 from custom_components.amazon_orders.account.parcels import normalize_parcel
 
@@ -34,7 +38,6 @@ from ..payloads import (
     DELIVERED_EVENTS,
     DELIVERED_SHIPMENT,
     FAKE_MAPS_KEY,
-    FAKE_PHOTO_EXPIRES,
     FAKE_PHOTO_URL,
     FEEDBACK_PATH,
     ORDER_ID,
@@ -52,6 +55,22 @@ from ..payloads import (
 )
 
 TODAY = date(2026, 10, 5)
+
+
+def _resolved(name: object) -> ZoneInfo | None:
+    """What the client resolves a page's zone to before parsing."""
+    try:
+        return ZoneInfo(name) if isinstance(name, str) and name else None
+    except (ZoneInfoNotFoundError, ValueError):
+        return None
+
+
+def parse_track_page(page: str, today: date):
+    return _parse_track_page(page, today, _resolved(page_timezone(page)))
+
+
+def delivery_window(state: dict, read_at: datetime):
+    return _delivery_window(state, read_at, _resolved(state.get("timezone")))
 
 # ---------------------------------------------------------------------------
 # order lines
@@ -243,51 +262,23 @@ def test_track_page_reads_state_carrier_and_timeline():
     assert info.events[3]["timestamp"] == "2026-10-02T00:00:00+02:00"
 
 
-_PHOTO_PLAIN = FAKE_PHOTO_URL
-_PHOTO = FAKE_PHOTO_URL.replace("&", "&amp;")
-
-
 def test_delivery_photo_is_read_from_the_lazy_data_src():
-    info = parse_track_page(track_page(delivery_photo=_PHOTO_PLAIN), TODAY)
-    assert info.delivery_photo_url == _PHOTO_PLAIN
-    # Never the lazy placeholder.
-    assert not info.delivery_photo_url.startswith("data:")
-
-
-def test_delivery_photo_expiry_comes_from_the_presigned_url():
-    """The link dies 72 h after we read the page, not after the delivery."""
-    info = parse_track_page(track_page(delivery_photo=_PHOTO_PLAIN), TODAY)
-    assert info.delivery_photo_expires == FAKE_PHOTO_EXPIRES
-
-
-@pytest.mark.parametrize(
-    "url",
-    [
-        None,
-        "https://photo.test/pod/x.jpg",
-        "https://photo.test/pod/x.jpg?X-Amz-Date=20261006T101530Z",
-        "https://photo.test/pod/x.jpg?X-Amz-Expires=259200",
-        "https://photo.test/pod/x.jpg?X-Amz-Date=nonsense&X-Amz-Expires=259200",
-        "https://photo.test/pod/x.jpg?X-Amz-Date=20261006T101530Z&X-Amz-Expires=soon",
-    ],
-)
-def test_delivery_photo_expiry_is_none_when_the_url_does_not_say(url):
-    assert delivery_photo_expiry(url) is None
+    info = parse_track_page(track_page(delivery_photo=FAKE_PHOTO_URL), TODAY)
+    assert info.delivery_photo_url == FAKE_PHOTO_URL
 
 
 def test_delivery_photo_is_none_without_the_card():
-    info = parse_track_page(track_page(), TODAY)
-    assert info.delivery_photo_url is None
-    assert info.delivery_photo_expires is None
+    assert parse_track_page(track_page(), TODAY).delivery_photo_url is None
 
 
 def test_delivery_photo_falls_back_to_the_noscript_image():
+    escaped = FAKE_PHOTO_URL.replace("&", "&amp;")
     page = (
         '<html><body><div class="a-popover-preload" '
         'id="a-popover-pt-delivery-card-pod-popup-content">'
-        f'<noscript><img alt="" src="{_PHOTO}"/></noscript></div></body></html>'
+        f'<noscript><img alt="" src="{escaped}"/></noscript></div></body></html>'
     )
-    assert parse_delivery_photo(page) == _PHOTO_PLAIN
+    assert parse_delivery_photo(page) == FAKE_PHOTO_URL
 
 
 def test_tracking_id_tolerates_the_dutch_label():
@@ -422,14 +413,13 @@ def test_record_with_a_tracking_page():
     assert record["track_path"] == path
     assert record["items"] == ["Example Widget, Blue"]
     assert len(record["events"]) == 4
-    assert record["delivery_photo_url"] is None
 
 
-def test_record_carries_the_delivery_photo_url():
-    info = parse_track_page(track_page(delivery_photo=_PHOTO_PLAIN), TODAY)
+def test_record_never_carries_the_delivery_photo_link():
+    """The link opens without signing in, and raw reaches attributes and events."""
+    info = parse_track_page(track_page(delivery_photo=FAKE_PHOTO_URL), TODAY)
     record = build_record(COUNTRY, _tiles(), track_path(DELIVERED_SHIPMENT), info)
-    assert record["delivery_photo_url"] == _PHOTO_PLAIN
-    assert record["delivery_photo_expires"] == FAKE_PHOTO_EXPIRES
+    assert "s3.eu-west-1.amazonaws.com" not in str(record)
 
 
 def test_record_without_a_tracking_page_is_flagged():
@@ -440,7 +430,6 @@ def test_record_without_a_tracking_page_is_flagged():
     assert record["events"] == []
     assert record["delivered_on"] is None
     assert record["page_state"] == {}
-    assert record["delivery_photo_url"] is None
 
 
 def test_record_with_a_page_that_has_no_progress_tracker():

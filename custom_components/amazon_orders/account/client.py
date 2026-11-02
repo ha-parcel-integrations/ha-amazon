@@ -16,7 +16,7 @@ from __future__ import annotations
 import asyncio
 import dataclasses
 import logging
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone, tzinfo
 from http.cookies import SimpleCookie
 from typing import Any
 
@@ -65,6 +65,21 @@ WEB_USER_AGENT = (
 _ShipmentKey = tuple[str, str, str]
 
 
+async def _page_zone(name: str | None) -> tzinfo | None:
+    """Resolve a tracking page's zone off the event loop; unusable means none."""
+    if not name:
+        return None
+    try:
+        return await dt_util.async_get_time_zone(name)
+    except (ValueError, OSError):
+        # A malformed name, or an overlong one; Amazon's text, not ours.
+        return None
+
+
+def _record_shipment(record: dict[str, Any]) -> tuple[Any, Any, Any]:
+    return (record.get("order_id"), record.get("shipment_id"), record.get("package_id"))
+
+
 def _business_request(shell: str) -> BusinessRequest:
     request = parse_business_shell(shell)
     if request is None:
@@ -96,6 +111,9 @@ class AmazonClient:
         # Business: a delivered card drops its shipment and tracking link, so
         # the in-flight card's are kept to carry the parcel over.
         self._business_lines: dict[tuple[str, str], tuple[str, str]] = {}
+        # Kept out of the records: the link opens without signing in, and a
+        # record is what reaches attributes and event payloads.
+        self._photo_urls: dict[tuple[Any, Any, Any], str] = {}
 
     async def _authenticate(self) -> None:
         """Renew the access token and mint fresh website cookies."""
@@ -311,11 +329,9 @@ class AmazonClient:
                 track_page = await self._fetch_page(track_path)
         track = None
         if track_page is not None:
-            # Load the page's zone off the event loop; the parser then finds
-            # it already cached.
-            if zone_name := page_timezone(track_page):
-                await dt_util.async_get_time_zone(zone_name)
-            track = parse_track_page(track_page, today)
+            track = parse_track_page(
+                track_page, today, await _page_zone(page_timezone(track_page))
+            )
             # A line not yet dispatched has neither, legitimately.
             if (
                 track.tracking_id is None
@@ -337,9 +353,25 @@ class AmazonClient:
                 " find, so its carrier, tracking id and timeline are missing;"
                 " Amazon may use a different tracking page on this storefront.",
             )
-        return build_record(
+        record = build_record(
             self._domain, tiles, track_path, track, read_at=dt_util.now()
         )
+        if track is not None and track.delivery_photo_url:
+            self._photo_urls[_record_shipment(record)] = track.delivery_photo_url
+        return record
+
+    def delivery_photo_url(self, shipment: tuple[Any, Any, Any]) -> str | None:
+        """Return the delivery photo's link for a shipment, if its page had one."""
+        return self._photo_urls.get(shipment)
+
+    async def async_fetch_photo(self, url: str) -> tuple[bytes, str | None]:
+        """Download a delivery photo; the link is signed, so it needs no sign-in."""
+        async with self._session.get(url) as response:
+            if response.status != 200:
+                raise AmazonApiError(
+                    f"HTTP {response.status}", status_code=response.status
+                )
+            return await response.read(), response.content_type
 
     def _is_final(
         self,
@@ -418,4 +450,10 @@ class AmazonClient:
                 records.append(self._final[key])
             elif key in self._last:
                 records.append(self._last[key][0])
+        listed = {_record_shipment(record) for record in records}
+        self._photo_urls = {
+            shipment: url
+            for shipment, url in self._photo_urls.items()
+            if shipment in listed
+        }
         return records

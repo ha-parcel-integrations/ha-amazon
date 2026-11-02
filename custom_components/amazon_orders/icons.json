@@ -10,6 +10,11 @@
         "default": "mdi:truck-delivery-outline"
       }
     },
+    "image": {
+      "delivery_photo": {
+        "default": "mdi:camera"
+      }
+    },
     "sensor": {
       "incoming_parcels": {
         "default": "mdi:package-variant-closed"

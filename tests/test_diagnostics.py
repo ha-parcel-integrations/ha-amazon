@@ -84,8 +84,8 @@ async def test_diagnostics_redacts_the_parcel_and_its_record(hass):
     ):
         assert raw[key] == REDACTED
     assert result["delivered"][0]["raw"]["events"][2]["location"] == REDACTED
-    # a photo of the user's own front door
-    assert result["delivered"][0]["raw"]["delivery_photo_url"] == REDACTED
+    # named after the tracking id
+    assert result["delivered"][0]["raw"]["delivery_photo_entity_id"] == REDACTED
     # non-identifying fields survive, or the diagnostics would be useless
     assert parcel["status"] == "out_for_delivery"
     assert parcel["raw_status"] == "Out for delivery"

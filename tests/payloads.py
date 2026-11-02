@@ -23,7 +23,6 @@ FAKE_PHOTO_URL = (
     "&X-Amz-SignedHeaders=host&X-Amz-Credential=FAKECRED%2Ffake"
     "&X-Amz-Expires=259200&X-Amz-Signature=fakesignature0000"
 )
-FAKE_PHOTO_EXPIRES = "2026-10-09T10:15:30+00:00"
 
 
 def tile(
@@ -217,8 +216,7 @@ def delivered_record(code: str = DELIVERED_CODE) -> dict:
         "pop_path": "/-/en/your-orders/pop?orderId=" + ORDER_ID,
         "track_path": track_path(DELIVERED_SHIPMENT),
         "page_state": {"customerId": FAKE_CUSTOMER},
-        "delivery_photo_url": FAKE_PHOTO_URL,
-        "delivery_photo_expires": FAKE_PHOTO_EXPIRES,
+        "delivery_photo_entity_id": f"image.amazon_orders_delivery_photo_{code}",
     }
 
 
@@ -233,9 +231,7 @@ def active_record(code: str = ACTIVE_CODE) -> dict:
             "delivered_on": None,
             "milestone": "IN_PROGRESS",
             "track_path": track_path(ACTIVE_SHIPMENT),
-            # The photo only exists once Amazon's own fleet has delivered.
-            "delivery_photo_url": None,
-            "delivery_photo_expires": None,
+            "delivery_photo_entity_id": None,
         }
     )
     record["events"] = [

@@ -20,12 +20,17 @@ class FakeResponse:
         *,
         headers: dict[str, str] | None = None,
         url: str = "https://www.amazon.nl/",
+        content_type: str = "text/html",
     ) -> None:
         """Hold a status, a JSON-or-text body and the final URL."""
         self.status = status
         self._body = body
         self.headers = headers or {}
         self.url = SimpleNamespace(path=urlparse(url).path)
+        self.content_type = content_type
+
+    async def read(self) -> Any:
+        return self._body
 
     async def json(self, content_type: str | None = None) -> Any:
         if isinstance(self._body, ValueError):
@@ -87,4 +92,5 @@ def fake_client() -> AsyncMock:
     client.business_lines = []
     client.listing_complete = True
     client.restore_business_lines = MagicMock()
+    client.delivery_photo_url = MagicMock(return_value=None)
     return client

@@ -106,6 +106,11 @@
         "name": "Dostawy"
       }
     },
+    "image": {
+      "delivery_photo": {
+        "name": "Zdjęcie dostawy {barcode}"
+      }
+    },
     "sensor": {
       "incoming_parcels": {
         "name": "Nadchodzące przesyłki",
