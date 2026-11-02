@@ -62,9 +62,10 @@ Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/)
 
 ### HACS (recommended)
 
-1. In HACS, choose the three-dot menu → **Custom repositories**.
-2. Add `https://github.com/ha-parcel-integrations/ha-amazon` as an **Integration**.
-3. Install **Amazon** and restart Home Assistant if HACS asks you to.
+1. In HACS, search for **Amazon** and open it.
+2. Install it and restart Home Assistant if HACS asks you to.
+
+Not listed yet? In HACS, choose the three-dot menu → **Custom repositories**, add `https://github.com/ha-parcel-integrations/ha-amazon` as an **Integration**, then follow the steps above.
 
 Or click the button below to open it directly in HACS:
 
