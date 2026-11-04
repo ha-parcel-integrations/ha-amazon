@@ -73,6 +73,9 @@ the structured state a response carries over anything meant for display.
 - **Sign-in is a pasted link, never a password form.** Entry data holds the
   storefront, the refresh token and the device serial, all redacted in
   diagnostics. Never fall back to a password login.
+- **"No order lines" says what came back** (`describe_page`): path, title, size,
+  a few counts. A bot check and a new layout read the same otherwise. Only
+  structure goes in, because users paste this line into public issues.
 - **Auth failure -> reauth once, then polling pauses** (`AmazonAuthError` ->
   `ConfigEntryAuthFailed`). 429 and 503 back off through the coordinator.
 - **Fan-out is capped** (`MAX_TRACK_LOADS` shipments that load a page per

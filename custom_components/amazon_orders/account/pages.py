@@ -62,6 +62,7 @@ _EVENT_PART_RE = re.compile(
     r'<span class="tracking-event-(date|time|message|location)">([^<]*)</span>'
 )
 _PASSWORD_FIELD_RE = re.compile(r'<input[^>]+type="password"', re.I)
+_PAGE_TITLE_RE = re.compile(r"<title[^>]*>([^<]*)</title>", re.I)
 # Proof-of-delivery photo on the delivery card. The visible images are
 # lazy-loaded, so their real URL is in ``data-src`` and ``src`` only holds a
 # placeholder; the ``<noscript>`` twin inside the same popup carries the URL in
@@ -186,6 +187,22 @@ class TrackInfo:
 def looks_signed_out(page: str) -> bool:
     """Whether the page is a sign-in form instead of the requested content."""
     return bool(_PASSWORD_FIELD_RE.search(page))
+
+
+def describe_page(path: str, page: str) -> str:
+    """Say what kind of page came back, for a warning a user pastes in public.
+
+    Only the page's structure: an order's title or status is never in it, and
+    digits are hidden in the two texts that could carry an id.
+    """
+    title = _PAGE_TITLE_RE.search(page)
+    title_text = " ".join(html.unescape(title.group(1)).split()) if title else ""
+    return (
+        f'{_mask(path)}: title "{_mask(title_text)[:60]}", {len(page)} characters,'
+        f" item-card {page.count('item-card')}, order-card {page.count('order-card')},"
+        f" captcha {'yes' if 'captcha' in page.lower() else 'no'},"
+        f" Business {'yes' if 'yourOrdersStateData' in page else 'no'}"
+    )
 
 
 def _day_month(text: str, reference: date, *, forward: bool = False) -> date | None:

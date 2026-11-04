@@ -733,6 +733,46 @@ async def test_no_recognised_order_lines_warns_once(caplog):
     assert caplog.text.count("No order lines were recognised") == 1
 
 
+async def test_the_warning_says_what_kind_of_page_came_back(caplog):
+    """A bot check also has no order lines, and looks nothing like an orders page."""
+    session = _session()
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(
+            200,
+            "<html><title> Bot &amp; check 123 </title>"
+            '<form action="/errors/validateCaptcha"></form></html>',
+            url="https://www.amazon.fr/errors/validateCaptcha",
+        ),
+    )
+
+    await _client(session).async_get_parcels()
+
+    assert '/errors/validateCaptcha: title "Bot & check #"' in caplog.text
+    assert "captcha yes, Business no" in caplog.text
+    # The fallback path is reported too.
+    assert 'title ""' in caplog.text
+
+
+async def test_the_warning_counts_cards_without_reading_them(caplog):
+    session = _session()
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(
+            200,
+            '<a href="/x" class="item-card__link other" aria-label="Secret Widget">'
+            '</a><div class="order-card"></div>',
+        ),
+    )
+
+    await _client(session).async_get_parcels()
+
+    assert "item-card 1, order-card 1" in caplog.text
+    assert "Secret Widget" not in caplog.text
+
+
 async def test_a_failing_orders_page_does_not_claim_the_layout_changed(caplog):
     session = _session(orders_status=500)
     session.add("GET", "/gp/css/order-history", FakeResponse(500, ""))

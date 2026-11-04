@@ -42,6 +42,7 @@ from .pages import (
     business_card_count,
     business_cards_found,
     business_history_failed,
+    describe_page,
     is_track_page_path,
     looks_signed_out,
     page_timezone,
@@ -98,6 +99,7 @@ class AmazonClient:
         self._refresh_token = refresh_token
         self._session = session
         self._api_host: str | None = None
+        self._landed_on = ""
         self._requests = 0
         # Shipments read in full once delivered are never fetched again.
         self._final: dict[_ShipmentKey, dict[str, Any]] = {}
@@ -169,7 +171,7 @@ class AmazonClient:
                 )
             if status != 200:
                 raise AmazonApiError(f"HTTP {status}", status_code=status)
-            landed_on = response.url.path
+            landed_on = self._landed_on = response.url.path
             page = await response.text()
         if "/ap/signin" in landed_on or looks_signed_out(page):
             raise AmazonAuthError("redirected to sign-in")
@@ -178,6 +180,7 @@ class AmazonClient:
     async def _fetch_tiles(self, today: date) -> list[OrderTile]:
         """Read the orders page, falling back to the legacy history path."""
         failure: AmazonApiError | None = None
+        returned: list[str] = []
         for path in ORDERS_PATHS:
             try:
                 page = await self._fetch_page(path)
@@ -192,6 +195,7 @@ class AmazonClient:
                 return tiles
             if parse_business_shell(page) is not None:
                 return await self._fetch_business_tiles(path, page, today)
+            returned.append(describe_page(self._landed_on, page))
         if failure is not None:
             raise failure
         # An account with no recent orders gets here legitimately; the same
@@ -199,7 +203,8 @@ class AmazonClient:
         warn_once(
             "no-order-lines",
             "No order lines were recognised on the Amazon orders page. If you"
-            " have recent orders, Amazon may have changed the page.",
+            " have recent orders, Amazon may have changed the page. What came"
+            f" back: {'; '.join(returned)}.",
         )
         return []
 
