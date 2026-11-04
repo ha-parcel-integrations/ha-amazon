@@ -1,6 +1,7 @@
 {
   "domain": "amazon_orders",
   "name": "Amazon",
+  "categories": ["productivity_information"],
   "codeowners": [
     "@peter-mdf"
   ],
