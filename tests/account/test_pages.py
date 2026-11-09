@@ -321,6 +321,12 @@ def test_carrier_header_is_kept_when_its_wording_is_not_read():
     assert info.carrier_header == "Delivery By DHL_CONNECT"
 
 
+def test_intelcom_is_aliased_to_dragonfly():
+    info = parse_track_page(track_page(carrier="Intelcom"), TODAY)
+    assert info.carrier_code == "DRAGONFLY"
+    assert info.carrier_header == "Delivery By Intelcom"
+
+
 @pytest.mark.parametrize(
     "header,code",
     [

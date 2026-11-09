@@ -214,7 +214,12 @@ which exposes more (delivery window, pickup point, full history).
 - **Mapping is a fixed table** from Amazon `carrier_code` to HA domain
   (`DHL_CONNECT -> dhl`, `COLIS_PRIVE_BELU -> colis_prive`,
   `DRAGONFLY -> dragonfly`). DHL goes to `dhl`, never `dhl_nl` (no
-  `track_parcel` there). On amazon.fr only, a tracking page naming no courier
+  `track_parcel` there). On amazon.ca, a tracking page names the courier
+  plainly as `Intelcom` rather than by an Amazon code; `account/pages.py`'s
+  `_CARRIER_ALIASES` folds it into `DRAGONFLY` before it reaches this table,
+  since Intelcom is Dragonfly Shipping's Canadian brand and `ha-dragonfly`'s
+  single hub already resolves to whichever country backend its one
+  config entry was set up for. On amazon.fr only, a tracking page naming no courier
   (no header, or the generic one) whose id has the Colissimo shape is shown
   as La Poste (`carrier_code: "LA_POSTE"`, not an Amazon code;
   `raw["carrier_guessed"]`, one-shot warning). Never guess on another

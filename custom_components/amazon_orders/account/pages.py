@@ -48,8 +48,9 @@ _CARRIER_RE = re.compile(
     r"(?:Delivery By|Livraison par|Bezorging door|Levering door|Versendet mit|Versand durch|Zustellung durch)"
     r" ([A-Za-z0-9_]+)"
 )
-# amazon.de names the courier plainly instead of by its internal code.
-_CARRIER_ALIASES = {"DHL": "DHL_CONNECT"}
+# amazon.de names the courier plainly instead of by its internal code; so does
+# amazon.ca for its Intelcom brand, which the suite already tracks as DRAGONFLY.
+_CARRIER_ALIASES = {"DHL": "DHL_CONNECT", "Intelcom": "DRAGONFLY"}
 _CARRIER_HEADER_RE = re.compile(
     r'(?:pt-delivery-card-wrapper"><div><h3|tracking-event-carrier-header">\s*<h2)'
     r"[^>]*>\s*([^<]*?)\s*</h[23]>"
