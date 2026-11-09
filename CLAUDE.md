@@ -76,6 +76,12 @@ the structured state a response carries over anything meant for display.
 - **"No order lines" says what came back** (`describe_page`): path, title, size,
   a few counts. A bot check and a new layout read the same otherwise. Only
   structure goes in, because users paste this line into public issues.
+- **`raw.stops_away` comes from the live map's callout** (`mapTracking.calloutMessage`,
+  confirmed on amazon.de by #24's reporter, 2026-11-09): text only, so it is
+  parsed from "N Stopps entfernt"; other wording warns once, masked. The rest of
+  `mapTracking` is dropped from `page_state`: it holds the delivery address's
+  coordinates. No event for a count change, no faster polling yet (opt-in only,
+  if ever: every poll loads several pages on the user's account).
 - **Auth failure -> reauth once, then polling pauses** (`AmazonAuthError` ->
   `ConfigEntryAuthFailed`). 429 and 503 back off through the coordinator.
 - **Fan-out is capped** (`MAX_TRACK_LOADS` shipments that load a page per

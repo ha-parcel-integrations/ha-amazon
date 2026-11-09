@@ -129,6 +129,8 @@ _BUSINESS_FILTERS = {
 # A third-party map key, and the live map of a parcel on its way, which holds
 # the delivery address's coordinates: attributes and events would publish them.
 _STATE_DROP = {"hereMapsApiKey", "mapTracking"}
+# The live map's callout, seen on amazon.de only.
+_STOPS_RE = re.compile(r"(\d+) Stopps? entfernt")
 
 
 @dataclass(frozen=True)
@@ -184,6 +186,7 @@ class TrackInfo:
     state: dict[str, Any] = field(default_factory=dict)
     delivery_photo_url: str | None = None
     zone: tzinfo | None = None
+    stops_away: int | None = None
 
 
 def looks_signed_out(page: str) -> bool:
@@ -470,7 +473,7 @@ def parse_track_link(page: str) -> str | None:
     return html.unescape(match.group(1)) if match else None
 
 
-def _page_state(page: str) -> dict[str, Any]:
+def _full_page_state(page: str) -> dict[str, Any]:
     match = _STATE_RE.search(page)
     if not match:
         return {}
@@ -478,7 +481,28 @@ def _page_state(page: str) -> dict[str, Any]:
         state = json.loads(match.group(1))
     except ValueError:
         return {}
+    return state if isinstance(state, dict) else {}
+
+
+def _page_state(page: str) -> dict[str, Any]:
+    state = _full_page_state(page)
     return {key: value for key, value in state.items() if key not in _STATE_DROP}
+
+
+def _stops_away(state: dict[str, Any]) -> int | None:
+    """Return how many stops the driver has left before this parcel, if shown."""
+    tracking = state.get("mapTracking")
+    callout = tracking.get("calloutMessage") if isinstance(tracking, dict) else None
+    if not isinstance(callout, str) or not callout.strip():
+        return None
+    if match := _STOPS_RE.fullmatch(" ".join(callout.split())):
+        return int(match.group(1))
+    warn_once(
+        f"stops-callout={_mask(callout)}",
+        f'Amazon showed the stop count as "{_mask(callout)}", in wording we cannot'
+        " read yet, so it is left out; please share it.",
+    )
+    return None
 
 
 def page_timezone(page: str) -> str | None:
@@ -666,7 +690,8 @@ def parse_track_page(page: str, today: date, zone: tzinfo | None) -> TrackInfo:
 
     ``zone`` is the page's zone, resolved by the client off the event loop.
     """
-    state = _page_state(page)
+    full_state = _full_page_state(page)
+    state = {key: value for key, value in full_state.items() if key not in _STATE_DROP}
     header = _CARRIER_HEADER_RE.search(page)
     carrier_header = header.group(1) if header and header.group(1) else None
     carrier = _CARRIER_RE.search(carrier_header or page)
@@ -688,6 +713,7 @@ def parse_track_page(page: str, today: date, zone: tzinfo | None) -> TrackInfo:
         events=_parse_events(page, zone, today),
         state=state,
         delivery_photo_url=parse_delivery_photo(page),
+        stops_away=_stops_away(full_state),
     )
 
 
@@ -782,6 +808,7 @@ def build_record(
         "delivered_on": lead.delivered_on.isoformat() if lead.delivered_on else None,
         "milestone": progress.get("lastReachedMilestone") if progress else None,
         "delivery_window": list(window) if window else None,
+        "stops_away": track.stops_away if track else None,
         "events": track.events if track else [],
         "items": [tile.title for tile in tiles],
         "pop_path": lead.pop_path,

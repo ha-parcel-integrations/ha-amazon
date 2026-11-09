@@ -27,6 +27,7 @@ Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/)
 - [Sensors](#sensors)
 - [Parcel status reference](#parcel-status-reference)
 - [Delivery photo](#delivery-photo)
+- [Stops away](#stops-away)
 - [Events](#events)
 - [Examples](#examples)
 - [Debugging](#debugging)
@@ -48,6 +49,7 @@ Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/)
 - Summary sensors: incoming parcels, next delivery, recently delivered parcels
 - Read-only **Deliveries** calendar
 - Amazon's proof-of-delivery photo as an image entity, for parcels Amazon's own fleet delivers (see [Delivery photo](#delivery-photo))
+- How many stops the driver still has before your parcel, while Amazon's own fleet is on its way (see [Stops away](#stops-away))
 - Events + device triggers for no-code automations (parcel registered, status changed, delivered)
 - Opt-in per-parcel status history
 - Manual refresh button and a diagnostic last-update sensor
@@ -223,6 +225,23 @@ Things to know:
 - **Only Amazon's own fleet.** A parcel carried by Dragonfly, DHL or Colis Privé has no photo and no entity.
 - **It lasts as long as the parcel is in the delivered list** (see the retention option). The entity then goes away.
 - **The photo has to be on the tracking page at the moment the parcel reads as delivered.** Amazon Business parcels that are delivered don't load that page, so they usually have no photo.
+
+## Stops away
+
+While Amazon's own fleet has a parcel on its way to you, the tracking page counts the driver's remaining stops. The parcel sensor carries that number as `raw.stops_away` (`null` when Amazon shows no count), for example for a notification when the driver is close:
+
+```yaml
+triggers:
+  - trigger: template
+    value_template: >-
+      {{ (state_attr('sensor.amazon_orders_parcel_<code>', 'raw') or {}).get('stops_away') in [1, 2, 3] }}
+```
+
+Things to know:
+
+- **It is as fresh as the last poll.** Out-for-delivery parcels are polled every 15 minutes, so a driver can pass a few stops in between.
+- **A change in the count fires no event**, only the sensor updates.
+- **Only the German wording is read so far** ("8 Stopps entfernt", amazon.de). Another storefront's wording is logged once as a warning, so it can be added.
 
 ## Events
 

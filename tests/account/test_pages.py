@@ -295,6 +295,35 @@ def test_embedded_state_drops_the_third_party_map_key():
     assert "customerId" in info.state
 
 
+@pytest.mark.parametrize(
+    ("callout", "stops"),
+    [("8 Stopps entfernt", 8), ("1 Stopp entfernt", 1), (" 12  Stopps entfernt ", 12)],
+)
+def test_stops_away_is_read_from_the_live_map(callout, stops):
+    page = track_page(map_tracking={**FAKE_MAP_TRACKING, "calloutMessage": callout})
+    info = parse_track_page(page, TODAY)
+    record = build_record(COUNTRY, _tiles(), track_path(ACTIVE_SHIPMENT), info)
+    assert record["stops_away"] == stops
+
+
+@pytest.mark.parametrize("map_tracking", [None, {}, {"calloutMessage": ""}, "x"])
+def test_stops_away_is_none_without_a_count(map_tracking, caplog):
+    info = parse_track_page(track_page(map_tracking=map_tracking), TODAY)
+    assert info.stops_away is None
+    assert "stop count" not in caplog.text
+
+
+def test_unread_stop_wording_warns_once_without_its_digits(caplog):
+    page = track_page(map_tracking={"calloutMessage": "Sie sind in 3 Stopps dran"})
+    assert parse_track_page(page, TODAY).stops_away is None
+    assert parse_track_page(page, TODAY).stops_away is None
+    assert caplog.text.count('stop count as "Sie sind in # Stopps dran"') == 1
+
+
+def test_record_without_a_tracking_page_has_no_stop_count():
+    assert build_record(COUNTRY, _tiles(), None, None)["stops_away"] is None
+
+
 def test_embedded_state_drops_the_live_map_and_its_coordinates():
     info = parse_track_page(track_page(map_tracking=FAKE_MAP_TRACKING), TODAY)
     record = build_record(COUNTRY, _tiles(), track_path(DELIVERED_SHIPMENT), info)
