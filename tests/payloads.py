@@ -17,6 +17,15 @@ ACTIVE_SHIPMENT = "SHIPactive1"
 DELIVERED_SHIPMENT = "SHIPdone001"
 FAKE_MAPS_KEY = "fake-maps-key-0000"
 FAKE_CUSTOMER = "CUSTOMER00000"
+# The live map's shape on an amazon.de parcel out for delivery.
+FAKE_MAP_TRACKING = {
+    "calloutMessage": "8 Stopps entfernt",
+    "updatedNow": "Jetzt aktualisiert",
+    "mapSessionId": "fake-session",
+    "url": "https://maps.test/session",
+    "destinationLatitude": 52.0001,
+    "destinationLongitude": 4.0001,
+}
 FAKE_PHOTO_URL = (
     "https://gb-prod-temp.s3.eu-west-1.amazonaws.com/imageId-FAKEIMAGE0000"
     "?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20261006T101530Z"
@@ -109,6 +118,7 @@ def track_page(
     timezone: str | None = "Europe/Amsterdam",
     state: bool = True,
     delivery_photo: str | None = None,
+    map_tracking: dict | None = None,
 ) -> str:
     """A ship-track page. ``events`` are ``(date, time, message, location)``."""
     parts = ["<html><body>"]
@@ -161,6 +171,8 @@ def track_page(
             payload["shortStatus"] = short_status
         if tracking_id:
             payload["trackingId"] = tracking_id
+        if map_tracking is not None:
+            payload["mapTracking"] = map_tracking
         parts.append(
             '<script type="a-state" data-a-state="{&quot;key&quot;:&quot;page-state&quot;}">'
             + json.dumps(payload)

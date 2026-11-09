@@ -37,6 +37,7 @@ from ..payloads import (
     COUNTRY,
     DELIVERED_EVENTS,
     DELIVERED_SHIPMENT,
+    FAKE_MAP_TRACKING,
     FAKE_MAPS_KEY,
     FAKE_PHOTO_URL,
     FEEDBACK_PATH,
@@ -292,6 +293,13 @@ def test_embedded_state_drops_the_third_party_map_key():
     assert "hereMapsApiKey" not in info.state
     assert FAKE_MAPS_KEY not in str(info.state)
     assert "customerId" in info.state
+
+
+def test_embedded_state_drops_the_live_map_and_its_coordinates():
+    info = parse_track_page(track_page(map_tracking=FAKE_MAP_TRACKING), TODAY)
+    record = build_record(COUNTRY, _tiles(), track_path(DELIVERED_SHIPMENT), info)
+    assert "mapTracking" not in info.state
+    assert "52.0001" not in str(record)
 
 
 def test_tracking_id_falls_back_to_the_visible_text():

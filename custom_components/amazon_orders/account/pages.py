@@ -126,8 +126,9 @@ _BUSINESS_FILTERS = {
     "legalEntities": {"displayText": "All organizations", "id": "yoAllOrganizations"},
 }
 
-# Third-party map key the page embeds; it is not parcel data.
-_STATE_DROP = {"hereMapsApiKey"}
+# A third-party map key, and the live map of a parcel on its way, which holds
+# the delivery address's coordinates: attributes and events would publish them.
+_STATE_DROP = {"hereMapsApiKey", "mapTracking"}
 
 
 @dataclass(frozen=True)
