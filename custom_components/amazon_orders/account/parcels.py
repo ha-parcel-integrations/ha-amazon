@@ -64,6 +64,7 @@ _EVENT_MAP: dict[str, ParcelStatus] = {
     "package departed an amazon facility": ParcelStatus.IN_TRANSIT,
     "parcel arrived at a carrier facility": ParcelStatus.IN_TRANSIT,
     "package left the courier facility": ParcelStatus.IN_TRANSIT,
+    "package arrived at the final delivery station": ParcelStatus.IN_TRANSIT,
     "out for delivery": ParcelStatus.OUT_FOR_DELIVERY,
     "delivered to customer": ParcelStatus.DELIVERED,
     "delivered to letterbox": ParcelStatus.DELIVERED,

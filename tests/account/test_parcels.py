@@ -56,6 +56,7 @@ from ..payloads import (
         ("Out for delivery", ParcelStatus.OUT_FOR_DELIVERY),
         ("Delivered to customer", ParcelStatus.DELIVERED),
         ("Delivered to letterbox", ParcelStatus.DELIVERED),
+        ("Package arrived at the final delivery station", ParcelStatus.IN_TRANSIT),
         ("  OUT FOR DELIVERY ", ParcelStatus.OUT_FOR_DELIVERY),
         # nl, from an amazon.com.be tracking page
         ("Je pakket is aangekomen bij een Amazon-faciliteit", ParcelStatus.IN_TRANSIT),
