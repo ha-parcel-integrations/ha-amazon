@@ -79,6 +79,9 @@ _EVENT_MAP: dict[str, ParcelStatus] = {
     "das paket ist an einem amazon-standort eingetroffen": ParcelStatus.IN_TRANSIT,
     "das paket hat einen amazon-standort verlassen": ParcelStatus.IN_TRANSIT,
     "paket ist in der letzten lieferstation angekommen": ParcelStatus.IN_TRANSIT,
+    "paket hat die einrichtung des versandunternehmers verlassen": (
+        ParcelStatus.IN_TRANSIT
+    ),
     "sendung wird zugestellt": ParcelStatus.OUT_FOR_DELIVERY,
     "im briefkasten hinterlegt": ParcelStatus.DELIVERED,
     "lieferung in der nähe von haustür oder veranda abgelegt": ParcelStatus.DELIVERED,

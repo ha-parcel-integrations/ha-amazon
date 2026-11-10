@@ -109,8 +109,9 @@ the structured state a response carries over anything meant for display.
   and is kept out of the incoming list (`coordinator.unresolved`); only an
   explicitly recognised not-yet-dispatched text gives `registered`. Cancelled,
   returned and refunded lines are skipped at parse time. The vocabulary has a
-  confirmed table (English, plus the Dutch seen on amazon.com.be and the French
-  seen on amazon.fr) and a separate
+  confirmed table (English, plus the Dutch seen on amazon.com.be, the French
+  seen on amazon.fr and the German delivered wording a reporter confirmed on
+  amazon.de) and a separate
   plausible table (the other languages and the unseen wording): resolving through a plausible entry logs a
   one-shot confirmation request, and an entry moves to confirmed only once a real
   line shows it. Milestones and short statuses are mapped only once a

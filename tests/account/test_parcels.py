@@ -246,7 +246,6 @@ def test_confirmed_order_text_resolves_silently(text, expected, caplog):
     [
         ("Out for delivery", ParcelStatus.OUT_FOR_DELIVERY),
         ("Verwacht 3 oktober", ParcelStatus.IN_TRANSIT),
-        ("Zugestellt am 3. Oktober", ParcelStatus.DELIVERED),
         ("Entregado el 3 de octubre", ParcelStatus.DELIVERED),
         ("Nog niet verzonden", ParcelStatus.REGISTERED),
     ],
@@ -262,6 +261,16 @@ def test_plausible_order_text_resolves_with_one_confirmation_warning(
     assert caplog.text.count("confirm it is right") == 1
     assert "#" in caplog.text or "#" not in text
     assert "issues/new" in caplog.text
+
+
+def test_a_confirmed_german_delivered_line_asks_for_no_confirmation(caplog):
+    # The reporter of #27 confirmed their "Zugestellt: <date>" lines really
+    # were delivered, so the wording no longer asks to be confirmed.
+    raw = untracked_record()
+    raw["order_status"] = "Zugestellt: 2. November"
+    with caplog.at_level(logging.WARNING):
+        assert resolve_status(raw) is ParcelStatus.DELIVERED
+    assert "confirm it is right" not in caplog.text
 
 
 def test_the_confirmation_warning_masks_digits(caplog):
@@ -691,6 +700,10 @@ def test_delivered_filter_keeps_unparseable_timestamp():
         ),
         ("Das Paket hat einen Amazon-Standort verlassen.", ParcelStatus.IN_TRANSIT),
         ("Paket ist in der letzten Lieferstation angekommen", ParcelStatus.IN_TRANSIT),
+        (
+            "Paket hat die Einrichtung des Versandunternehmers verlassen",
+            ParcelStatus.IN_TRANSIT,
+        ),
         ("Sendung wird zugestellt.", ParcelStatus.OUT_FOR_DELIVERY),
         ("Im Briefkasten hinterlegt", ParcelStatus.DELIVERED),
         (

@@ -614,7 +614,7 @@ def test_a_german_delivered_line_is_delivered_and_dated(caplog):
     (parsed,) = parse_order_tiles(page, TODAY)
     assert parsed.delivered is True
     assert parsed.delivered_on == date(2026, 10, 3)
-    assert caplog.text.count("confirm it is right") == 1
+    assert "confirm it is right" not in caplog.text
 
 
 def test_dutch_timeline_with_24_hour_times_and_relative_days():
