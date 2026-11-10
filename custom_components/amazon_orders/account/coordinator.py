@@ -78,6 +78,17 @@ def _shipment(parcel: dict) -> tuple[Any, Any, Any]:
     return (raw.get("order_id"), raw.get("shipment_id"), raw.get("package_id"))
 
 
+def _identities(parcel: dict) -> list[tuple[Any, ...]]:
+    """Every key the parcel's previous stand-in may be remembered under.
+
+    A line gains its shipment id only once it ships, which changes the
+    shipment key; its order line id stays the same.
+    """
+    raw = parcel["raw"]
+    lines = [(raw.get("order_id"), line) for line in raw.get("line_item_ids") or []]
+    return [_shipment(parcel), *lines]
+
+
 def _stagger_minutes(entry_id: str) -> int:
     """Deterministic per-install offset, stable across restarts."""
     digest = hashlib.sha256(entry_id.encode()).hexdigest()
@@ -200,9 +211,10 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         self._known_delivery_times: dict[str, tuple[str | None, str | None]] | None = (
             None
         )
-        # Shipment -> stand-in barcode of the last poll, so a parcel whose
-        # stand-in turns into its tracking id is not announced a second time.
-        self._stand_ins: dict[tuple[Any, Any, Any], str] = {}
+        # Shipment or order line -> stand-in barcode of the last poll, so a
+        # parcel whose stand-in turns into its tracking id is not announced a
+        # second time.
+        self._stand_ins: dict[tuple[Any, ...], str] = {}
         # Cached device id, attached to every fired event so device-trigger
         # automations can filter to this account's device.
         self._cached_device_id: str | None = None
@@ -396,10 +408,11 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         self._carry_known_state(incoming)
         self._fire_change_events(incoming)
         self._stand_ins = {
-            _shipment(parcel): parcel["barcode"]
+            identity: parcel["barcode"]
             for parcel in incoming
             if parcel.get("barcode")
             and parcel["raw"].get("barcode_source") == "shipment_key"
+            for identity in _identities(parcel)
         }
         self._known_state = {
             parcel["barcode"]: parcel["status"]
@@ -434,8 +447,17 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
             barcode = parcel.get("barcode")
             if not barcode or barcode in self._known_state:
                 continue
-            old = self._stand_ins.get(_shipment(parcel))
-            if old is not None and old not in present and old in self._known_state:
+            old = next(
+                (
+                    stand_in
+                    for identity in _identities(parcel)
+                    if (stand_in := self._stand_ins.get(identity)) is not None
+                    and stand_in not in present
+                    and stand_in in self._known_state
+                ),
+                None,
+            )
+            if old is not None:
                 self._known_state[barcode] = self._known_state[old]
                 if old in self._known_delivery_times:
                     self._known_delivery_times[barcode] = self._known_delivery_times[

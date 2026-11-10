@@ -96,7 +96,8 @@ the structured state a response carries over anything meant for display.
   on a stand-in from its order and line (flagged in `raw["barcode_source"]`),
   which changes to the tracking id if one appears later. That change is a
   rename, not a new parcel: the coordinator carries the stand-in's last state
-  over (keyed on order, shipment and package), so `registered` does not fire
+  over (keyed on order, shipment and package, and on the order line id,
+  because a line gains its shipment id only once it ships), so `registered` does not fire
   twice. After a restart the capped fan-out needs a few polls to read every
   shipment again; until `client.listing_complete`, a barcode that turns up
   counts as already known, so a busy account is not flooded with `registered`.

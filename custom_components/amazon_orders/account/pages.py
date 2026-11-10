@@ -797,6 +797,7 @@ def build_record(
         "order_id": lead.order_id,
         "shipment_id": lead.shipment_key,
         "package_id": lead.package_id,
+        "line_item_ids": [tile.line_item_id for tile in tiles if tile.line_item_id],
         "barcode_source": "tracking_id" if tracking_id else "shipment_key",
         "tracking_id": tracking_id,
         "carrier_code": carrier_code or guessed,

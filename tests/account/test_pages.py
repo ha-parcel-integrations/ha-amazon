@@ -324,6 +324,13 @@ def test_record_without_a_tracking_page_has_no_stop_count():
     assert build_record(COUNTRY, _tiles(), None, None)["stops_away"] is None
 
 
+def test_record_keeps_its_order_line_ids_for_the_dispatch_rename():
+    unshipped = parse_order_tiles(orders_page(tile("", "Not yet dispatched")), TODAY)
+    record = build_record(COUNTRY, unshipped, None, None)
+    assert record["shipment_id"] == f"{ORDER_ID}-lineitem0001"
+    assert record["line_item_ids"] == ["lineitem0001"]
+
+
 def test_embedded_state_drops_the_live_map_and_its_coordinates():
     info = parse_track_page(track_page(map_tracking=FAKE_MAP_TRACKING), TODAY)
     record = build_record(COUNTRY, _tiles(), track_path(DELIVERED_SHIPMENT), info)

@@ -22,6 +22,7 @@ from ..fakes import fake_client
 from ..payloads import (
     ACTIVE_CODE,
     COUNTRY,
+    ORDER_ID,
     active_record,
     delivered_record,
     in_transit_record,
@@ -282,6 +283,39 @@ async def test_a_stand_in_turning_into_its_tracking_id_is_not_new(hass):
 
     assert [event.data["barcode"] for event in registered] == ["SHIPnotrack1"]
     assert [event.data["barcode"] for event in changed] == ["AMZNL000000000999"]
+
+
+async def test_a_line_that_gains_its_shipment_id_on_dispatch_is_not_new(hass):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    client = fake_client()
+    coordinator = AmazonCoordinator(hass, client, entry)
+    registered = []
+    hass.bus.async_listen(f"{DOMAIN}_parcel_registered", lambda e: registered.append(e))
+
+    client.async_get_parcels.return_value = [active_record()]
+    await coordinator._async_update_data()
+    stand_in = {
+        **untracked_record(),
+        "shipment_id": f"{ORDER_ID}-lineitem0001",
+        "line_item_ids": ["lineitem0001"],
+    }
+    client.async_get_parcels.return_value = [active_record(), stand_in]
+    await coordinator._async_update_data()
+    shipped = {
+        **stand_in,
+        "shipment_id": "SHIPdispatched1",
+        "barcode_source": "tracking_id",
+        "tracking_id": "AMZNL000000000998",
+        "milestone": "SHIPPED",
+    }
+    client.async_get_parcels.return_value = [active_record(), shipped]
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+
+    assert [event.data["barcode"] for event in registered] == [
+        f"{ORDER_ID}-lineitem0001"
+    ]
 
 
 async def test_a_parcel_the_delivered_list_leaves_out_still_fires_delivered(hass):
