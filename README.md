@@ -241,7 +241,7 @@ Things to know:
 
 - **It is as fresh as the last poll.** Out-for-delivery parcels are polled every 15 minutes, so a driver can pass a few stops in between.
 - **A change in the count fires no event**, only the sensor updates.
-- **Only the German wording is read so far** ("8 Stopps entfernt", amazon.de). Another storefront's wording is logged once as a warning, so it can be added.
+- **Only the German and English wording is read so far** ("8 Stopps entfernt", "8 stops away", amazon.de). Other wording is logged once as a warning, so it can be added.
 
 ## Events
 

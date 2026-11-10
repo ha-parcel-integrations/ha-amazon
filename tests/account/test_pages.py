@@ -297,7 +297,13 @@ def test_embedded_state_drops_the_third_party_map_key():
 
 @pytest.mark.parametrize(
     ("callout", "stops"),
-    [("8 Stopps entfernt", 8), ("1 Stopp entfernt", 1), (" 12  Stopps entfernt ", 12)],
+    [
+        ("8 Stopps entfernt", 8),
+        ("1 Stopp entfernt", 1),
+        (" 12  Stopps entfernt ", 12),
+        ("5 stops away", 5),
+        ("1 stop away", 1),
+    ],
 )
 def test_stops_away_is_read_from_the_live_map(callout, stops):
     page = track_page(map_tracking={**FAKE_MAP_TRACKING, "calloutMessage": callout})

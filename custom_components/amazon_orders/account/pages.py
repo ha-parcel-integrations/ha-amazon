@@ -129,8 +129,8 @@ _BUSINESS_FILTERS = {
 # A third-party map key, and the live map of a parcel on its way, which holds
 # the delivery address's coordinates: attributes and events would publish them.
 _STATE_DROP = {"hereMapsApiKey", "mapTracking"}
-# The live map's callout, seen on amazon.de only.
-_STOPS_RE = re.compile(r"(\d+) Stopps? entfernt")
+# The live map's callout, seen on amazon.de only, in German and in English.
+_STOPS_RE = re.compile(r"(\d+) (?:Stopps? entfernt|stops? away)", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
