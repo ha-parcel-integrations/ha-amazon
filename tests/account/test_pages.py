@@ -617,6 +617,46 @@ def test_a_german_delivered_line_is_delivered_and_dated(caplog):
     assert "confirm it is right" not in caplog.text
 
 
+@pytest.mark.parametrize(
+    "prefix", ["Bestellung aufgegeben", "Bestellung aufgegeben am"]
+)
+def test_a_german_line_on_its_way_is_read_through_its_own_anchor(prefix, caplog):
+    # amazon.de labels the line "<title>, Bestellung aufgegeben <D. Monat
+    # YYYY>, Zustellung: <Wochentag>" (#27): without the German anchor the
+    # status segment came out empty and the parcel was hidden altogether.
+    page = orders_page(
+        tile(
+            ACTIVE_SHIPMENT,
+            "Zustellung: Dienstag",
+            None,
+            placed="2. November 2026",
+            placed_anchor=prefix,
+        )
+    )
+    (parsed,) = parse_order_tiles(page, date(2026, 11, 3))
+    assert parsed.title == "Example Widget, Blue"
+    assert parsed.status_text == "Zustellung: Dienstag"
+    assert parsed.placed_on == date(2026, 11, 2)
+    assert parsed.delivered is False
+    assert "confirm it is right" in caplog.text
+
+
+def test_a_german_delivered_line_keeps_its_date_through_the_anchor():
+    page = orders_page(
+        tile(
+            DELIVERED_SHIPMENT,
+            "Zugestellt: 2. November",
+            None,
+            placed="31. Oktober 2026",
+            placed_anchor="Bestellung aufgegeben",
+        )
+    )
+    (parsed,) = parse_order_tiles(page, date(2026, 11, 3))
+    assert parsed.title == "Example Widget, Blue"
+    assert parsed.delivered is True
+    assert parsed.delivered_on == date(2026, 11, 2)
+
+
 def test_dutch_timeline_with_24_hour_times_and_relative_days():
     info = parse_track_page(
         track_page(

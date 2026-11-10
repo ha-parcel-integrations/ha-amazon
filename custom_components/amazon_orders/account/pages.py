@@ -29,10 +29,10 @@ from .vocabulary import (
 _TILE_RE = re.compile(
     r'<a class="item-card__link" href="([^"]*)" aria-label="([^"]*)"', re.S
 )
-_PLACED_ANCHOR = r"(?:Order placed|Commande effectuée le)"
-# "2 October 2026", and the month-first shape amazon.com writes,
-# "November 8, 2026".
-_PLACED_DATE = r"\d{1,2} [^\W\d_]+ \d{4}|[^\W\d_]+\.? \d{1,2}, \d{4}"
+_PLACED_ANCHOR = r"(?:Order placed|Commande effectuée le|Bestellung aufgegeben(?: am)?)"
+# "2 October 2026", "2. November 2026", and the month-first shape amazon.com
+# writes, "November 8, 2026".
+_PLACED_DATE = r"\d{1,2}\.? [^\W\d_]+ \d{4}|[^\W\d_]+\.? \d{1,2}, \d{4}"
 _PLACED_RE = re.compile(
     _PLACED_ANCHOR + r" (" + _PLACED_DATE + r")(?:, (?P<tail>.*))?$", re.S
 )

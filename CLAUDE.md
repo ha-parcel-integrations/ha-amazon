@@ -142,6 +142,16 @@ the structured state a response carries over anything meant for display.
   delivered event is midnight in Home Assistant's zone, never UTC. A delivered text
   longer than the bare status word that gives no day warns once, so the
   wording can be added.
+- **An order line is split on its own "order placed" anchor** (English,
+  French and German), else by looking for the first comma-separated segment
+  that opens with a known status wording. amazon.de's
+  "Bestellung aufgegeben [am] 2. November 2026, Zustellung: Dienstag" (#27)
+  needed the German anchor *and* a plain `zustellung` prefix: without both the
+  status segment came out empty, so the parcel resolved to `unknown` and was
+  hidden from the incoming list altogether. The anchor rests on a reported
+  label, not our own capture — treat a storefront whose label shape is
+  unconfirmed the same way, since a missed anchor silently hides a parcel
+  rather than logging anything useful.
 - **Dates are read day-first, then month-first.** The European storefronts
   write "3 October" / "Order placed 2 October 2026"; amazon.com writes
   "November 9" / "Order placed November 8, 2026" (#32). Day-first is tried
