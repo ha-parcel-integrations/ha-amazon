@@ -747,8 +747,9 @@ def delivery_window(
     """
     countdown = state.get(_WINDOW_END_KEY)
     promise = state.get("promise")
-    message = promise.get("promiseMessage") if isinstance(promise, dict) else None
-    match = _WINDOW_RE.search(message) if isinstance(message, str) else None
+    raw_message = promise.get("promiseMessage") if isinstance(promise, dict) else None
+    message = raw_message if isinstance(raw_message, str) else ""
+    match = _WINDOW_RE.search(message) if message else None
     if zone is None:
         return None
     if not isinstance(countdown, int) or isinstance(countdown, bool):
@@ -773,8 +774,8 @@ def delivery_window(
         ):
             return window_from.isoformat(), window_to.isoformat()
     warn_once(
-        f"delivery-window={_mask(message or '')}",
-        f'Amazon announced the delivery window "{_mask(message or "")}" in a'
+        f"delivery-window={_mask(message)}",
+        f'Amazon announced the delivery window "{_mask(message)}" in a'
         " shape we could not read, so it is left out; please share it.",
     )
     return None
