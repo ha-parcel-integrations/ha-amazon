@@ -30,14 +30,22 @@ _TILE_RE = re.compile(
     r'<a class="item-card__link" href="([^"]*)" aria-label="([^"]*)"', re.S
 )
 _PLACED_ANCHOR = r"(?:Order placed|Commande effectuée le)"
+# "2 October 2026", and the month-first shape amazon.com writes,
+# "November 8, 2026".
+_PLACED_DATE = r"\d{1,2} [^\W\d_]+ \d{4}|[^\W\d_]+\.? \d{1,2}, \d{4}"
 _PLACED_RE = re.compile(
-    _PLACED_ANCHOR + r" (\d{1,2} [^\W\d_]+ \d{4})(?:, (?P<tail>.*))?$", re.S
+    _PLACED_ANCHOR + r" (" + _PLACED_DATE + r")(?:, (?P<tail>.*))?$", re.S
 )
 _TITLE_END_RE = re.compile(", " + _PLACED_ANCHOR)
 _ORDER_ID_RE = re.compile(r"\d{3}-\d{7}-\d{7}")
 # "3 October", "3. Oktober", "3 de octubre", "3 Oct. 2026".
 _DAY_MONTH_RE = re.compile(
-    r"(\d{1,2})\.?\s+(?:de\s+)?([^\W\d_]+)\.?(?:\s+(?:de\s+)?(\d{4}))?"
+    r"(?P<day>\d{1,2})\.?\s+(?:de\s+)?(?P<month>[^\W\d_]+)\.?"
+    r"(?:\s+(?:de\s+)?(?P<year>\d{4}))?"
+)
+# The month-first shape amazon.com writes: "November 9", "Nov 9, 2026".
+_MONTH_DAY_RE = re.compile(
+    r"(?P<month>[^\W\d_]+)\.?\s+(?P<day>\d{1,2})(?:,?\s+(?P<year>\d{4}))?"
 )
 _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
 # A sub-path such as the delivery-feedback survey is not a tracking page.
@@ -217,18 +225,30 @@ def _day_month(text: str, reference: date, *, forward: bool = False) -> date | N
     it would land in the future); with ``forward`` it is taken to fall on or
     after the reference (the year is rolled on if it would land before it).
     """
-    match = _DAY_MONTH_RE.search(text)
-    if not match:
-        return None
-    month = MONTHS.get(match.group(2).lower())
+    # Day-first wins: a text that reads both ways is far likelier to be the
+    # European shape, and only the storefronts that write month-first fall
+    # through to the second pattern.
+    for pattern in (_DAY_MONTH_RE, _MONTH_DAY_RE):
+        for match in pattern.finditer(text):
+            found = _resolve_day_month(match, reference, forward=forward)
+            if found is not None:
+                return found
+    return None
+
+
+def _resolve_day_month(
+    match: re.Match[str], reference: date, *, forward: bool
+) -> date | None:
+    """Turn one day/month match into a date, inferring the year when absent."""
+    month = MONTHS.get(match["month"].lower())
     if month is None:
         return None
-    year = int(match.group(3)) if match.group(3) else reference.year
+    year = int(match["year"]) if match["year"] else reference.year
     try:
-        found = date(year, month, int(match.group(1)))
+        found = date(year, month, int(match["day"]))
     except ValueError:
         return None
-    if match.group(3):
+    if match["year"]:
         return found
     if forward and found < reference:
         return found.replace(year=found.year + 1)

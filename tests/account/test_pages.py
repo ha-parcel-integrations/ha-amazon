@@ -97,6 +97,35 @@ def test_delivered_tile_is_parsed_from_its_label():
     assert parsed.pop_path.startswith("/-/en/your-orders/pop?")
 
 
+def test_a_us_line_reads_its_month_first_dates(caplog):
+    # amazon.com writes both dates month-first: "Order placed November 8, 2026,
+    # Delivered November 9" (ha-amazon #32).
+    page = orders_page(
+        tile(
+            DELIVERED_SHIPMENT,
+            "Delivered November 9",
+            None,
+            placed="November 8, 2026",
+        )
+    )
+    (parsed,) = parse_order_tiles(page, date(2026, 11, 10))
+    assert parsed.title == "Example Widget, Blue"
+    assert parsed.status_text == "Delivered November 9"
+    assert parsed.placed_on == date(2026, 11, 8)
+    assert parsed.delivered_on == date(2026, 11, 9)
+    assert "gave no date we could read" not in caplog.text
+
+
+def test_a_us_line_delivered_before_new_year_keeps_the_placed_year():
+    page = orders_page(
+        tile(
+            DELIVERED_SHIPMENT, "Delivered January 2", None, placed="December 30, 2026"
+        )
+    )
+    (parsed,) = parse_order_tiles(page, date(2027, 1, 5))
+    assert parsed.delivered_on == date(2027, 1, 2)
+
+
 def test_delivery_after_new_year_rolls_the_year_on():
     page = orders_page(
         tile(DELIVERED_SHIPMENT, "Delivered 2 January", placed="30 December 2026")
@@ -212,6 +241,15 @@ def test_page_without_tiles_is_empty():
         ("Saturday, 3 October", TODAY, False, date(2026, 10, 3)),
         ("31 February", TODAY, False, None),
         ("3 Oktobr", TODAY, False, None),
+        # amazon.com's month-first shapes.
+        ("October 3", TODAY, False, date(2026, 10, 3)),
+        ("December 30", TODAY, False, date(2025, 12, 30)),  # would be the future
+        ("January 2", date(2026, 12, 30), True, date(2027, 1, 2)),
+        ("Oct 2, 2020", TODAY, False, date(2020, 10, 2)),
+        ("Delivered Nov. 9", date(2026, 11, 10), False, date(2026, 11, 9)),
+        ("February 31", TODAY, False, None),
+        ("Delivered to letterbox", TODAY, False, None),
+        ("Cable, 1 m, 2 items", TODAY, False, None),
         ("no date here", TODAY, False, None),
     ],
 )

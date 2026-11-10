@@ -141,6 +141,12 @@ the structured state a response carries over anything meant for display.
   delivered event is midnight in Home Assistant's zone, never UTC. A delivered text
   longer than the bare status word that gives no day warns once, so the
   wording can be added.
+- **Dates are read day-first, then month-first.** The European storefronts
+  write "3 October" / "Order placed 2 October 2026"; amazon.com writes
+  "November 9" / "Order placed November 8, 2026" (#32). Day-first is tried
+  first on purpose: a text that reads both ways is far likelier to be the
+  European shape. The same two shapes serve the order line's placed and
+  delivered dates and the tracking timeline's date headers.
 - **The delivery photo is an `image` entity, and its link never reaches `raw`**
   (maintainer decision, 2026-11-03, after the hacs/default review). The URL is a
   **presigned S3 link** (confirmed by the reporter, 2026-10-11): it opens without
