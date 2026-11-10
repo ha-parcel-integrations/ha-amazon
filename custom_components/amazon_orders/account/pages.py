@@ -77,9 +77,9 @@ _POD_IMG_RE = re.compile(r"<img\b[^>]*>", re.S)
 _POD_SRC_RE = re.compile(r'\b(data-src|src)="([^"]+)"')
 
 # "14:00 - 16:30" in the promise message, with the countdown to its end.
-_WINDOW_RE = re.compile(
-    r"(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)\s*[-–]\s*(\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?)"
-)
+# "14:00 - 16:30", "2:00 PM - 4:30 PM", and amazon.de's "17h - 19h".
+_WINDOW_TIME = r"\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?|\d{1,2}h(?:\d{2})?"
+_WINDOW_RE = re.compile(rf"({_WINDOW_TIME})\s*[-–]\s*({_WINDOW_TIME})")
 _WINDOW_END_KEY = "timeUntilPredictedDeliveryWindowEnd"
 _WINDOW_TOLERANCE = timedelta(hours=1)
 # A courier the page does not name: the Colissimo id shape, amazon.fr only.
@@ -608,7 +608,7 @@ def _arrival_window(
 
 
 def _parse_time(text: str) -> time | None:
-    for shape in ("%I:%M %p", "%H:%M"):
+    for shape in ("%I:%M %p", "%H:%M", "%HH%M", "%HH"):
         try:
             return datetime.strptime(text.strip().upper(), shape).time()
         except ValueError:
@@ -728,9 +728,18 @@ def delivery_window(
     countdown = state.get(_WINDOW_END_KEY)
     promise = state.get("promise")
     message = promise.get("promiseMessage") if isinstance(promise, dict) else None
-    if not isinstance(countdown, int) or isinstance(countdown, bool) or zone is None:
-        return None
     match = _WINDOW_RE.search(message) if isinstance(message, str) else None
+    if zone is None:
+        return None
+    if not isinstance(countdown, int) or isinstance(countdown, bool):
+        if match:
+            warn_once(
+                f"delivery-window-day={_mask(message)}",
+                f'Amazon announced the delivery window "{_mask(message)}" without'
+                " the countdown that says which day it falls on, so it is left"
+                " out; please share it.",
+            )
+        return None
     start = _parse_time(match.group(1)) if match else None
     end = _parse_time(match.group(2)) if match else None
     expected_end = (read_at + timedelta(milliseconds=countdown)).astimezone(zone)

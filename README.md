@@ -159,7 +159,8 @@ what your tracked parcels are actually doing:
   hub out there polls at exactly the same second.
 
 When the tracking page predicts a delivery window (amazon.fr shows one for a
-parcel out for delivery, for example "14:00 - 16:30"), it fills `planned_from` /
+parcel out for delivery, for example "14:00 - 16:30"; amazon.de writes
+"17h - 19h"), it fills `planned_from` /
 `planned_to` and the delivery calendar. When the order line only names a day
 ("Arriving tomorrow", "Arriving Oct 27-29", English only for now), the window
 is that whole day, or the whole span of days, until a timed window replaces it.

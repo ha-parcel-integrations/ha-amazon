@@ -822,11 +822,34 @@ def test_delivery_window_with_twelve_hour_times():
     )
 
 
+def test_delivery_window_written_in_hours():
+    state = {**FR_STATE, "promise": {"promiseMessage": "Zustellung heute 14h - 16h30"}}
+    assert delivery_window(state, READ_AT) == (
+        "2026-10-24T14:00:00+02:00",
+        "2026-10-24T16:30:00+02:00",
+    )
+
+
+@pytest.mark.parametrize("countdown", [None, True])
+def test_a_window_without_its_countdown_is_reported_once(countdown, caplog):
+    state = {
+        **FR_STATE,
+        "promise": {"promiseMessage": "Zustellung heute 17h - 19h"},
+        "timeUntilPredictedDeliveryWindowEnd": countdown,
+    }
+    assert delivery_window(state, READ_AT) is None
+    assert delivery_window(state, READ_AT) is None
+    assert caplog.text.count('"Zustellung heute #h - #h" without the countdown') == 1
+
+
 @pytest.mark.parametrize(
     "state",
     [
-        {**FR_STATE, "timeUntilPredictedDeliveryWindowEnd": None},
-        {**FR_STATE, "timeUntilPredictedDeliveryWindowEnd": True},
+        {
+            "timezone": "Europe/Paris",
+            "promise": {"promiseMessage": "Livraison prévue lundi"},
+            "timeUntilPredictedDeliveryWindowEnd": None,
+        },
         {**FR_STATE, "timezone": None},
         {
             "timezone": "Europe/Paris",

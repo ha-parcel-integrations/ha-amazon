@@ -124,7 +124,10 @@ the structured state a response carries over anything meant for display.
 - **Delivery window** only when the tracking page predicts one: the times come
   from the promise text, the day from the countdown to the window's end, and the
   two must agree within an hour or the window is dropped with a one-shot
-  warning. Never on a delivered parcel. Seen on amazon.fr only.
+  warning. Never on a delivered parcel. Seen on amazon.fr only; amazon.de's
+  promise reads "Zustellung heute 17h - 19h" (#24), so the `17h`/`17h30` shape
+  is read too, but whether amazon.de sends the countdown is unconfirmed: a
+  window without it warns once instead of being dropped silently.
   Fallback: an order line naming only a day (`Arriving tomorrow`, `today`,
   `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`; English forms only, matched
   whole so a timed line never qualifies) gives a whole-day window, 00:00 to
