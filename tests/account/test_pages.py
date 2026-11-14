@@ -1244,6 +1244,11 @@ ARRIVAL_TODAY = date(2026, 10, 25)
         ("Arriving Foo 3", None),
         ("Arriving Feb 31", None),
         ("Morgen", None),
+        ("Zustellung: Freitag", (date(2026, 10, 30), date(2026, 10, 30))),
+        ("Zustellung: Sonntag", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
+        ("zustellung montag", (date(2026, 10, 26), date(2026, 10, 26))),
+        ("Zustellung: Freitag 17h - 19h", None),
+        ("Zustellung: Foo", None),
         (None, None),
     ],
 )
@@ -1265,3 +1270,25 @@ def test_an_arriving_line_gives_a_whole_day_window():
     parcel = normalize_parcel(record)
     assert parcel["planned_from"] == "2026-10-26T00:00:00+01:00"
     assert parcel["planned_to"] == "2026-10-26T23:59:59+01:00"
+
+
+def test_a_german_zustellung_weekday_line_gives_a_whole_day_window():
+    # amazon.de, a Saturday: "Zustellung: Freitag" is the coming Friday.
+    zone = ZoneInfo("Europe/Berlin")
+    read_at = datetime(2026, 11, 14, 19, 0, tzinfo=zone)
+    tiles = parse_order_tiles(
+        orders_page(
+            tile(
+                ACTIVE_SHIPMENT,
+                "Zustellung: Freitag",
+                None,
+                placed="2. November 2026",
+                placed_anchor="Bestellung aufgegeben",
+            )
+        ),
+        read_at.date(),
+    )
+    record = build_record("amazon.de", tiles, None, None, read_at=read_at)
+    parcel = normalize_parcel(record)
+    assert parcel["planned_from"] == "2026-11-20T00:00:00+01:00"
+    assert parcel["planned_to"] == "2026-11-20T23:59:59+01:00"

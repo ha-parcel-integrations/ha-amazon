@@ -23,6 +23,7 @@ from .vocabulary import (
     SKIP,
     STATUS_PREFIXES,
     UNNAMED_CARRIER_HEADERS,
+    UPCOMING_WEEKDAYS,
     classify_order_text,
 )
 
@@ -583,13 +584,22 @@ _ARRIVING_RE = re.compile(
     r"(?:\s*-\s*(?:(?P<m2>[a-z]+)\s+)?(?P<d2>\d{1,2}))?)",
     re.IGNORECASE,
 )
+# amazon.de's "Zustellung: Freitag" (#27): the next such day, today included.
+# Only the bare weekday has been seen; a timed line does not match.
+_ZUSTELLUNG_RE = re.compile(r"zustellung(?::\s*|\s+)(?P<day>[^\W\d_]+)", re.IGNORECASE)
 
 
 def arrival_days(text: str | None, today: date) -> tuple[date, date] | None:
     """Return the first and last day an order line says the shipment arrives."""
-    match = _ARRIVING_RE.fullmatch((text or "").strip())
+    text = (text or "").strip()
+    match = _ARRIVING_RE.fullmatch(text)
     if not match:
-        return None
+        weekday = _ZUSTELLUNG_RE.fullmatch(text)
+        number = UPCOMING_WEEKDAYS.get(weekday["day"].lower()) if weekday else None
+        if number is None:
+            return None
+        day = today + timedelta(days=(number - today.weekday()) % 7)
+        return day, day
     if match["word"]:
         day = today + timedelta(days=match["word"].lower() == "tomorrow")
         return day, day
