@@ -171,6 +171,23 @@ _PLAUSIBLE_MONTHS = _months(
 
 MONTHS: dict[str, int] = {**_PLAUSIBLE_MONTHS, **_CONFIRMED_MONTHS}
 
+# German weekdays, Monday = 0, for the coming day an amazon.de order line names:
+# "Zustellung: Freitag" (#27).
+UPCOMING_WEEKDAYS: dict[str, int] = {
+    name: number
+    for number, name in enumerate(
+        (
+            "montag",
+            "dienstag",
+            "mittwoch",
+            "donnerstag",
+            "freitag",
+            "samstag",
+            "sonntag",
+        )
+    )
+}
+
 
 # Delivery-card headers that name no courier, seen on real pages.
 UNNAMED_CARRIER_HEADERS = {"informations sur la livraison", "delivery info"}
