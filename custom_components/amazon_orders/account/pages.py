@@ -587,11 +587,46 @@ _ARRIVING_RE = re.compile(
 # amazon.de's "Zustellung: Freitag" (#27): the next such day, today included.
 # Only the bare weekday has been seen; a timed line does not match.
 _ZUSTELLUNG_RE = re.compile(r"zustellung(?::\s*|\s+)(?P<day>[^\W\d_]+)", re.IGNORECASE)
+# amazon.de's "Ankunft morgen", "Zustellung heute" and
+# "Zustellung: 20. Oktober - 21. Oktober".
+_DE_RELATIVE_RE = re.compile(
+    r"(?:ankunft|zustellung)(?::\s*|\s+)(?P<word>heute|morgen)", re.IGNORECASE
+)
+_DE_DATES_RE = re.compile(
+    r"(?:ankunft|zustellung)(?::\s*|\s+)(?P<d1>\d{1,2})\.\s*(?P<m1>[^\W\d_]+)"
+    r"(?:\s*[-–—]\s*(?P<d2>\d{1,2})\.\s*(?P<m2>[^\W\d_]+))?",
+    re.IGNORECASE,
+)
+
+
+def _day_range(
+    today: date, m1: str, d1: str, m2: str | None, d2: str | None
+) -> tuple[date, date] | None:
+    """Return the dates a month/day pair (or range) names, rolling into next year."""
+    month = MONTHS.get(m1.lower())
+    end_month = MONTHS.get((m2 or m1).lower())
+    if month is None or end_month is None:
+        return None
+    try:
+        first = date(today.year, month, int(d1))
+        if first < today - timedelta(days=1):
+            first = first.replace(year=today.year + 1)
+        last = date(first.year, end_month, int(d2 or d1))
+        if last < first:
+            last = last.replace(year=last.year + 1)
+    except ValueError:
+        return None
+    return first, last
 
 
 def arrival_days(text: str | None, today: date) -> tuple[date, date] | None:
     """Return the first and last day an order line says the shipment arrives."""
     text = (text or "").strip()
+    if relative := _DE_RELATIVE_RE.fullmatch(text):
+        day = today + timedelta(days=relative["word"].lower() == "morgen")
+        return day, day
+    if dates := _DE_DATES_RE.fullmatch(text):
+        return _day_range(today, dates["m1"], dates["d1"], dates["m2"], dates["d2"])
     match = _ARRIVING_RE.fullmatch(text)
     if not match:
         weekday = _ZUSTELLUNG_RE.fullmatch(text)
@@ -603,20 +638,7 @@ def arrival_days(text: str | None, today: date) -> tuple[date, date] | None:
     if match["word"]:
         day = today + timedelta(days=match["word"].lower() == "tomorrow")
         return day, day
-    month = MONTHS.get(match["m1"].lower())
-    end_month = MONTHS.get((match["m2"] or match["m1"]).lower())
-    if month is None or end_month is None:
-        return None
-    try:
-        first = date(today.year, month, int(match["d1"]))
-        if first < today - timedelta(days=1):
-            first = first.replace(year=today.year + 1)
-        last = date(first.year, end_month, int(match["d2"] or match["d1"]))
-        if last < first:
-            last = last.replace(year=last.year + 1)
-    except ValueError:
-        return None
-    return first, last
+    return _day_range(today, match["m1"], match["d1"], match["m2"], match["d2"])
 
 
 def _arrival_window(

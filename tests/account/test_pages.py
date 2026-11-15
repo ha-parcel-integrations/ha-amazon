@@ -638,7 +638,7 @@ def test_a_german_line_on_its_way_is_read_through_its_own_anchor(prefix, caplog)
     assert parsed.status_text == "Zustellung: Dienstag"
     assert parsed.placed_on == date(2026, 11, 2)
     assert parsed.delivered is False
-    assert "confirm it is right" in caplog.text
+    assert "confirm it is right" not in caplog.text
 
 
 def test_a_german_delivered_line_keeps_its_date_through_the_anchor():
@@ -1249,6 +1249,19 @@ ARRIVAL_TODAY = date(2026, 10, 25)
         ("zustellung montag", (date(2026, 10, 26), date(2026, 10, 26))),
         ("Zustellung: Freitag 17h - 19h", None),
         ("Zustellung: Foo", None),
+        ("Ankunft heute", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
+        ("Ankunft morgen", (date(2026, 10, 26), date(2026, 10, 26))),
+        ("Zustellung heute", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
+        ("Zustellung morgen", (date(2026, 10, 26), date(2026, 10, 26))),
+        ("Zustellung heute 17h - 19h", None),
+        ("Zustellung: 27. Oktober", (date(2026, 10, 27), date(2026, 10, 27))),
+        (
+            "Zustellung: 30. Oktober - 2. November",
+            (date(2026, 10, 30), date(2026, 11, 2)),
+        ),
+        ("Zustellung: 3. Januar", (date(2027, 1, 3), date(2027, 1, 3))),
+        ("Zustellung: 31. Februar", None),
+        ("Zustellung: 3. Foo", None),
         (None, None),
     ],
 )

@@ -130,13 +130,15 @@ the structured state a response carries over anything meant for display.
   is read too, but whether amazon.de sends the countdown is unconfirmed: a
   window without it warns once instead of being dropped silently.
   Fallback: an order line naming only a day (`Arriving tomorrow`, `today`,
-  `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`, and amazon.de's
+  `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`; amazon.de's
   `Zustellung: <Wochentag>` (#27, colon optional) for the next such weekday,
-  today included; matched whole so a timed line never qualifies) gives a
+  today included, `Ankunft`/`Zustellung` + `heute`/`morgen`, and
+  `Zustellung: 20. Oktober` or `Zustellung: 20. Oktober - 21. Oktober`;
+  matched whole so a timed line never qualifies) gives a
   whole-day window, 00:00 to 23:59:59 in the page's zone, else the HA zone
   `read_at` carries. The timed window wins when both exist. Only the wording a
-  real line has shown: `Zustellung heute`, `morgen`, `am <date>` and
-  `Ankunft heute` are deliberately not read, and no other language is. The two
+  real line has shown: `am <date>` is deliberately not read, and no other
+  language is. The two
   weekday tables are separate on purpose — `UPCOMING_WEEKDAYS` in
   `vocabulary.py` names days ahead, `_WEEKDAYS` in `pages.py` the past weekday
   a delivered line can carry. No structured date exists to prefer: an in-flight tracking page's
