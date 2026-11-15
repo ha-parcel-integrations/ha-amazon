@@ -76,6 +76,12 @@ the structured state a response carries over anything meant for display.
 - **"No order lines" says what came back** (`describe_page`): path, title, size,
   a few counts. A bot check and a new layout read the same otherwise. Only
   structure goes in, because users paste this line into public issues.
+- **Encrypted order cards are read again once.** Amazon sometimes serves the
+  orders page with its cards encrypted (`csd-encrypted-sensitive`) for its own
+  script to decrypt; the same path with `disableCsd=no-js` renders them
+  readable, so a page without order lines that carries the marker is fetched
+  once more that way. `describe_page` reports `encrypted yes` when even that
+  stayed encrypted.
 - **`raw.stops_away` comes from the live map's callout** (`mapTracking.calloutMessage`,
   confirmed on amazon.de by #24's reporter, 2026-11-09): text only, so it is
   parsed from "N Stopps entfernt" or "N stops away" (the English wording is

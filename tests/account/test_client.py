@@ -750,9 +750,42 @@ async def test_the_warning_says_what_kind_of_page_came_back(caplog):
     await _client(session).async_get_parcels()
 
     assert '/errors/validateCaptcha: title "Bot & check #"' in caplog.text
-    assert "captcha yes, Business no" in caplog.text
+    assert "captcha yes, Business no, encrypted no" in caplog.text
     # The fallback path is reported too.
     assert 'title ""' in caplog.text
+
+
+async def test_an_encrypted_orders_page_is_read_again_without_its_script():
+    session = _session()
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(200, '<div class="csd-encrypted-sensitive">x</div>'),
+    )
+    session.add(
+        "GET",
+        "/your-orders/orders?disableCsd=no-js",
+        FakeResponse(200, orders_page(_active_tile("SHIP0001"))),
+    )
+    _shipment(session, "SHIP0001")
+
+    parcels = await _client(session).async_get_parcels()
+
+    assert len(parcels) == 1
+    assert any("disableCsd=no-js" in url for url in _gets(session))
+
+
+async def test_the_warning_says_an_orders_page_stayed_encrypted(caplog):
+    session = _session()
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(200, '<div class="csd-encrypted-sensitive">x</div>'),
+    )
+
+    await _client(session).async_get_parcels()
+
+    assert "encrypted yes" in caplog.text
 
 
 async def test_the_warning_counts_cards_without_reading_them(caplog):

@@ -36,6 +36,7 @@ from .auth import exchange_token_for_cookies, refresh_access_token
 from .errors import AmazonApiError, AmazonAuthError
 from .pages import (
     BUSINESS_HISTORY_PATH,
+    DISABLE_CSD_QUERY,
     BusinessRequest,
     OrderTile,
     build_record,
@@ -43,6 +44,7 @@ from .pages import (
     business_cards_found,
     business_history_failed,
     describe_page,
+    is_csd_encrypted,
     is_track_page_path,
     looks_signed_out,
     page_timezone,
@@ -193,6 +195,10 @@ class AmazonClient:
                 continue
             if tiles := parse_order_tiles(page, today):
                 return tiles
+            if is_csd_encrypted(page):
+                page = await self._fetch_page(f"{path}?{DISABLE_CSD_QUERY}")
+                if tiles := parse_order_tiles(page, today):
+                    return tiles
             if parse_business_shell(page) is not None:
                 return await self._fetch_business_tiles(path, page, today)
             returned.append(describe_page(self._landed_on, page))

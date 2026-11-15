@@ -203,6 +203,17 @@ def looks_signed_out(page: str) -> bool:
     return bool(_PASSWORD_FIELD_RE.search(page))
 
 
+# Amazon sometimes serves the order cards encrypted, to be decrypted by the
+# page's own script; the same URL with this parameter renders them readable.
+CSD_ENCRYPTED_MARKER = "csd-encrypted-sensitive"
+DISABLE_CSD_QUERY = "disableCsd=no-js"
+
+
+def is_csd_encrypted(page: str) -> bool:
+    """Whether the page's order cards were served encrypted."""
+    return CSD_ENCRYPTED_MARKER in page
+
+
 def describe_page(path: str, page: str) -> str:
     """Say what kind of page came back, for a warning a user pastes in public.
 
@@ -215,7 +226,8 @@ def describe_page(path: str, page: str) -> str:
         f'{_mask(path)}: title "{_mask(title_text)[:60]}", {len(page)} characters,'
         f" item-card {page.count('item-card')}, order-card {page.count('order-card')},"
         f" captcha {'yes' if 'captcha' in page.lower() else 'no'},"
-        f" Business {'yes' if 'yourOrdersStateData' in page else 'no'}"
+        f" Business {'yes' if 'yourOrdersStateData' in page else 'no'},"
+        f" encrypted {'yes' if is_csd_encrypted(page) else 'no'}"
     )
 
 
