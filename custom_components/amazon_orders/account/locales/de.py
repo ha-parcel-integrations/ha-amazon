@@ -34,6 +34,7 @@ LOCALE = Locale(
         "oktober": 10,
         "okt": 10,
         "november": 11,
+        "dezember": 12,
         "dez": 12,
     },
     today=("heute",),

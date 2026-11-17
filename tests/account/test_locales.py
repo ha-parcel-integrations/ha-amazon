@@ -98,6 +98,8 @@ def test_longest_prefix_wins_and_every_prefix_is_listed():
         ("märz", 3),
         ("okt", 10),
         ("dez", 12),
+        ("dezember", 12),
+        ("augustus", 8),
         ("janv", 1),
         ("févr", 2),
         ("juil", 7),

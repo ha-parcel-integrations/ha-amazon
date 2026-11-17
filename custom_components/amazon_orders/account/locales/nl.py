@@ -37,6 +37,7 @@ LOCALE = Locale(
         "mei": 5,
         "juni": 6,
         "juli": 7,
+        "augustus": 8,
         "september": 9,
     },
     today=("vandaag",),
