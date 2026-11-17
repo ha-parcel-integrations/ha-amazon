@@ -755,21 +755,20 @@ def delivery_window(
     if zone is None:
         return None
     if not isinstance(countdown, int) or isinstance(countdown, bool):
-        day_word = (
-            next((m for p in WINDOW_DAY_PATTERNS if (m := p.match(message))), None)
-            if match
-            else None
+        day_word = next(
+            (m for p in WINDOW_DAY_PATTERNS if (m := p.match(message))), None
         )
-        start = _parse_time(match.group(1)) if day_word else None
-        end = _parse_time(match.group(2)) if day_word else None
-        if day_word and start is not None and end is not None and start < end:
-            day = read_at.astimezone(zone).date() + timedelta(
-                days=day_word["rel"].lower() in TOMORROW_WORDS
-            )
-            return (
-                datetime.combine(day, start, tzinfo=zone).isoformat(),
-                datetime.combine(day, end, tzinfo=zone).isoformat(),
-            )
+        if match and day_word:
+            start = _parse_time(match.group(1))
+            end = _parse_time(match.group(2))
+            if start is not None and end is not None and start < end:
+                day = read_at.astimezone(zone).date() + timedelta(
+                    days=day_word["rel"].lower() in TOMORROW_WORDS
+                )
+                return (
+                    datetime.combine(day, start, tzinfo=zone).isoformat(),
+                    datetime.combine(day, end, tzinfo=zone).isoformat(),
+                )
         if match:
             warn_once(
                 f"delivery-window-day={_mask(message)}",
