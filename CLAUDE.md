@@ -110,7 +110,7 @@ the structured state a response carries over anything meant for display.
   counts as already known, so a busy account is not flooded with `registered`.
 - **Status resolution:** milestone, else the tracking page's `shortStatus`
   (language-independent; an unmapped value warns once like a milestone), else
-  newest mappable timeline event, else order-line text (`account/vocabulary.py`), else `unknown` + one warning. A line
+  newest mappable timeline event, else order-line text (`account/locales/`), else `unknown` + one warning. A line
   with no tracking page and no recognised text is `unknown`, never `registered`,
   and is kept out of the incoming list (`coordinator.unresolved`); only an
   explicitly recognised not-yet-dispatched text gives `registered`. Cancelled,
@@ -147,9 +147,8 @@ the structured state a response carries over anything meant for display.
   `read_at` carries. The timed window wins when both exist. Only the wording a
   real line has shown: `am <date>` is deliberately not read, and no other
   language is. The two
-  weekday tables are separate on purpose — `UPCOMING_WEEKDAYS` in
-  `vocabulary.py` names days ahead, `_WEEKDAYS` in `pages.py` the past weekday
-  a delivered line can carry. No structured date exists to prefer: an in-flight tracking page's
+  weekday fields are separate on purpose — `upcoming_weekdays` names days
+  ahead, `past_weekdays` the past weekday a delivered line can carry. No structured date exists to prefer: an in-flight tracking page's
   `promise.promiseMessage` carries the same text as the order line
   ("Arriving tomorrow", seen 2026-10-25), `secondaryPromiseIdentifier` is `NONE`.
 - **Delivered day** from the order line's date, else from a relative word
@@ -193,10 +192,10 @@ the structured state a response carries over anything meant for display.
   list shows). A restart re-reads the page and so gets a fresh link. A card that
   appears only after the parcel went final is not seen until a restart: no capture
   has shown that lag, so a shipment isn't held back for it.
-- **The timeline is in the account's language.** `_EVENT_MAP` holds only wording
+- **The timeline is in the account's language.** A locale's `events` holds only wording
   a real account has shown (English, plus Dutch, German and French from the
   Belgian, German and French storefronts) — unlike
-  `vocabulary.py`, it has no plausible tier, because a wrong guess here silently
+  the order-line status, it has no plausible tier, because a wrong guess here silently
   mis-states history. Messages are matched after stripping trailing `.`/`!`: Amazon
   ends some and not others. Status resolution is unaffected either way (the
   milestone and `shortStatus` are language-independent and answer first), so an
@@ -238,6 +237,16 @@ the structured state a response carries over anything meant for display.
   flight is keyed on its order and a digest of its title, never on its place
   in the list.
 - **No outgoing parcels:** the account only lists what the user ordered.
+- **Wording lives in `account/locales/`, one file per language** (`en.py`,
+  `nl.py`, `de.py`, …), as pure data on the `Locale` shape in `base.py`, so a
+  native speaker can check or extend one file. `locales/__init__.py` merges
+  them, and **every language is always tried**: the language follows the
+  account's setting, not the storefront (amazon.de can be set to English,
+  amazon.com.be serves Dutch and French). Never pick a locale per entry. Only
+  grammar the generic parser can't express (the arrival and window-day shapes)
+  is a regular expression in the language file; everything else is a word
+  list. `tests/account/test_locales.py` fails when two languages read the same
+  word differently.
 - **Not built:** browser automation, IMAP parsing, order-level sensors,
   alexapy as a requirement, and a separate `ha-amazon-logistics` repo (Amazon
   Logistics has no tracking outside the signed-in account, so it would be an
@@ -340,7 +349,7 @@ shipment is discovered.
 
 | File | Carrier-specific? |
 |---|---|
-| `account/` (the one source: `auth.py` sign-in, `client.py` request fan-out, `pages.py` response reading, `parcels.py` status map + `normalize_parcel`, `coordinator.py`, `errors.py`) | **yes** |
+| `account/` (the one source: `auth.py` sign-in, `client.py` request fan-out, `pages.py` response reading, `locales/` Amazon's wording per language, `parcels.py` status map + `normalize_parcel`, `coordinator.py`, `errors.py`) | **yes** |
 | `const.py` (domain, URLs, `ParcelStatus`, option keys) | partly (URLs) |
 | `config_flow.py` | partly (country picker and sign-in link) |
 | `sensor.py` / `button.py` / `calendar.py` / `device_trigger.py` | no |

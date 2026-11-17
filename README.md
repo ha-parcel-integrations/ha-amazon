@@ -315,6 +315,13 @@ The Amazon sign-in and device-registration flow is adapted from [alexapy](https:
 Pull requests and issues are welcome. Please open an issue before
 submitting a large change.
 
+Amazon's wording lives in one file per language in
+[`custom_components/amazon_orders/account/locales/`](custom_components/amazon_orders/account/locales/)
+(`de.py`, `fr.py`, `nl.py`, …). To add a phrase your account shows, or a
+whole language, change only that file. Put wording you saw on your own
+account under `confirmed`, and wording you expect but have not seen under
+`plausible`.
+
 ## License
 
 [MIT](LICENSE)

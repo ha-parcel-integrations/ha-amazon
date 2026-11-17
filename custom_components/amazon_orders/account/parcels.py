@@ -24,7 +24,12 @@ from ..const import (
     HISTORY_MAX_EVENTS,
     ParcelStatus,
 )
-from .vocabulary import UNNAMED_CARRIER_HEADERS, classify_order_text
+from .locales import (
+    DELIVERED_EVENTS,
+    EVENTS,
+    UNNAMED_CARRIER_HEADERS,
+    classify_order_text,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,44 +58,6 @@ _SHORT_STATUS_MAP: dict[str, ParcelStatus] = {
     "OUT_FOR_DELIVERY": ParcelStatus.OUT_FOR_DELIVERY,
     "DELIVERED": ParcelStatus.DELIVERED,
     "PICKED_UP": ParcelStatus.DELIVERED,
-}
-
-# Timeline messages, lower-cased and stripped of trailing punctuation. Every
-# entry comes from a real page; the timeline is in the account's own language,
-# so a storefront's wording has to be captured before it can be mapped.
-_EVENT_MAP: dict[str, ParcelStatus] = {
-    # en
-    "package arrived at an amazon facility": ParcelStatus.IN_TRANSIT,
-    "package departed an amazon facility": ParcelStatus.IN_TRANSIT,
-    "parcel arrived at a carrier facility": ParcelStatus.IN_TRANSIT,
-    "package left the courier facility": ParcelStatus.IN_TRANSIT,
-    "package arrived at the final delivery station": ParcelStatus.IN_TRANSIT,
-    "out for delivery": ParcelStatus.OUT_FOR_DELIVERY,
-    "delivered to customer": ParcelStatus.DELIVERED,
-    "delivered to letterbox": ParcelStatus.DELIVERED,
-    # nl, seen on an amazon.com.be tracking page
-    "je pakket is aangekomen bij een amazon-faciliteit": ParcelStatus.IN_TRANSIT,
-    "je pakket heeft een amazon-faciliteit verlaten": ParcelStatus.IN_TRANSIT,
-    "het pakket heeft de verzendingsfaciliteit verlaten": ParcelStatus.IN_TRANSIT,
-    "pakket aangekomen bij het laatste bezorgstation": ParcelStatus.IN_TRANSIT,
-    "uit voor levering": ParcelStatus.OUT_FOR_DELIVERY,
-    "bezorgd in brievenbus": ParcelStatus.DELIVERED,
-    # de, seen on an amazon.de tracking page
-    "das paket ist an einem amazon-standort eingetroffen": ParcelStatus.IN_TRANSIT,
-    "das paket hat einen amazon-standort verlassen": ParcelStatus.IN_TRANSIT,
-    "paket ist in der letzten lieferstation angekommen": ParcelStatus.IN_TRANSIT,
-    "paket hat die einrichtung des versandunternehmers verlassen": (
-        ParcelStatus.IN_TRANSIT
-    ),
-    "sendung wird zugestellt": ParcelStatus.OUT_FOR_DELIVERY,
-    "im briefkasten hinterlegt": ParcelStatus.DELIVERED,
-    "lieferung in der nähe von haustür oder veranda abgelegt": ParcelStatus.DELIVERED,
-    "die sendung wurde vom empfänger abgeholt": ParcelStatus.DELIVERED,
-    # fr, seen on an amazon.fr tracking page
-    "le colis a quitté les locaux de l'expéditeur": ParcelStatus.IN_TRANSIT,
-    "le colis est arrivé à l'agence de livraison finale": ParcelStatus.IN_TRANSIT,
-    "en cours de livraison": ParcelStatus.OUT_FOR_DELIVERY,
-    "livré": ParcelStatus.DELIVERED,
 }
 
 _CARRIER_NAMES = {
@@ -138,10 +105,10 @@ def _event_status(message: str | None) -> ParcelStatus | None:
         return None
     # Amazon ends some timeline messages with a full stop and some without.
     text = message.strip().lower().rstrip(".!").replace("’", "'")
-    mapped = _EVENT_MAP.get(text)
+    mapped = EVENTS.get(text)
     if mapped is not None:
         return mapped
-    if text.startswith(("delivered", "bezorgd", "zugestellt", "livré")):
+    if text.startswith(DELIVERED_EVENTS):
         return ParcelStatus.DELIVERED
     return None
 

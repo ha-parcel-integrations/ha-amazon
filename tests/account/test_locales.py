@@ -1,8 +1,11 @@
 """Tests for the order-line wording and month tables."""
 
+import re
+
 import pytest
 
-from custom_components.amazon_orders.account.vocabulary import (
+from custom_components.amazon_orders.account.locales import (
+    LOCALES,
     MONTHS,
     SKIP,
     STATUS_PREFIXES,
@@ -125,3 +128,53 @@ def test_a_curly_apostrophe_reads_like_a_straight_one():
         ParcelStatus.OUT_FOR_DELIVERY,
         True,
     )
+
+
+def _merged(field: str) -> dict[str, list[tuple[str, object]]]:
+    seen: dict[str, list[tuple[str, object]]] = {}
+    for code, locale in LOCALES.items():
+        for key, value in getattr(locale, field).items():
+            seen.setdefault(key, []).append((code, value))
+    return seen
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "status_confirmed",
+        "status_plausible",
+        "months_confirmed",
+        "months_plausible",
+        "events",
+    ],
+)
+def test_no_two_languages_read_a_word_differently(field):
+    for word, readings in _merged(field).items():
+        assert len({value for _, value in readings}) == 1, (word, readings)
+
+
+def test_a_status_is_either_confirmed_or_plausible():
+    confirmed = _merged("status_confirmed")
+    assert not confirmed.keys() & _merged("status_plausible").keys()
+
+
+@pytest.mark.parametrize("code", list(LOCALES))
+def test_a_language_file_is_well_formed(code):
+    locale = LOCALES[code]
+    assert len(locale.past_weekdays) in (0, 7)
+    assert len(locale.upcoming_weekdays) in (0, 7)
+    for table in (
+        locale.status_confirmed,
+        locale.status_plausible,
+        locale.months_confirmed,
+        locale.months_plausible,
+        locale.events,
+    ):
+        assert all(key == key.lower() for key in table)
+    assert all(1 <= n <= 12 for n in locale.months_plausible.values())
+    assert all(1 <= n <= 12 for n in locale.months_confirmed.values())
+    groups = {"rel", "weekday", "d1", "m1", "d2", "m2"}
+    for pattern in locale.arrival + locale.window_day:
+        assert set(re.compile(pattern).groupindex) <= groups
+    for pattern in locale.window_day:
+        assert "rel" in re.compile(pattern).groupindex

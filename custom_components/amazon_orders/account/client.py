@@ -34,6 +34,7 @@ from ..const import (
 )
 from .auth import exchange_token_for_cookies, refresh_access_token
 from .errors import AmazonApiError, AmazonAuthError
+from .locales import classify_order_text
 from .pages import (
     BUSINESS_HISTORY_PATH,
     DISABLE_CSD_QUERY,
@@ -55,7 +56,6 @@ from .pages import (
     parse_track_page,
 )
 from .parcels import _delivered_at, resolve_status, warn_once
-from .vocabulary import classify_order_text
 
 _LOGGER = logging.getLogger(__name__)
 

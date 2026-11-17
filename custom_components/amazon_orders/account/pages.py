@@ -17,20 +17,30 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from ..const import ParcelStatus
-from .parcels import warn_once
-from .vocabulary import (
+from .locales import (
+    ARRIVAL_PATTERNS,
+    DELIVERY_BY,
     MONTHS,
+    ORDER_PLACED,
+    PAST_WEEKDAYS,
     SKIP,
     STATUS_PREFIXES,
+    STOPS_AWAY,
+    TODAY_WORDS,
+    TOMORROW_WORDS,
+    TRACKING_ID_LABEL,
     UNNAMED_CARRIER_HEADERS,
     UPCOMING_WEEKDAYS,
+    WINDOW_DAY_PATTERNS,
+    YESTERDAY_WORDS,
     classify_order_text,
 )
+from .parcels import warn_once
 
 _TILE_RE = re.compile(
     r'<a class="item-card__link" href="([^"]*)" aria-label="([^"]*)"', re.S
 )
-_PLACED_ANCHOR = r"(?:Order placed|Commande effectuée le|Bestellung aufgegeben(?: am)?)"
+_PLACED_ANCHOR = ORDER_PLACED
 # "2 October 2026", "2. November 2026", and the month-first shape amazon.com
 # writes, "November 8, 2026".
 _PLACED_DATE = r"\d{1,2}\.? [^\W\d_]+ \d{4}|[^\W\d_]+\.? \d{1,2}, \d{4}"
@@ -53,10 +63,7 @@ _TRACK_LINK_RE = re.compile(r'href="([^"]*/ship-track\?[^"]*)"')
 _TRACK_PAGE_PATH_RE = re.compile(
     r"/(?:progress-tracker/package|gp/your-account/ship-track)(?:/ref=[^/]*)?/?$"
 )
-_CARRIER_RE = re.compile(
-    r"(?:Delivery By|Livraison par|Bezorging door|Levering door|Versendet mit|Versand durch|Zustellung durch)"
-    r" ([A-Za-z0-9_]+)"
-)
+_CARRIER_RE = re.compile(DELIVERY_BY + r" ([A-Za-z0-9_]+)")
 # amazon.de names the courier plainly instead of by its internal code; so does
 # amazon.ca for its Intelcom brand, which the suite already tracks as DRAGONFLY.
 _CARRIER_ALIASES = {"DHL": "DHL_CONNECT", "Intelcom": "DRAGONFLY"}
@@ -64,9 +71,7 @@ _CARRIER_HEADER_RE = re.compile(
     r'(?:pt-delivery-card-wrapper"><div><h3|tracking-event-carrier-header">\s*<h2)'
     r"[^>]*>\s*([^<]*?)\s*</h[23]>"
 )
-_TRACKING_ID_RE = re.compile(
-    r"(?:Tracking[\s-]?ID|Numéro de suivi)\s*:\s*([A-Za-z0-9-]+)", re.I
-)
+_TRACKING_ID_RE = re.compile(TRACKING_ID_LABEL + r"\s*:\s*([A-Za-z0-9-]+)", re.I)
 _STATE_RE = re.compile(r"<script[^>]*page-state[^>]*>\s*(\{.*?\})\s*</script>", re.S)
 _EVENT_PART_RE = re.compile(
     r'<span class="tracking-event-(date|time|message|location)">([^<]*)</span>'
@@ -90,10 +95,6 @@ _POD_SRC_RE = re.compile(r'\b(data-src|src)="([^"]+)"')
 _WINDOW_TIME = r"\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?|\d{1,2}h(?:\d{2})?"
 _WINDOW_RE = re.compile(rf"({_WINDOW_TIME})\s*[-–]\s*({_WINDOW_TIME})")
 _WINDOW_END_KEY = "timeUntilPredictedDeliveryWindowEnd"
-# amazon.de sends no countdown (#37); its "Ankunft heute 7h – 13h" names the day.
-_WINDOW_DAY_RE = re.compile(
-    r"(?:ankunft|zustellung):?\s+(heute|morgen)\b", re.IGNORECASE
-)
 _WINDOW_TOLERANCE = timedelta(hours=1)
 # A courier the page does not name: the Colissimo id shape, amazon.fr only.
 _LA_POSTE_ID_RE = re.compile(r"\d[A-Z]\d{11}")
@@ -143,7 +144,7 @@ _BUSINESS_FILTERS = {
 # the delivery address's coordinates: attributes and events would publish them.
 _STATE_DROP = {"hereMapsApiKey", "mapTracking"}
 # The live map's callout, seen on amazon.de only, in German and in English.
-_STOPS_RE = re.compile(r"(\d+) (?:Stopps? entfernt|stops? away)", re.IGNORECASE)
+_STOPS_RE = re.compile(r"(\d+)\s" + STOPS_AWAY, re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -548,71 +549,20 @@ def page_timezone(page: str) -> str | None:
     return name if isinstance(name, str) else None
 
 
-_TODAY_WORDS = {
-    "today",
-    "vandaag",
-    "heute",
-    "aujourd'hui",
-    "hoy",
-    "oggi",
-    "idag",
-    "dzisiaj",
-}
-_YESTERDAY_WORDS = {
-    "yesterday",
-    "gisteren",
-    "gestern",
-    "hier",
-    "ayer",
-    "ieri",
-    "igår",
-    "wczoraj",
-}
-
-
-# Seen on amazon.fr delivered lines: "Livré jeudi", within the past week.
-_WEEKDAYS = {
-    name: number
-    for number, name in enumerate(
-        ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
-    )
-}
 _WORD_RE = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?")
 
 
 def _relative_day(text: str, today: date) -> date | None:
     """Resolve "today", "yesterday" or a weekday name in an order-line text."""
     for word in _WORD_RE.findall(text.lower().replace("’", "'")):
-        if word in _TODAY_WORDS:
+        if word in TODAY_WORDS:
             return today
-        if word in _YESTERDAY_WORDS:
+        if word in YESTERDAY_WORDS:
             return today - timedelta(days=1)
-        if word in _WEEKDAYS:
-            return today - timedelta(days=(today.weekday() - _WEEKDAYS[word]) % 7 or 7)
+        if word in PAST_WEEKDAYS:
+            number = PAST_WEEKDAYS[word]
+            return today - timedelta(days=(today.weekday() - number) % 7 or 7)
     return None
-
-
-# "Arriving tomorrow", "Arriving Oct 27", "Arriving Oct 27-29", "Arriving Oct 27-Nov 2":
-# the English forms seen on a real storefront; a timed "Arriving today 11:00 AM - ..."
-# is the delivery window's business and does not match.
-_ARRIVING_RE = re.compile(
-    r"arriving\s+(?:(?P<word>today|tomorrow)|(?P<m1>[a-z]+)\s+(?P<d1>\d{1,2})"
-    r"(?:\s*-\s*(?:(?P<m2>[a-z]+)\s+)?(?P<d2>\d{1,2}))?)",
-    re.IGNORECASE,
-)
-# amazon.de's "Zustellung: Freitag" (#27): the next such day, today included.
-# Only the bare weekday has been seen; a timed line does not match.
-_ZUSTELLUNG_RE = re.compile(r"zustellung(?::\s*|\s+)(?P<day>[^\W\d_]+)", re.IGNORECASE)
-# amazon.de's "Ankunft morgen", "Zustellung heute" and
-# "Zustellung: 20. Oktober - 21. Oktober".
-_DE_RELATIVE_RE = re.compile(
-    r"(?:ankunft|zustellung)(?::\s*|\s+)(?P<word>heute|morgen)", re.IGNORECASE
-)
-_DE_DATES_RE = re.compile(
-    r"(?:ankunft|zustellung)(?::\s*|\s+)(?P<d1>\d{1,2})\.\s*(?P<m1>[^\W\d_]+)"
-    r"(?:\s*[-–—]\s*(?P<d2>\d{1,2})\.\s*(?P<m2>[^\W\d_]+))?",
-    re.IGNORECASE,
-)
 
 
 def _day_range(
@@ -636,25 +586,29 @@ def _day_range(
 
 
 def arrival_days(text: str | None, today: date) -> tuple[date, date] | None:
-    """Return the first and last day an order line says the shipment arrives."""
+    """Return the first and last day an order line says the shipment arrives.
+
+    The first language pattern that matches the whole line decides, so a
+    timed line never qualifies.
+    """
     text = (text or "").strip()
-    if relative := _DE_RELATIVE_RE.fullmatch(text):
-        day = today + timedelta(days=relative["word"].lower() == "morgen")
-        return day, day
-    if dates := _DE_DATES_RE.fullmatch(text):
-        return _day_range(today, dates["m1"], dates["d1"], dates["m2"], dates["d2"])
-    match = _ARRIVING_RE.fullmatch(text)
-    if not match:
-        weekday = _ZUSTELLUNG_RE.fullmatch(text)
-        number = UPCOMING_WEEKDAYS.get(weekday["day"].lower()) if weekday else None
-        if number is None:
-            return None
-        day = today + timedelta(days=(number - today.weekday()) % 7)
-        return day, day
-    if match["word"]:
-        day = today + timedelta(days=match["word"].lower() == "tomorrow")
-        return day, day
-    return _day_range(today, match["m1"], match["d1"], match["m2"], match["d2"])
+    for pattern in ARRIVAL_PATTERNS:
+        if (match := pattern.fullmatch(text)) is None:
+            continue
+        groups = match.groupdict()
+        if groups.get("rel"):
+            day = today + timedelta(days=groups["rel"].lower() in TOMORROW_WORDS)
+            return day, day
+        if groups.get("weekday"):
+            number = UPCOMING_WEEKDAYS.get(groups["weekday"].lower())
+            if number is None:
+                return None
+            day = today + timedelta(days=(number - today.weekday()) % 7)
+            return day, day
+        return _day_range(
+            today, match["m1"], match["d1"], groups.get("m2"), groups.get("d2")
+        )
+    return None
 
 
 def _arrival_window(
@@ -687,9 +641,9 @@ def _parse_time(text: str) -> time | None:
 def _event_day(text: str, today: date) -> date | None:
     """Resolve a timeline date header, including "Today" and "Yesterday"."""
     word = text.strip().rstrip(",").lower()
-    if word in _TODAY_WORDS:
+    if word in TODAY_WORDS:
         return today
-    if word in _YESTERDAY_WORDS:
+    if word in YESTERDAY_WORDS:
         return today - timedelta(days=1)
     day = _day_month(text, today)
     if day is None and text:
@@ -801,12 +755,16 @@ def delivery_window(
     if zone is None:
         return None
     if not isinstance(countdown, int) or isinstance(countdown, bool):
-        day_word = _WINDOW_DAY_RE.match(message) if match else None
+        day_word = (
+            next((m for p in WINDOW_DAY_PATTERNS if (m := p.match(message))), None)
+            if match
+            else None
+        )
         start = _parse_time(match.group(1)) if day_word else None
         end = _parse_time(match.group(2)) if day_word else None
         if day_word and start is not None and end is not None and start < end:
             day = read_at.astimezone(zone).date() + timedelta(
-                days=day_word.group(1).lower() == "morgen"
+                days=day_word["rel"].lower() in TOMORROW_WORDS
             )
             return (
                 datetime.combine(day, start, tzinfo=zone).isoformat(),
