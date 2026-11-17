@@ -90,6 +90,10 @@ _POD_SRC_RE = re.compile(r'\b(data-src|src)="([^"]+)"')
 _WINDOW_TIME = r"\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?|\d{1,2}h(?:\d{2})?"
 _WINDOW_RE = re.compile(rf"({_WINDOW_TIME})\s*[-–]\s*({_WINDOW_TIME})")
 _WINDOW_END_KEY = "timeUntilPredictedDeliveryWindowEnd"
+# amazon.de sends no countdown (#37); its "Ankunft heute 7h – 13h" names the day.
+_WINDOW_DAY_RE = re.compile(
+    r"(?:ankunft|zustellung):?\s+(heute|morgen)\b", re.IGNORECASE
+)
 _WINDOW_TOLERANCE = timedelta(hours=1)
 # A courier the page does not name: the Colissimo id shape, amazon.fr only.
 _LA_POSTE_ID_RE = re.compile(r"\d[A-Z]\d{11}")
@@ -797,6 +801,17 @@ def delivery_window(
     if zone is None:
         return None
     if not isinstance(countdown, int) or isinstance(countdown, bool):
+        day_word = _WINDOW_DAY_RE.match(message) if match else None
+        start = _parse_time(match.group(1)) if day_word else None
+        end = _parse_time(match.group(2)) if day_word else None
+        if day_word and start is not None and end is not None and start < end:
+            day = read_at.astimezone(zone).date() + timedelta(
+                days=day_word.group(1).lower() == "morgen"
+            )
+            return (
+                datetime.combine(day, start, tzinfo=zone).isoformat(),
+                datetime.combine(day, end, tzinfo=zone).isoformat(),
+            )
         if match:
             warn_once(
                 f"delivery-window-day={_mask(message)}",

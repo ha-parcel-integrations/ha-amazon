@@ -912,12 +912,47 @@ def test_delivery_window_written_in_hours():
 def test_a_window_without_its_countdown_is_reported_once(countdown, caplog):
     state = {
         **FR_STATE,
-        "promise": {"promiseMessage": "Zustellung heute 17h - 19h"},
+        "promise": {"promiseMessage": "Zustellung Freitag 17h - 19h"},
         "timeUntilPredictedDeliveryWindowEnd": countdown,
     }
     assert delivery_window(state, READ_AT) is None
     assert delivery_window(state, READ_AT) is None
-    assert caplog.text.count('"Zustellung heute #h - #h" without the countdown') == 1
+    assert caplog.text.count('"Zustellung Freitag #h - #h" without the countdown') == 1
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        # #37: amazon.de sends no countdown; the message names the day.
+        (
+            "Ankunft heute 7h – 13h",
+            ("2026-10-24T07:00:00+02:00", "2026-10-24T13:00:00+02:00"),
+        ),
+        (
+            "Zustellung heute 17h - 19h",
+            ("2026-10-24T17:00:00+02:00", "2026-10-24T19:00:00+02:00"),
+        ),
+        (
+            "Zustellung morgen 14h - 16h30",
+            ("2026-10-25T14:00:00+01:00", "2026-10-25T16:30:00+01:00"),
+        ),
+    ],
+)
+def test_a_window_without_its_countdown_takes_the_day_it_names(message, expected):
+    state = {
+        "timezone": "Europe/Berlin",
+        "promise": {"promiseMessage": message},
+    }
+    assert delivery_window(state, READ_AT) == expected
+
+
+def test_a_reversed_window_naming_its_day_is_reported(caplog):
+    state = {
+        "timezone": "Europe/Berlin",
+        "promise": {"promiseMessage": "Ankunft heute 13h - 7h"},
+    }
+    assert delivery_window(state, READ_AT) is None
+    assert "without the countdown" in caplog.text
 
 
 @pytest.mark.parametrize(
