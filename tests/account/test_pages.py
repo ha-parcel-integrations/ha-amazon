@@ -577,6 +577,21 @@ def test_shipped_line_keeps_its_shipment_id_as_key():
 @pytest.mark.parametrize(
     "text,expected",
     [
+        # 2026-10-05 is a Monday.
+        ("Delivered Saturday", date(2026, 10, 3)),
+        ("Delivered Monday", date(2026, 9, 28)),
+        ("Delivered yesterday", date(2026, 10, 4)),
+        ("Delivered today", date(2026, 10, 5)),
+    ],
+)
+def test_english_relative_delivery_days(text, expected):
+    (parsed,) = parse_order_tiles(orders_page(tile(DELIVERED_SHIPMENT, text)), TODAY)
+    assert parsed.delivered_on == expected
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
         ("Zugestellt am 3. Oktober", date(2026, 10, 3)),
         ("Entregado el 3 de octubre", date(2026, 10, 3)),
         ("Livré le 3 oct.", date(2026, 10, 3)),
@@ -1227,14 +1242,16 @@ def test_business_card_without_an_order_is_left_out_with_a_warning(caplog):
 
 def test_a_delivered_line_without_a_readable_date_warns_once(caplog):
     page = orders_page(
-        tile(DELIVERED_SHIPMENT, "Delivered Thursday", None),
+        tile(DELIVERED_SHIPMENT, "Delivered to letterbox", None),
         tile("SHIPbare0001", "Delivered", None),
     )
-    thursday, bare = parse_order_tiles(page, TODAY)
+    letterbox, bare = parse_order_tiles(page, TODAY)
     parse_order_tiles(page, TODAY)
-    assert thursday.delivered_on is None
+    assert letterbox.delivered_on is None
     assert bare.delivered_on is None
-    assert caplog.text.count('"Delivered Thursday" says the parcel was delivered') == 1
+    assert (
+        caplog.text.count('"Delivered to letterbox" says the parcel was delivered') == 1
+    )
     assert '"Delivered" says' not in caplog.text
 
 
