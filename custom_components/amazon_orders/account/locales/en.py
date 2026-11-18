@@ -46,6 +46,16 @@ LOCALE = Locale(
     today=("today",),
     yesterday=("yesterday",),
     tomorrow=("tomorrow",),
+    # "Delivered Saturday", within the past week.
+    past_weekdays=(
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ),
     order_placed=("Order placed",),
     delivery_by=("Delivery By",),
     tracking_id_labels=("Tracking ID", "Tracking-ID", "TrackingID"),
