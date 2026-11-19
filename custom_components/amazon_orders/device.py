@@ -11,9 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
-
-CONFIGURATION_URL = "https://www.amazon.com"
+from .const import CONF_COUNTRY, DOMAIN, ORDERS_PATHS
 
 ATTRIBUTION = "Data provided by Amazon"
 
@@ -30,5 +28,5 @@ def build_device_info(entry: ConfigEntry) -> DeviceInfo:
         name=f"Amazon ({entry.title})",
         manufacturer="Amazon",
         entry_type=DeviceEntryType.SERVICE,
-        configuration_url=CONFIGURATION_URL,
+        configuration_url=f"https://www.{entry.data[CONF_COUNTRY]}{ORDERS_PATHS[0]}",
     )

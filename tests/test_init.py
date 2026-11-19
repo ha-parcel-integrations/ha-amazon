@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import aiohttp
 import pytest
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -68,6 +69,15 @@ async def test_two_countries_set_up_independently(hass):
         await hass.async_block_till_done()
 
     assert second.state is ConfigEntryState.LOADED
+
+    # #42: each device links to its own storefront's orders.
+    devices = dr.async_get(hass)
+    for entry in (first, second):
+        device = devices.async_get_device(identifiers={(DOMAIN, entry.entry_id)})
+        assert device is not None
+        assert device.configuration_url == (
+            f"https://www.{entry.data[CONF_COUNTRY]}/your-orders/orders"
+        )
 
     assert first.runtime_data.client is not second.runtime_data.client
     assert first.runtime_data.session is not second.runtime_data.session
