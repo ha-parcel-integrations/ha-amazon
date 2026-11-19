@@ -92,7 +92,9 @@ _POD_SRC_RE = re.compile(r'\b(data-src|src)="([^"]+)"')
 
 # "14:00 - 16:30" in the promise message, with the countdown to its end.
 # "14:00 - 16:30", "2:00 PM - 4:30 PM", and amazon.de's "17h - 19h".
-_WINDOW_TIME = r"\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?|\d{1,2}h(?:\d{2})?"
+_WINDOW_TIME = (
+    r"\d{1,2}:\d{2}(?:\s*[AaPp][Mm])?|\d{1,2}\s*[AaPp][Mm]|\d{1,2}h(?:\d{2})?"
+)
 _WINDOW_RE = re.compile(rf"({_WINDOW_TIME})\s*[-–]\s*({_WINDOW_TIME})")
 _WINDOW_END_KEY = "timeUntilPredictedDeliveryWindowEnd"
 _WINDOW_TOLERANCE = timedelta(hours=1)
@@ -630,7 +632,7 @@ def _arrival_window(
 
 
 def _parse_time(text: str) -> time | None:
-    for shape in ("%I:%M %p", "%H:%M", "%HH%M", "%HH"):
+    for shape in ("%I:%M %p", "%I:%M%p", "%I %p", "%I%p", "%H:%M", "%HH%M", "%HH"):
         try:
             return datetime.strptime(text.strip().upper(), shape).time()
         except ValueError:

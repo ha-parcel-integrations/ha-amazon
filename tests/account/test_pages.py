@@ -904,11 +904,17 @@ def test_delivery_window_from_the_promise_and_its_countdown():
     )
 
 
-def test_delivery_window_with_twelve_hour_times():
-    state = {
-        **FR_STATE,
-        "promise": {"promiseMessage": "Arriving today 2:00 PM - 4:30 PM"},
-    }
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Arriving today 2:00 PM - 4:30 PM",
+        "Arriving today 2:00PM - 4:30PM",
+        "Arriving today 2 pm - 4:30 pm",
+        "Arriving today 2pm – 4:30pm",
+    ],
+)
+def test_delivery_window_with_twelve_hour_times(message):
+    state = {**FR_STATE, "promise": {"promiseMessage": message}}
     assert delivery_window(state, READ_AT) == (
         "2026-10-24T14:00:00+02:00",
         "2026-10-24T16:30:00+02:00",
@@ -950,6 +956,15 @@ def test_a_window_without_its_countdown_is_reported_once(countdown, caplog):
         (
             "Zustellung morgen 14h - 16h30",
             ("2026-10-25T14:00:00+01:00", "2026-10-25T16:30:00+01:00"),
+        ),
+        # #39: amazon.de in English, bare hours.
+        (
+            "Now arriving today 3 pm - 6 pm",
+            ("2026-10-24T15:00:00+02:00", "2026-10-24T18:00:00+02:00"),
+        ),
+        (
+            "Arriving tomorrow 11:00 AM - 1:15 PM",
+            ("2026-10-25T11:00:00+01:00", "2026-10-25T13:15:00+01:00"),
         ),
     ],
 )

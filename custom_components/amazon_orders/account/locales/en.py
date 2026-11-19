@@ -79,4 +79,9 @@ LOCALE = Locale(
         r"arriving\s+(?:(?P<rel>today|tomorrow)|(?P<m1>[a-z]+)\s+(?P<d1>\d{1,2})"
         r"(?:\s*-\s*(?:(?P<m2>[a-z]+)\s+)?(?P<d2>\d{1,2}))?)",
     ),
+    window_day=(
+        # "Now arriving today 3 pm - 6 pm" (#39): amazon.de in English sends
+        # no countdown.
+        r"(?:now\s+)?arriving\s+(?P<rel>today|tomorrow)\b",
+    ),
 )

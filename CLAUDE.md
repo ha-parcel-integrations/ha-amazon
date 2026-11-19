@@ -133,9 +133,10 @@ the structured state a response carries over anything meant for display.
   two must agree within an hour or the window is dropped with a one-shot
   warning. Never on a delivered parcel. The countdown is seen on amazon.fr; amazon.de's
   promise reads "Zustellung heute 17h - 19h" (#24), so the `17h`/`17h30` shape
-  is read too. amazon.de sends no countdown (#24, #37): a window without
+  is read too, as are bare 12-hour hours (`3 pm - 6 pm`, #39). amazon.de
+  sends no countdown (#24, #37), in English either (#39): a window without
   one takes its day from the message's own `Ankunft`/`Zustellung` +
-  `heute`/`morgen` in the page's zone; one naming no such day warns once
+  `heute`/`morgen`, or `[Now] arriving` + `today`/`tomorrow`, in the page's zone; one naming no such day warns once
   instead of being dropped silently.
   Fallback: an order line naming only a day (`Arriving tomorrow`, `today`,
   `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`; amazon.de's
