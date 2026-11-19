@@ -139,13 +139,22 @@ the structured state a response carries over anything meant for display.
   `heute`/`morgen`, or `[Now] arriving` + `today`/`tomorrow`, in the page's zone; one naming no such day warns once
   instead of being dropped silently.
   Fallback: an order line naming only a day (`Arriving tomorrow`, `today`,
-  `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`; amazon.de's
+  `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`, day first as amazon.de
+  writes in English, `Arriving 20 November`, `3-5 November`,
+  `20 November - 18 December`, and `Arriving Wednesday` for the next such
+  weekday, today included (#40); amazon.de's
   `Zustellung: <Wochentag>` (#27, colon optional) for the next such weekday,
   today included, `Ankunft`/`Zustellung` + `heute`/`morgen`, and
   `Zustellung: 20. Oktober` or `Zustellung: 20. Oktober - 21. Oktober`;
   matched whole so a timed line never qualifies) gives a
   whole-day window, 00:00 to 23:59:59 in the page's zone, else the HA zone
-  `read_at` carries. The timed window wins when both exist. Only the wording a
+  `read_at` carries. The timed window wins when both exist. A timed order
+  line (`Arriving today 6 pm – 10 pm`, #40) gives its times only when the
+  tracking page carries no promise of its own, so a window the countdown
+  check dropped never returns through the order line; otherwise, or when
+  the times are unreadable, it gives the day its `window_day` word names.
+  An order line starting with a locale's `arrival_leads` (English
+  `arriving` only) that gives no day warns once, masked. Only the wording a
   real line has shown: `am <date>` is deliberately not read, and no other
   language is. The two
   weekday fields are separate on purpose — `upcoming_weekdays` names days

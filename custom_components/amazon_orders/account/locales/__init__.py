@@ -87,6 +87,9 @@ DELIVERED_EVENTS: tuple[str, ...] = tuple(
 ARRIVAL_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE) for loc in _ALL for pattern in loc.arrival
 )
+ARRIVAL_LEADS: tuple[str, ...] = tuple(
+    lead for loc in _ALL for lead in loc.arrival_leads
+)
 WINDOW_DAY_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE) for loc in _ALL for pattern in loc.window_day
 )

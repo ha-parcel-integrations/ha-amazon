@@ -56,6 +56,16 @@ LOCALE = Locale(
         "saturday",
         "sunday",
     ),
+    # "Arriving Wednesday" (#40): the next such day, today included.
+    upcoming_weekdays=(
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ),
     order_placed=("Order placed",),
     delivery_by=("Delivery By",),
     tracking_id_labels=("Tracking ID", "Tracking-ID", "TrackingID"),
@@ -74,11 +84,20 @@ LOCALE = Locale(
     delivered_events=("delivered",),
     arrival=(
         # "Arriving tomorrow", "Arriving Oct 27", "Arriving Oct 27-29",
-        # "Arriving Oct 27-Nov 2". A timed "Arriving today 11:00 AM - ..." is
-        # the delivery window's business and does not match.
+        # "Arriving Oct 27-Nov 2". A timed "Arriving today 11:00 AM - ..." does
+        # not match: window_day reads it.
         r"arriving\s+(?:(?P<rel>today|tomorrow)|(?P<m1>[a-z]+)\s+(?P<d1>\d{1,2})"
-        r"(?:\s*-\s*(?:(?P<m2>[a-z]+)\s+)?(?P<d2>\d{1,2}))?)",
+        r"(?:\s*[-–]\s*(?:(?P<m2>[a-z]+)\s+)?(?P<d2>\d{1,2}))?)",
+        # Day first, as amazon.de writes in English (#40): "Arriving 20 November",
+        # "Arriving 3-5 November".
+        r"arriving\s+(?P<d1>\d{1,2})(?:\s*[-–]\s*(?P<d2>\d{1,2}))?\s+(?P<m1>[a-z]+)",
+        # "Arriving 20 November - 18 December" (#40).
+        r"arriving\s+(?P<d1>\d{1,2})\s+(?P<m1>[a-z]+)\s*[-–]\s*(?P<d2>\d{1,2})"
+        r"\s+(?P<m2>[a-z]+)",
+        # "Arriving Wednesday" (#40).
+        r"arriving\s+(?P<weekday>[a-z]+)",
     ),
+    arrival_leads=("arriving",),
     window_day=(
         # "Now arriving today 3 pm - 6 pm" (#39): amazon.de in English sends
         # no countdown.

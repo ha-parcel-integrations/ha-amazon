@@ -1309,6 +1309,19 @@ ARRIVAL_TODAY = date(2026, 10, 25)
         ("Arriving Oct 27", (date(2026, 10, 27), date(2026, 10, 27))),
         ("Arriving Oct 27-29", (date(2026, 10, 27), date(2026, 10, 29))),
         ("Arriving Oct 30-Nov 2", (date(2026, 10, 30), date(2026, 11, 2))),
+        ("Arriving Oct 27–29", (date(2026, 10, 27), date(2026, 10, 29))),
+        # #40: day first, as amazon.de writes in English.
+        ("Arriving 20 November", (date(2026, 11, 20), date(2026, 11, 20))),
+        ("Arriving 3-5 November", (date(2026, 11, 3), date(2026, 11, 5))),
+        ("Arriving 3 – 5 November", (date(2026, 11, 3), date(2026, 11, 5))),
+        (
+            "Arriving 20 November - 18 December",
+            (date(2026, 11, 20), date(2026, 12, 18)),
+        ),
+        # #40: a weekday, the next such day; 2026-10-25 is a Sunday.
+        ("Arriving Wednesday", (date(2026, 10, 28), date(2026, 10, 28))),
+        ("Arriving Sunday", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
+        ("Arriving soon", None),
         ("Arriving Jan 3", (date(2027, 1, 3), date(2027, 1, 3))),
         ("Arriving today 11:00 AM - 1:15 PM", None),
         ("Arriving Foo 3", None),
@@ -1353,6 +1366,62 @@ def test_an_arriving_line_gives_a_whole_day_window():
     parcel = normalize_parcel(record)
     assert parcel["planned_from"] == "2026-10-26T00:00:00+01:00"
     assert parcel["planned_to"] == "2026-10-26T23:59:59+01:00"
+
+
+def _arrival_record(text, track=None):
+    zone = ZoneInfo("Europe/Berlin")
+    read_at = datetime(2026, 11, 19, 9, 0, tzinfo=zone)
+    tiles = parse_order_tiles(
+        orders_page(tile(ACTIVE_SHIPMENT, text, None)), read_at.date()
+    )
+    return normalize_parcel(
+        build_record("amazon.de", tiles, None, track, read_at=read_at)
+    )
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # #40: the order line is the only source without a tracking page.
+        (
+            "Arriving today 6 pm – 10 pm",
+            ("2026-11-19T18:00:00+01:00", "2026-11-19T22:00:00+01:00"),
+        ),
+        (
+            "Arriving tomorrow 11:00 AM - 1:15 PM",
+            ("2026-11-20T11:00:00+01:00", "2026-11-20T13:15:00+01:00"),
+        ),
+        # Times that cannot be read still give the day.
+        (
+            "Arriving today 10 pm - 6 pm",
+            ("2026-11-19T00:00:00+01:00", "2026-11-19T23:59:59+01:00"),
+        ),
+    ],
+)
+def test_a_timed_arriving_line_gives_its_window(text, expected, caplog):
+    parcel = _arrival_record(text)
+    assert (parcel["planned_from"], parcel["planned_to"]) == expected
+    assert caplog.text == ""
+
+
+def test_a_timed_arriving_line_defers_to_the_tracking_page_promise():
+    # The page's own promise was read and dropped; the order line only gives
+    # the day, never the times the page could not confirm.
+    track = parse_track_page(
+        track_page(milestone="SHIPPED", timezone="Europe/Berlin"), TODAY
+    )
+    track.state["promise"] = {"promiseMessage": "Arriving today 6 pm – 10 pm"}
+    track.state["timeUntilPredictedDeliveryWindowEnd"] = 1_000
+    parcel = _arrival_record("Arriving today 6 pm – 10 pm", track)
+    assert parcel["planned_from"] == "2026-11-19T00:00:00+01:00"
+    assert parcel["planned_to"] == "2026-11-19T23:59:59+01:00"
+
+
+def test_an_unread_arriving_line_warns_once(caplog):
+    for _ in range(2):
+        parcel = _arrival_record("Arriving soon")
+        assert parcel["planned_from"] is None
+    assert caplog.text.count('"Arriving soon", in wording we cannot read') == 1
 
 
 def test_a_german_zustellung_weekday_line_gives_a_whole_day_window():

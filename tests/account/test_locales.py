@@ -173,6 +173,7 @@ def test_a_language_file_is_well_formed(code):
         locale.events,
     ):
         assert all(key == key.lower() for key in table)
+    assert all(lead == lead.lower() for lead in locale.arrival_leads)
     assert all(1 <= n <= 12 for n in locale.months_plausible.values())
     assert all(1 <= n <= 12 for n in locale.months_confirmed.values())
     groups = {"rel", "weekday", "d1", "m1", "d2", "m2"}

@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, urlparse
 
 from ..const import ParcelStatus
 from .locales import (
+    ARRIVAL_LEADS,
     ARRIVAL_PATTERNS,
     DELIVERY_BY,
     MONTHS,
@@ -617,21 +618,76 @@ def arrival_days(text: str | None, today: date) -> tuple[date, date] | None:
     return None
 
 
+def _named_day(text: str, today: date) -> date | None:
+    """Return the day a timed text names with its own today/tomorrow word."""
+    match = next((m for p in WINDOW_DAY_PATTERNS if (m := p.match(text))), None)
+    if match is None:
+        return None
+    return today + timedelta(days=match["rel"].lower() in TOMORROW_WORDS)
+
+
+def _times_on(text: str, day: date, zone: tzinfo) -> tuple[str, str] | None:
+    """Return the window a text's time range spans on ``day``, if readable."""
+    match = _WINDOW_RE.search(text)
+    if match is None:
+        return None
+    start = _parse_time(match.group(1))
+    end = _parse_time(match.group(2))
+    if start is None or end is None or start >= end:
+        return None
+    return (
+        datetime.combine(day, start, tzinfo=zone).isoformat(),
+        datetime.combine(day, end, tzinfo=zone).isoformat(),
+    )
+
+
+def _promise_message(state: dict[str, Any]) -> str:
+    promise = state.get("promise")
+    message = promise.get("promiseMessage") if isinstance(promise, dict) else None
+    return message if isinstance(message, str) else ""
+
+
 def _arrival_window(
     text: str | None, track: TrackInfo | None, read_at: datetime | None
 ) -> tuple[str, str] | None:
-    """Return the whole-day window an order line names, in the page's time zone."""
+    """Return the window an order line names, in the page's time zone.
+
+    A day alone gives the whole day. A timed line gives its times only when
+    the tracking page has no promise of its own: that one was read already,
+    and a window it dropped must not come back through the order line.
+    """
     zone = (track.zone if track else None) or (read_at.tzinfo if read_at else None)
     if read_at is None or zone is None:
         return None
-    days = arrival_days(text, read_at.astimezone(zone).date())
+    text = (text or "").strip()
+    today = read_at.astimezone(zone).date()
+    days = arrival_days(text, today)
     if days is None:
-        return None
+        day = _named_day(text, today)
+        if day is None:
+            _warn_unread_arrival(text)
+            return None
+        if not (track and _promise_message(track.state)) and (
+            window := _times_on(text, day, zone)
+        ):
+            return window
+        days = (day, day)
     return (
         datetime.combine(days[0], time.min, tzinfo=zone).isoformat(),
         datetime.combine(
             days[1], time.max.replace(microsecond=0), tzinfo=zone
         ).isoformat(),
+    )
+
+
+def _warn_unread_arrival(text: str) -> None:
+    """Report an arrival line we could not give a day."""
+    if not text.lower().startswith(ARRIVAL_LEADS):
+        return
+    warn_once(
+        f"arrival={_mask(text)}",
+        f'Amazon said the parcel is "{_mask(text)}", in wording we cannot read'
+        " yet, so it has no delivery day; please share it.",
     )
 
 
@@ -758,27 +814,14 @@ def delivery_window(
     to the window's end says which day they fall on and confirms the reading.
     """
     countdown = state.get(_WINDOW_END_KEY)
-    promise = state.get("promise")
-    raw_message = promise.get("promiseMessage") if isinstance(promise, dict) else None
-    message = raw_message if isinstance(raw_message, str) else ""
+    message = _promise_message(state)
     match = _WINDOW_RE.search(message) if message else None
     if zone is None:
         return None
     if not isinstance(countdown, int) or isinstance(countdown, bool):
-        day_word = next(
-            (m for p in WINDOW_DAY_PATTERNS if (m := p.match(message))), None
-        )
-        if match and day_word:
-            start = _parse_time(match.group(1))
-            end = _parse_time(match.group(2))
-            if start is not None and end is not None and start < end:
-                day = read_at.astimezone(zone).date() + timedelta(
-                    days=day_word["rel"].lower() in TOMORROW_WORDS
-                )
-                return (
-                    datetime.combine(day, start, tzinfo=zone).isoformat(),
-                    datetime.combine(day, end, tzinfo=zone).isoformat(),
-                )
+        day = _named_day(message, read_at.astimezone(zone).date())
+        if match and day is not None and (window := _times_on(message, day, zone)):
+            return window
         if match:
             warn_once(
                 f"delivery-window-day={_mask(message)}",

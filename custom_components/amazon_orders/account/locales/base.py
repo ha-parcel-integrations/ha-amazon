@@ -54,6 +54,9 @@ class Locale:
     # word), ``weekday``, or ``d1``/``m1`` with optional ``d2``/``m2``. The
     # first pattern that matches decides.
     arrival: tuple[str, ...] = ()
+    # An order line starting with one of these (lower case) names its arrival;
+    # one no arrival or window-day pattern reads warns once.
+    arrival_leads: tuple[str, ...] = ()
     # Regular expressions (case-insensitive, matching the start of a timed
     # promise) whose ``rel`` group names the window's day.
     window_day: tuple[str, ...] = ()
