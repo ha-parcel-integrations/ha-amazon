@@ -148,7 +148,7 @@ the structured state a response carries over anything meant for display.
   `Zustellung: 20. Oktober` or `Zustellung: 20. Oktober - 21. Oktober`;
   matched whole so a timed line never qualifies) gives a
   whole-day window, 00:00 to 23:59:59 in the page's zone, else the HA zone
-  `read_at` carries. The timed window wins when both exist. A timed order
+  `read_at` carries; the calendar shows it as an all-day event (#43). The timed window wins when both exist. A timed order
   line (`Arriving today 6 pm – 10 pm`, #40) gives its times only when the
   tracking page carries no promise of its own, so a window the countdown
   check dropped never returns through the order line; otherwise, or when

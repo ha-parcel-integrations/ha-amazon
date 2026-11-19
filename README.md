@@ -164,7 +164,8 @@ parcel out for delivery, for example "14:00 - 16:30"; amazon.de writes
 `planned_to` and the delivery calendar. When the order line only names a day
 ("Arriving tomorrow", "Arriving Oct 27-29", "Arriving 20 November",
 "Arriving Wednesday", "Zustellung: Freitag"), the window is that whole day, or
-the whole span of days, until a timed window replaces it. An order line with
+the whole span of days, shown in the calendar as an all-day event, until a
+timed window replaces it. An order line with
 times ("Arriving today 6 pm – 10 pm") gives that window when the parcel has no
 tracking page of its own yet.
 Without either, a parcel that is out for
