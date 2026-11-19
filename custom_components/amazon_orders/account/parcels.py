@@ -63,6 +63,8 @@ _SHORT_STATUS_MAP: dict[str, ParcelStatus] = {
 _CARRIER_NAMES = {
     "DRAGONFLY": "Dragonfly",
     "DHL_CONNECT": "DHL",
+    # DPD Germany (#41).
+    "DPDDE": "DPD",
     "Amazon": "Amazon",
     "COLIS_PRIVE_BELU": "Colis Privé",
     # Not an Amazon code: guessed from the tracking id (pages._guess_carrier).

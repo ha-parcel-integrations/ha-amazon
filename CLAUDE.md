@@ -267,7 +267,10 @@ which exposes more (delivery window, pickup point, full history).
 - **Mapping is a fixed table** from Amazon `carrier_code` to HA domain
   (`DHL_CONNECT -> dhl`, `COLIS_PRIVE_BELU -> colis_prive`,
   `DRAGONFLY -> dragonfly`). DHL goes to `dhl`, never `dhl_nl` (no
-  `track_parcel` there). On amazon.ca, a tracking page names the courier
+  `track_parcel` there). `DPDDE` (DPD Germany, #41) is named `DPD` but
+  deliberately not in the table: `dpd.track_parcel` only adds to a myDPD app
+  account and refuses DPD Germany, so a German user would get a Repair issue
+  and refused hand-offs. Add it once ha-dpd takes a DPD Germany number. On amazon.ca, a tracking page names the courier
   plainly as `Intelcom` rather than by an Amazon code; `account/pages.py`'s
   `_CARRIER_ALIASES` folds it into `DRAGONFLY` before it reaches this table,
   since Intelcom is Dragonfly Shipping's Canadian brand and `ha-dragonfly`'s

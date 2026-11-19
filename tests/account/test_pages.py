@@ -422,6 +422,9 @@ def test_intelcom_is_aliased_to_dragonfly():
         ("Levering door Amazon", "Amazon"),
         ("Versendet mit DHL", "DHL_CONNECT"),
         ("Versand durch Amazon", "Amazon"),
+        # #41: amazon.de in English writes "by" in lower case.
+        ("Delivery by Amazon", "Amazon"),
+        ("Delivery by DPDDE", "DPDDE"),
     ],
 )
 def test_dutch_carrier_headers_are_read(header, code):

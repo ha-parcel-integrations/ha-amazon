@@ -552,6 +552,8 @@ def test_carrier_names(caplog):
     assert "DHL_CONNECT" not in caplog.text
     raw["carrier_code"] = "COLIS_PRIVE_BELU"
     assert normalize_parcel(raw)["carrier"] == "Colis Privé"
+    raw["carrier_code"] = "DPDDE"
+    assert normalize_parcel(raw)["carrier"] == "DPD"
     raw["carrier_code"] = "Amazon"
     assert normalize_parcel(raw)["carrier"] == "Amazon"
     assert "carrier_code=" not in caplog.text

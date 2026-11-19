@@ -64,6 +64,10 @@ _TRACK_PAGE_PATH_RE = re.compile(
     r"/(?:progress-tracker/package|gp/your-account/ship-track)(?:/ref=[^/]*)?/?$"
 )
 _CARRIER_RE = re.compile(DELIVERY_BY + r" ([A-Za-z0-9_]+)")
+# The header alone is matched in any case: amazon.de in English writes
+# "Delivery by Amazon" (#41). The whole page is not, so loose text such as
+# "delivery by Friday" never reads as a carrier.
+_HEADER_CARRIER_RE = re.compile(DELIVERY_BY + r" ([A-Za-z0-9_]+)", re.IGNORECASE)
 # amazon.de names the courier plainly instead of by its internal code; so does
 # amazon.ca for its Intelcom brand, which the suite already tracks as DRAGONFLY.
 _CARRIER_ALIASES = {"DHL": "DHL_CONNECT", "Intelcom": "DRAGONFLY"}
@@ -718,7 +722,11 @@ def parse_track_page(page: str, today: date, zone: tzinfo | None) -> TrackInfo:
     state = {key: value for key, value in full_state.items() if key not in _STATE_DROP}
     header = _CARRIER_HEADER_RE.search(page)
     carrier_header = header.group(1) if header and header.group(1) else None
-    carrier = _CARRIER_RE.search(carrier_header or page)
+    carrier = (
+        _HEADER_CARRIER_RE.search(carrier_header)
+        if carrier_header
+        else _CARRIER_RE.search(page)
+    )
     tracking_match = _TRACKING_ID_RE.search(page)
     tracking_id = state.get("trackingId") or (
         tracking_match.group(1) if tracking_match else None
