@@ -187,6 +187,32 @@ async def test_stale_parcel_sensors_are_swept_on_setup(hass):
     assert registry.async_get(stale.entity_id) is None
 
 
+async def test_retired_pickup_sensors_are_removed_from_the_registry(hass):
+    """Earlier releases registered two pickup summaries Amazon can never fill."""
+    entry = _entry()
+    entry.add_to_hass(hass)
+    registry = er.async_get(hass)
+    retired = {}
+    for suffix in ("en_route_to_pickup_point", "awaiting_pickup"):
+        retired[suffix] = registry.async_get_or_create(
+            "sensor",
+            DOMAIN,
+            f"{entry.entry_id}_{suffix}",
+            config_entry=entry,
+        ).entity_id
+
+    with patch(PARCELS, new=AsyncMock(return_value=[active_record()])):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    for suffix, entity_id in retired.items():
+        assert registry.async_get(entity_id) is None, suffix
+        assert hass.states.get(entity_id) is None, suffix
+    assert registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{entry.entry_id}_incoming_parcels"
+    )
+
+
 async def test_unload_keeps_the_session_when_platforms_refuse_to_unload(hass):
     entry = _entry()
     entry.add_to_hass(hass)

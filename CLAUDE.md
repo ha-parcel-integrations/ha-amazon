@@ -128,6 +128,13 @@ the structured state a response carries over anything meant for display.
   how the milestone map grows, so don't silence it.
 - **`None` on purpose:** `sender`, `receiver`, `weight`, `dimensions`,
   `pickup_point`.
+- **`pickup` is a constant `False`:** Amazon delivers to the door and no mapped
+  milestone is a pickup point, so there are no `en_route_to_pickup_point` /
+  `awaiting_pickup` sensors (the setup removes the entities earlier releases
+  registered). Revisit both if a pickup-point parcel ever shows up.
+- **Window:** `planned_window` (Home Assistant's zone) and `planned_for_status` in
+  `account/parcels.py` keep the predicted window and empty it once delivered;
+  `next_delivery` skips a parcel whose window has ended.
 - **Delivery window** only when the tracking page predicts one: the times come
   from the promise text, the day from the countdown to the window's end, and the
   two must agree within an hour or the window is dropped with a one-shot

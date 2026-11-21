@@ -17,11 +17,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import AmazonConfigEntry
 from .account.coordinator import AmazonCoordinator
 from .account.parcels import parse_iso
-from .const import DOMAIN, ParcelStatus
+from .const import DOMAIN
 from .device import ATTRIBUTION, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,11 +51,16 @@ async def async_setup_entry(
     # restarts). Scoped to the sensor domain so it never touches the refresh
     # button or the diagnostic last-update sensor.
     registry = er.async_get(hass)
+    # Amazon never reaches a pickup point, so the two pickup summaries were
+    # retired. Drop the entities earlier releases registered, or they would
+    # stay behind as unavailable.
+    for retired in ("en_route_to_pickup_point", "awaiting_pickup"):
+        stale = registry.async_get_entity_id("sensor", DOMAIN, f"{entry_id}_{retired}")
+        if stale:
+            registry.async_remove(stale)
     non_parcel_unique_ids = {
         f"{entry_id}_incoming_parcels",
         f"{entry_id}_next_delivery",
-        f"{entry_id}_en_route_to_pickup_point",
-        f"{entry_id}_awaiting_pickup",
         f"{entry_id}_delivered_parcels",
         f"{entry_id}_last_update",
     }
@@ -78,8 +84,6 @@ async def async_setup_entry(
             AmazonParcelSensor(coordinator, entry, parcel.get("barcode", ""))
         )
     entities.append(AmazonNextDeliverySensor(coordinator, entry))
-    entities.append(AmazonEnRouteToPickupPointSensor(coordinator, entry))
-    entities.append(AmazonAwaitingPickupSensor(coordinator, entry))
     entities.append(AmazonDeliveredParcelsSensor(coordinator, entry))
     entities.append(AmazonLastUpdateSensor(coordinator, entry))
 
@@ -205,6 +209,7 @@ class AmazonNextDeliverySensor(CoordinatorEntity[AmazonCoordinator], SensorEntit
 
     def _delivery_moments(self) -> list[tuple[datetime, dict]]:
         result: list[tuple[datetime, dict]] = []
+        now = dt_util.utcnow()
         for parcel in self.coordinator.data or []:
             moment = parse_iso(parcel.get("planned_from"))
             if moment is None:
@@ -212,6 +217,8 @@ class AmazonNextDeliverySensor(CoordinatorEntity[AmazonCoordinator], SensorEntit
                     _LOGGER.debug(
                         "Could not parse delivery moment: %s", parcel["planned_from"]
                     )
+                continue
+            if (parse_iso(parcel.get("planned_to")) or moment) < now:
                 continue
             result.append((moment, parcel))
         return result
@@ -234,61 +241,6 @@ class AmazonNextDeliverySensor(CoordinatorEntity[AmazonCoordinator], SensorEntit
             "sender": earliest.get("sender"),
             "receiver": earliest.get("receiver"),
         }
-
-
-class _AmazonPickupListSensor(CoordinatorEntity[AmazonCoordinator], SensorEntity):
-    """Base for the canonical pickup-point summary views."""
-
-    _attr_has_entity_name = True
-    _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_attribution = ATTRIBUTION
-    _unrecorded_attributes = frozenset({"parcels"})
-    _suffix: str
-
-    def __init__(self, coordinator: AmazonCoordinator, entry: ConfigEntry) -> None:
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{entry.entry_id}_{self._suffix}"
-        self._attr_device_info = build_device_info(entry)
-
-    def _parcels(self) -> list[dict]:
-        raise NotImplementedError
-
-    @property
-    def native_value(self) -> int:
-        return len(self._parcels())
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        return {"parcels": self._parcels()}
-
-
-class AmazonEnRouteToPickupPointSensor(_AmazonPickupListSensor):
-    """Active parcels destined for, but not yet at, a pickup point."""
-
-    _attr_translation_key = "en_route_to_pickup_point"
-    _suffix = "en_route_to_pickup_point"
-
-    def _parcels(self) -> list[dict]:
-        return [
-            parcel
-            for parcel in (self.coordinator.data or [])
-            if parcel.get("pickup")
-            and parcel.get("status") != ParcelStatus.AT_PICKUP_POINT
-        ]
-
-
-class AmazonAwaitingPickupSensor(_AmazonPickupListSensor):
-    """Active parcels that have arrived at a pickup point."""
-
-    _attr_translation_key = "awaiting_pickup"
-    _suffix = "awaiting_pickup"
-
-    def _parcels(self) -> list[dict]:
-        return [
-            parcel
-            for parcel in (self.coordinator.data or [])
-            if parcel.get("status") == ParcelStatus.AT_PICKUP_POINT
-        ]
 
 
 class AmazonDeliveredParcelsSensor(CoordinatorEntity[AmazonCoordinator], SensorEntity):

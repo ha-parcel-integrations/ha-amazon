@@ -119,14 +119,6 @@
       "next_delivery": {
         "name": "Prochaine livraison"
       },
-      "en_route_to_pickup_point": {
-        "name": "En route vers le point relais",
-        "unit_of_measurement": "colis"
-      },
-      "awaiting_pickup": {
-        "name": "En attente de retrait",
-        "unit_of_measurement": "colis"
-      },
       "delivered_parcels": {
         "name": "Colis livrés",
         "unit_of_measurement": "colis"
