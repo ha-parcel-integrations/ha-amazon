@@ -22,6 +22,12 @@
       "next_delivery": {
         "default": "mdi:clock-fast"
       },
+      "en_route_to_pickup_point": {
+        "default": "mdi:truck-delivery"
+      },
+      "awaiting_pickup": {
+        "default": "mdi:store-clock"
+      },
       "delivered_parcels": {
         "default": "mdi:package-variant"
       },

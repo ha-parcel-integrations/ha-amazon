@@ -119,6 +119,14 @@
       "next_delivery": {
         "name": "次回の配達"
       },
+      "en_route_to_pickup_point": {
+        "name": "受取場所へ輸送中",
+        "unit_of_measurement": "個"
+      },
+      "awaiting_pickup": {
+        "name": "受取待ち",
+        "unit_of_measurement": "個"
+      },
       "delivered_parcels": {
         "name": "配達済みの荷物",
         "unit_of_measurement": "個"

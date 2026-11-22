@@ -127,12 +127,15 @@ the structured state a response carries over anything meant for display.
   `PICKED_UP`): do not add names no capture has shown. An unmapped milestone
   warns once even when the timeline resolves the status (maintainer decision): that warning is
   how the milestone map grows, so don't silence it.
-- **`None` on purpose:** `sender`, `receiver`, `weight`, `dimensions`,
-  `pickup_point`.
-- **`pickup` is a constant `False`:** Amazon delivers to the door and no mapped
-  milestone is a pickup point, so there are no `en_route_to_pickup_point` /
-  `awaiting_pickup` sensors (the setup removes the entities earlier releases
-  registered). Revisit both if a pickup-point parcel ever shows up.
+- **`None` on purpose:** `sender`, `receiver`, `weight`, `dimensions`
+  (`pickup_point` too, until a real name is seen).
+- **`pickup`** is `is_pickup(None, status, event statuses)`: Amazon has no
+  structured route flag, so it is true once the status or any timeline event
+  maps to `AT_PICKUP_POINT`; `pickup_point` stays `None` until a real name is
+  seen. Both pickup sensors (`en_route_to_pickup_point`, `awaiting_pickup`) are
+  exposed and read 0 for now. Pending: no real pickup-point parcel has been
+  seen, so no milestone, short status or timeline wording maps to
+  `AT_PICKUP_POINT` yet; map it once a capture shows one.
 - **Window:** `planned_window` (Home Assistant's zone) and `planned_for_status` in
   `account/parcels.py` keep the predicted window and empty it once delivered;
   `next_delivery` skips a parcel whose window has ended.

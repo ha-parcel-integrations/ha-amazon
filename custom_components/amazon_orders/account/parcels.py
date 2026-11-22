@@ -443,7 +443,7 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
     The **keys of the returned dict are the contract**: every carrier in the
     suite returns exactly these, in this order. A key is ``None`` when Amazon
     does not expose it — never omitted. Amazon's pages carry no sender,
-    receiver, weight, dimensions or pickup point; the delivery window only
+    receiver, weight or dimensions, and no pickup point name; the delivery window only
     when the tracking page predicts one.
     """
     status = resolve_status(raw)
@@ -469,7 +469,15 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "delivered_at": _delivered_at(raw) if delivered else None,
         "planned_from": planned_from,
         "planned_to": planned_to,
-        "pickup": False,
+        "pickup": is_pickup(
+            None,
+            status,
+            (
+                map_event_status(event.get("message"))
+                for event in raw.get("events") or []
+                if isinstance(event, dict)
+            ),
+        ),
         "pickup_point": None,
         "url": tracking_url(raw),
         "weight": None,

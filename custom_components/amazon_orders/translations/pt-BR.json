@@ -119,6 +119,14 @@
       "next_delivery": {
         "name": "Próxima entrega"
       },
+      "en_route_to_pickup_point": {
+        "name": "A caminho do ponto de retirada",
+        "unit_of_measurement": "pacotes"
+      },
+      "awaiting_pickup": {
+        "name": "Aguardando retirada",
+        "unit_of_measurement": "pacotes"
+      },
       "delivered_parcels": {
         "name": "Pacotes entregues",
         "unit_of_measurement": "pacotes"

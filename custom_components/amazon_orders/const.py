@@ -40,7 +40,8 @@ KNOWN_CAPABILITIES = frozenset(
 # normalize_parcel() — never omit the key. The docs site's carrier comparison
 # table is generated straight from this constant.
 #
-# Amazon exposes no weight, dimensions or pickup point to the account.
+# Amazon exposes no weight or dimensions to the account; a pickup point name is
+# pending until a real pickup-point parcel shows one.
 # ``url`` is the shipment's own tracking link (or the order's, when a shipment
 # has none), ``history`` is the timestamped tracking timeline,
 # ``delivery_window`` comes from a tracking page that predicts one.
@@ -55,7 +56,7 @@ CAPABILITIES = frozenset({"url", "history", "delivery_window"})
 # into CAPABILITIES. A multi-backend carrier declares
 # PENDING_CAPABILITIES_BY_VARIANT with the same keys as its
 # CAPABILITIES_BY_VARIANT instead (omit backends with nothing pending).
-PENDING_CAPABILITIES: frozenset[str] = frozenset()
+PENDING_CAPABILITIES: frozenset[str] = frozenset({"pickup_point"})
 
 # If this carrier ever grows a second backend with a genuinely different
 # payload shape (a country-specific API, not just a config option), replace

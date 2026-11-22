@@ -119,6 +119,14 @@
       "next_delivery": {
         "name": "Nächste Zustellung"
       },
+      "en_route_to_pickup_point": {
+        "name": "Unterwegs zur Abholstelle",
+        "unit_of_measurement": "Pakete"
+      },
+      "awaiting_pickup": {
+        "name": "Abholbereit",
+        "unit_of_measurement": "Pakete"
+      },
       "delivered_parcels": {
         "name": "Zugestellte Pakete",
         "unit_of_measurement": "Pakete"

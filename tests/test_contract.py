@@ -86,8 +86,20 @@ def test_planned_is_empty_once_delivered(parcel):
         assert parcel["planned_to"] is None
 
 
-def test_pickup_is_constant_false(parcel):
+def test_pickup_is_false_without_a_pickup_status(parcel):
     assert parcel["pickup"] is False
+    assert parcel["pickup_point"] is None
+
+
+def test_pickup_follows_a_pickup_point_timeline_event(monkeypatch):
+    monkeypatch.setattr(
+        "custom_components.amazon_orders.account.parcels.map_event_status",
+        lambda message: ParcelStatus.AT_PICKUP_POINT if message == "ready" else None,
+    )
+    record = in_transit_record()
+    record["events"] = [{"timestamp": "2026-04-29T10:00:00Z", "message": "ready"}]
+    parcel = normalize_parcel(record)
+    assert parcel["pickup"] is True
     assert parcel["pickup_point"] is None
 
 
