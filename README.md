@@ -163,7 +163,7 @@ parcel out for delivery, for example "14:00 - 16:30"; amazon.de writes
 "Ankunft heute 7h – 13h", or "Now arriving today 3 pm - 6 pm" in English), it fills `planned_from` /
 `planned_to` and the delivery calendar. When the order line only names a day
 ("Arriving tomorrow", "Arriving Oct 27-29", "Arriving 20 November",
-"Arriving Wednesday", "Zustellung: Freitag"), the window is that whole day, or
+"Arriving Wednesday", "Zustellung: Freitag", "Llega hoy"), the window is that whole day, or
 the whole span of days, shown in the calendar as an all-day event, until a
 timed window replaces it. An order line with
 times ("Arriving today 6 pm – 10 pm") gives that window when the parcel has no
@@ -203,7 +203,7 @@ The `status` field is the carrier-agnostic enum shared by the whole integration 
 
 Amazon also reports other situations (a pickup point, a return, a delivery problem), but none of those have been seen on a real parcel yet, so they are not mapped. If your parcel shows `unknown`, the warning in the log names what Amazon said.
 
-Order-line wording is recognised in English, Dutch, French, German, Spanish, Italian, Swedish and Polish. The English wording is confirmed against other tools' sources, the main Dutch wording against real orders on amazon.com.be and the main French wording against real orders on amazon.fr; the rest are best guesses, so the first time one is used the log asks you to confirm it. Cancelled, returned and refunded lines are not shown.
+Order-line wording is recognised in English, Dutch, French, German, Spanish, Italian, Swedish and Polish. The English wording is confirmed against other tools' sources, the main Dutch wording against real orders on amazon.com.be the main French wording against real orders on amazon.fr and "Llega hoy" against real orders on amazon.es; the rest are best guesses, so the first time one is used the log asks you to confirm it. Cancelled, returned and refunded lines are not shown.
 
 Amazon's own human-readable text is always available as `raw_status`.
 

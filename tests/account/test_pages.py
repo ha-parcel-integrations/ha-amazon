@@ -29,6 +29,7 @@ from custom_components.amazon_orders.account.pages import (
     parse_track_page as _parse_track_page,
 )
 from custom_components.amazon_orders.account.parcels import normalize_parcel
+from custom_components.amazon_orders.const import ParcelStatus
 
 from ..payloads import (
     ACTIVE_CODE,
@@ -1345,6 +1346,10 @@ ARRIVAL_TODAY = date(2026, 10, 25)
         ("Zustellung: 3. Januar", (date(2027, 1, 3), date(2027, 1, 3))),
         ("Zustellung: 31. Februar", None),
         ("Zustellung: 3. Foo", None),
+        # #48: amazon.es.
+        ("Llega hoy", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
+        ("llega  HOY", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
+        ("Llega hoy 14:00 - 18:00", None),
         (None, None),
     ],
 )
@@ -1422,6 +1427,33 @@ def test_an_unread_arriving_line_warns_once(caplog):
         parcel = _arrival_record("Arriving soon")
         assert parcel["planned_from"] is None
     assert caplog.text.count('"Arriving soon", in wording we cannot read') == 1
+
+
+def test_a_spanish_llega_hoy_line_keeps_its_window_after_a_tracking_event(caplog):
+    # #48: the status comes from the timeline once the courier scans the
+    # parcel; the order line still names the day.
+    zone = ZoneInfo("Europe/Madrid")
+    read_at = datetime(2026, 11, 19, 6, 0, tzinfo=zone)
+    tiles = parse_order_tiles(
+        orders_page(tile(ACTIVE_SHIPMENT, "Llega hoy", None)), read_at.date()
+    )
+    track = parse_track_page(
+        track_page(milestone="SHIPPED", timezone="Europe/Madrid"), read_at.date()
+    )
+    parcel = normalize_parcel(
+        build_record("amazon.es", tiles, None, track, read_at=read_at)
+    )
+    assert parcel["status"] == ParcelStatus.IN_TRANSIT
+    assert parcel["planned_from"] == "2026-11-19T00:00:00+01:00"
+    assert parcel["planned_to"] == "2026-11-19T23:59:59+01:00"
+    assert "cannot read" not in caplog.text
+
+
+def test_an_unread_spanish_llega_line_warns_once(caplog):
+    for _ in range(2):
+        parcel = _arrival_record("Llega mañana")
+        assert parcel["planned_from"] is None
+    assert caplog.text.count('"Llega mañana", in wording we cannot read') == 1
 
 
 def test_a_german_zustellung_weekday_line_gives_a_whole_day_window():

@@ -38,6 +38,7 @@ from custom_components.amazon_orders.const import ParcelStatus
         ),
         ("Arrive demain", ParcelStatus.IN_TRANSIT),
         ("Annulé(s)", SKIP),
+        ("Llega hoy", ParcelStatus.IN_TRANSIT),
     ],
 )
 def test_confirmed_wording(text, kind):
@@ -65,7 +66,6 @@ def test_unknown_and_empty_text_classify_as_nothing():
         ("Pas encore expédié", ParcelStatus.REGISTERED),
         ("Noch nicht versandt", ParcelStatus.REGISTERED),
         ("Storniert", SKIP),
-        ("Llega hoy", ParcelStatus.OUT_FOR_DELIVERY),
         ("Cancelado", SKIP),
         ("In consegna oggi", ParcelStatus.OUT_FOR_DELIVERY),
         ("Annullato", SKIP),

@@ -1,16 +1,20 @@
-"""Spanish: amazon.es. Nothing seen on a real page yet."""
+"""Spanish: amazon.es."""
 
 from ...const import ParcelStatus
 from .base import SKIP, Locale
 
 LOCALE = Locale(
+    # "Llega hoy" (#48) shows before the parcel leaves the depot, as
+    # "Arriving today" does.
+    status_confirmed={
+        "llega": ParcelStatus.IN_TRANSIT,
+    },
     status_plausible={
         "entregado": ParcelStatus.DELIVERED,
         "llegará": ParcelStatus.IN_TRANSIT,
         "aún no enviado": ParcelStatus.REGISTERED,
         "enviado": ParcelStatus.IN_TRANSIT,
         "en reparto": ParcelStatus.OUT_FOR_DELIVERY,
-        "llega hoy": ParcelStatus.OUT_FOR_DELIVERY,
         "cancelado": SKIP,
         "devuelto": SKIP,
         "reembolsado": SKIP,
@@ -31,4 +35,6 @@ LOCALE = Locale(
     },
     today=("hoy",),
     yesterday=("ayer",),
+    arrival=(r"llega\s+(?P<rel>hoy)",),
+    arrival_leads=("llega",),
 )
