@@ -497,7 +497,7 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
             None,
             status,
             (
-                map_event_status(event.get("message"))
+                _event_status(event.get("message"))
                 for event in raw.get("events") or []
                 if isinstance(event, dict)
             ),
