@@ -647,32 +647,6 @@ def _promise_message(state: dict[str, Any]) -> str:
     return message if isinstance(message, str) else ""
 
 
-def _promised_on(
-    state: dict[str, Any], placed_on: date | None, today: date
-) -> date | None:
-    """The day an untrackable shipment's promise names (#47), else ``None``.
-
-    The promise carries no year, so it is read forward from the order date:
-    it can only fall after the order was placed.
-    """
-    if state.get("exceptionStateIdentifier") != UNTRACKABLE_EXPECTED_DELIVERED:
-        return None
-    message = _promise_message(state)
-    day = (
-        _day_month(message, placed_on, forward=True)
-        if placed_on
-        else _day_month(message, today)
-    )
-    if day is None:
-        warn_once(
-            f"untrackable-promise={_mask(message)}",
-            f'Amazon cannot track this shipment and promised it as "{_mask(message)}",'
-            " which names no day we can read, so it stays in transit; please"
-            " share it.",
-        )
-    return day
-
-
 def _arrival_window(
     text: str | None, track: TrackInfo | None, read_at: datetime | None
 ) -> tuple[str, str] | None:
@@ -917,10 +891,6 @@ def build_record(
     window = (
         delivery_window(track.state, read_at, track.zone) if track and read_at else None
     ) or _arrival_window(lead.status_text, track, read_at)
-    today = (read_at or datetime.now().astimezone()).astimezone(
-        (track.zone if track else None) or (read_at.tzinfo if read_at else None)
-    ).date()
-    promised_on = _promised_on(track.state, lead.placed_on, today) if track else None
     return {
         "domain": domain,
         "order_id": lead.order_id,
