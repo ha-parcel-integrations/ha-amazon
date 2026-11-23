@@ -110,6 +110,9 @@ class AmazonClient:
         self._last: dict[_ShipmentKey, tuple[dict[str, Any], datetime]] = {}
         # Day a shipment was first read as delivered without a delivery date.
         self._undated: dict[_ShipmentKey, date] = {}
+        # When a shipment's own page was last refused with 429/503, so one
+        # page Amazon keeps refusing waits its turn instead of failing every poll.
+        self._throttled: dict[_ShipmentKey, datetime] = {}
         # Whether the last poll had read every shipment it lists at least once.
         self._listing_complete = True
         # Business: a delivered card drops its shipment and tracking link, so
@@ -163,6 +166,7 @@ class AmazonClient:
             if status in (401, 403):
                 raise AmazonAuthError(f"HTTP {status}", status_code=status)
             if status in (429, 503):
+                _LOGGER.debug("Amazon answered HTTP %s for %s", status, URL(url).path)
                 header = response.headers.get("Retry-After")
                 try:
                     retry_after = float(header) if header else None
@@ -403,9 +407,15 @@ class AmazonClient:
             return True
         return self._undated.setdefault(key, today) < today
 
+    def _last_tried(self, key: _ShipmentKey) -> datetime | None:
+        tried = [self._last[key][1]] if key in self._last else []
+        if key in self._throttled:
+            tried.append(self._throttled[key])
+        return max(tried, default=None)
+
     @property
     def listing_complete(self) -> bool:
-        """Whether every listed shipment has been read at least once.
+        """Whether every listed shipment has been read (or refused) at least once.
 
         After a restart the capped fan-out needs a few polls for that, and a
         shipment it reaches late is not a new one.
@@ -427,6 +437,7 @@ class AmazonClient:
         self._final = {k: v for k, v in self._final.items() if k in groups}
         self._last = {k: v for k, v in self._last.items() if k in groups}
         self._undated = {k: v for k, v in self._undated.items() if k in groups}
+        self._throttled = {k: v for k, v in self._throttled.items() if k in groups}
 
         cutoff = today - timedelta(days=DELIVERED_LOOKBACK_DAYS)
         work: list[_ShipmentKey] = []
@@ -439,22 +450,36 @@ class AmazonClient:
             work.append(key)
 
         never = datetime.min.replace(tzinfo=timezone.utc)
-        work.sort(key=lambda key: self._last[key][1] if key in self._last else never)
+        work.sort(key=lambda key: self._last_tried(key) or never)
         # Only a shipment that loads a page counts against the cap; a
         # delivered Business card is read off the list and costs nothing.
         loads = 0
+        refused_in_a_row = 0
         for key in work:
             if groups[key][0].follow:
                 if loads >= MAX_TRACK_LOADS:
                     continue
                 loads += 1
-            record = await self._read_shipment(groups[key], today)
+            try:
+                record = await self._read_shipment(groups[key], today)
+            except AmazonApiError as err:
+                # One refused page keeps the rest of the poll; a second in a
+                # row is Amazon throttling the account, so the poll backs off.
+                if err.status_code not in (429, 503) or refused_in_a_row:
+                    raise
+                refused_in_a_row += 1
+                self._throttled[key] = datetime.now(timezone.utc)
+                continue
+            refused_in_a_row = 0
+            self._throttled.pop(key, None)
             self._last[key] = (record, datetime.now(timezone.utc))
             if self._is_final(key, groups[key], record, today):
                 self._final[key] = record
                 self._undated.pop(key, None)
 
-        self._listing_complete = all(key in self._last for key in work)
+        self._listing_complete = all(
+            key in self._last or key in self._throttled for key in work
+        )
         records: list[dict[str, Any]] = []
         for key in groups:
             if key in self._final:

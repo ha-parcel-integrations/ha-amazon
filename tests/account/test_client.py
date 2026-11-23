@@ -692,6 +692,49 @@ async def test_a_failing_pop_page_fails_the_poll():
         await _client(session).async_get_parcels()
 
 
+async def test_one_refused_shipment_page_keeps_the_rest_of_the_poll(caplog):
+    session = _session(_active_tile("SHIPactive1"), _active_tile("SHIPactive2"))
+    _shipment(session, "SHIPactive1", milestone="IN_PROGRESS", tracking_id="TBA1")
+    _shipment(session, "SHIPactive2", milestone="IN_PROGRESS", tracking_id="TBA2")
+    client = _client(session)
+    first = await client.async_get_parcels()
+    assert [r["tracking_id"] for r in first] == ["TBA1", "TBA2"]
+
+    session.add("GET", "shipmentId=SHIPactive1", FakeResponse(503, ""))
+    caplog.set_level("DEBUG", logger=client_module.__name__)
+    second = await client.async_get_parcels()
+
+    # The refused shipment keeps its last record; the other one is read again.
+    assert [r["tracking_id"] for r in second] == ["TBA1", "TBA2"]
+    assert client.listing_complete is True
+    assert "HTTP 503 for /-/en/your-orders/pop" in caplog.text
+    assert "shipmentId" not in caplog.text
+
+
+async def test_a_refused_shipment_waits_behind_the_others(monkeypatch):
+    monkeypatch.setattr(client_module, "MAX_TRACK_LOADS", 1)
+    session = _session(_active_tile("SHIPactive1"), _active_tile("SHIPactive2"))
+    session.add("GET", "shipmentId=SHIPactive1", FakeResponse(503, ""))
+    _shipment(session, "SHIPactive2", milestone="IN_PROGRESS", tracking_id="TBA2")
+    client = _client(session)
+
+    assert await client.async_get_parcels() == []
+    assert client.listing_complete is False
+    second = await client.async_get_parcels()
+
+    assert [r["tracking_id"] for r in second] == ["TBA2"]
+    assert client.listing_complete is True
+
+
+async def test_two_refused_shipment_pages_in_a_row_fail_the_poll():
+    session = _session(_active_tile("SHIPactive1"), _active_tile("SHIPactive2"))
+    session.add("GET", "shipmentId=SHIPactive1", FakeResponse(503, ""))
+    session.add("GET", "shipmentId=SHIPactive2", FakeResponse(429, ""))
+    with pytest.raises(AmazonApiError) as excinfo:
+        await _client(session).async_get_parcels()
+    assert excinfo.value.status_code == 429
+
+
 async def test_a_tracking_page_with_nothing_on_it_warns_once(caplog):
     session = _session(_active_tile("SHIPactive1"))
     _shipment(session, "SHIPactive1", tracking_id=None, carrier=None, state=False)

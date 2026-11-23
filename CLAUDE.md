@@ -90,7 +90,14 @@ the structured state a response carries over anything meant for display.
   coordinates. No event for a count change, no faster polling yet (opt-in only,
   if ever: every poll loads several pages on the user's account).
 - **Auth failure -> reauth once, then polling pauses** (`AmazonAuthError` ->
-  `ConfigEntryAuthFailed`). 429 and 503 back off through the coordinator.
+  `ConfigEntryAuthFailed`). 429 and 503 back off through the coordinator,
+  except a single shipment page refused that way (#49): that shipment keeps
+  its last record and goes to the back of the fan-out queue, and the poll
+  carries on. A second refused shipment page in a row is throttling, so it
+  fails the poll; the orders list itself always does. A refused shipment
+  counts as tried for `listing_complete`, so one page Amazon keeps refusing
+  does not hold back `registered` for good. The refused path (no query) is
+  logged at debug.
 - **Fan-out is capped** (`MAX_TRACK_LOADS` shipments that load a page per
   cycle, stalest first; a delivered Business card loads none, so it is never
   counted and never waits;
