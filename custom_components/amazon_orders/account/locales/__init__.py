@@ -76,6 +76,7 @@ ORDER_PLACED = _phrases([p for loc in _ALL for p in loc.order_placed])
 DELIVERY_BY = _phrases([p for loc in _ALL for p in loc.delivery_by])
 TRACKING_ID_LABEL = _phrases([p for loc in _ALL for p in loc.tracking_id_labels])
 STOPS_AWAY = _phrases([p for loc in _ALL for p in loc.stops_away])
+NEXT_STOP = _phrases([p for loc in _ALL for p in loc.next_stop])
 
 EVENTS: dict[str, ParcelStatus] = {
     message: status for loc in _ALL for message, status in loc.events.items()

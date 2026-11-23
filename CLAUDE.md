@@ -86,7 +86,10 @@ the structured state a response carries over anything meant for display.
 - **`raw.stops_away` comes from the live map's callout** (`mapTracking.calloutMessage`,
   confirmed on amazon.de by #24's reporter, 2026-11-09): text only, so it is
   parsed from "N Stopps entfernt" or "N stops away" (the English wording is
-  reported by a browser-based Amazon tracker, not yet by our own users); other wording warns once, masked. The rest of
+  reported by a browser-based Amazon tracker, not yet by our own users). The
+  callout naming the parcel as the next stop reads as 0: "Du bist der nächste
+  Halt" is confirmed on amazon.de (2026-11-23), the "Sie" and English forms are
+  plausible. Other wording warns once, masked. The rest of
   `mapTracking` is dropped from `page_state`: it holds the delivery address's
   coordinates. No event for a count change, no faster polling yet (opt-in only,
   if ever: every poll loads several pages on the user's account).

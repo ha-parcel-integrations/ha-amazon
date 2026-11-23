@@ -52,6 +52,7 @@ LOCALE = Locale(
     order_placed=("Bestellung aufgegeben am", "Bestellung aufgegeben"),
     delivery_by=("Versendet mit", "Versand durch", "Zustellung durch"),
     stops_away=("Stopp entfernt", "Stopps entfernt"),
+    next_stop=("Du bist der nächste Halt", "Sie sind der nächste Halt"),
     events={
         "das paket ist an einem amazon-standort eingetroffen": ParcelStatus.IN_TRANSIT,
         "das paket hat einen amazon-standort verlassen": ParcelStatus.IN_TRANSIT,
