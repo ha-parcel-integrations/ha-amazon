@@ -1476,3 +1476,34 @@ def test_a_german_zustellung_weekday_line_gives_a_whole_day_window():
     parcel = normalize_parcel(record)
     assert parcel["planned_from"] == "2026-11-20T00:00:00+01:00"
     assert parcel["planned_to"] == "2026-11-20T23:59:59+01:00"
+
+
+def _untrackable(promise: str) -> object:
+    info = parse_track_page(
+        track_page(
+            tracking_id=None, carrier=None, milestone=None, short_status="IN_TRANSIT"
+        ),
+        TODAY,
+    )
+    info.state["exceptionStateIdentifier"] = "UNTRACKABLE_STILL_EXPECTED_DELIVERED"
+    info.state["promise"] = {"promiseMessage": promise}
+    return info
+
+
+def test_untrackable_shipment_keeps_its_promised_day():
+    info = _untrackable("Wahrscheinlich 14. Oktober zugestellt")
+    record = build_record(COUNTRY, _tiles("Unterwegs"), None, info)
+    assert record["promised_on"] == "2026-10-14"
+
+
+def test_promised_day_is_read_only_for_an_untrackable_shipment():
+    info = parse_track_page(track_page(), TODAY)
+    info.state["promise"] = {"promiseMessage": "Wahrscheinlich 14. Oktober zugestellt"}
+    assert build_record(COUNTRY, _tiles(), None, info)["promised_on"] is None
+
+
+def test_untrackable_promise_without_a_day_warns_once(caplog):
+    info = _untrackable("Wahrscheinlich bald zugestellt")
+    assert build_record(COUNTRY, _tiles("Unterwegs"), None, info)["promised_on"] is None
+    build_record(COUNTRY, _tiles("Unterwegs"), None, info)
+    assert caplog.text.count("Wahrscheinlich bald zugestellt") == 1

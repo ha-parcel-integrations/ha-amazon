@@ -36,7 +36,7 @@ from .locales import (
     YESTERDAY_WORDS,
     classify_order_text,
 )
-from .parcels import warn_once
+from .parcels import UNTRACKABLE_EXPECTED_DELIVERED, warn_once
 
 _TILE_RE = re.compile(
     r'<a class="item-card__link" href="([^"]*)" aria-label="([^"]*)"', re.S
@@ -647,6 +647,32 @@ def _promise_message(state: dict[str, Any]) -> str:
     return message if isinstance(message, str) else ""
 
 
+def _promised_on(
+    state: dict[str, Any], placed_on: date | None, today: date
+) -> date | None:
+    """Return the day an untrackable shipment's promise names (#47), else ``None``.
+
+    The promise carries no year, so it is read forward from the order date:
+    it can only fall after the order was placed.
+    """
+    if state.get("exceptionStateIdentifier") != UNTRACKABLE_EXPECTED_DELIVERED:
+        return None
+    message = _promise_message(state)
+    day = (
+        _day_month(message, placed_on, forward=True)
+        if placed_on
+        else _day_month(message, today)
+    )
+    if day is None:
+        warn_once(
+            f"untrackable-promise={_mask(message)}",
+            f'Amazon cannot track this shipment and promised it as "{_mask(message)}",'
+            " which names no day we can read, so it stays in transit; please"
+            " share it.",
+        )
+    return day
+
+
 def _arrival_window(
     text: str | None, track: TrackInfo | None, read_at: datetime | None
 ) -> tuple[str, str] | None:
@@ -891,6 +917,11 @@ def build_record(
     window = (
         delivery_window(track.state, read_at, track.zone) if track and read_at else None
     ) or _arrival_window(lead.status_text, track, read_at)
+    promised_on = None
+    if track:
+        moment = read_at or datetime.now().astimezone()
+        today = (moment.astimezone(track.zone) if track.zone else moment).date()
+        promised_on = _promised_on(track.state, lead.placed_on, today)
     return {
         "domain": domain,
         "order_id": lead.order_id,
@@ -908,6 +939,7 @@ def build_record(
         "delivered_on": lead.delivered_on.isoformat() if lead.delivered_on else None,
         "milestone": progress.get("lastReachedMilestone") if progress else None,
         "delivery_window": list(window) if window else None,
+        "promised_on": promised_on.isoformat() if promised_on else None,
         "stops_away": track.stops_away if track else None,
         "events": track.events if track else [],
         "items": [tile.title for tile in tiles],

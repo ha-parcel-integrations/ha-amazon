@@ -743,3 +743,47 @@ def test_a_curly_apostrophe_in_the_timeline_is_mapped():
         map_event_status("Le colis a quitté les locaux de l’expéditeur")
         is ParcelStatus.IN_TRANSIT
     )
+
+
+def _untrackable_record(days_ago: int) -> dict:
+    raw = untracked_record()
+    raw["order_status"] = "Unterwegs"
+    raw["page_state"] = {
+        "shortStatus": "IN_TRANSIT",
+        "exceptionStateIdentifier": "UNTRACKABLE_STILL_EXPECTED_DELIVERED",
+    }
+    raw["promised_on"] = (dt_util.now().date() - timedelta(days=days_ago)).isoformat()
+    return raw
+
+
+@pytest.mark.parametrize("days_ago", [-2, 0, 3])
+def test_untrackable_shipment_stays_in_transit_within_its_grace(days_ago):
+    parcel = normalize_parcel(_untrackable_record(days_ago))
+    assert parcel["status"] is ParcelStatus.IN_TRANSIT
+    assert parcel["delivered_at"] is None
+
+
+async def test_untrackable_shipment_counts_as_delivered_on_its_promised_day(hass):
+    await hass.config.async_set_time_zone("Europe/Berlin")
+    raw = _untrackable_record(4)
+    parcel = normalize_parcel(raw)
+    assert parcel["status"] is ParcelStatus.DELIVERED
+    assert parcel["delivered"] is True
+    assert (
+        parcel["delivered_at"]
+        == dt_util.start_of_local_day(
+            datetime.fromisoformat(raw["promised_on"]).date()
+        ).isoformat()
+    )
+
+
+def test_untrackable_shipment_without_a_promised_day_stays_in_transit():
+    raw = _untrackable_record(10)
+    raw["promised_on"] = None
+    assert resolve_status(raw) is ParcelStatus.IN_TRANSIT
+
+
+def test_a_late_promise_alone_is_not_delivered():
+    raw = _untrackable_record(10)
+    raw["page_state"]["exceptionStateIdentifier"] = "NOT_APPLICABLE"
+    assert resolve_status(raw) is ParcelStatus.IN_TRANSIT

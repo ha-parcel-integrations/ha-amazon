@@ -134,6 +134,15 @@ the structured state a response carries over anything meant for display.
   `PICKED_UP`): do not add names no capture has shown. An unmapped milestone
   warns once even when the timeline resolves the status (maintainer decision): that warning is
   how the milestone map grows, so don't silence it.
+- **An untrackable shipment is assumed delivered** (#47, maintainer decision):
+  `exceptionStateIdentifier: UNTRACKABLE_STILL_EXPECTED_DELIVERED` (an amazon.de
+  letter without tracking) otherwise stays `in_transit` for good. Its promise
+  names a day ("Wahrscheinlich 14. Oktober zugestellt"), read forward from the
+  order date into `raw["promised_on"]`; once that day is more than
+  `UNTRACKABLE_GRACE` (3 days) past, the status is `delivered` ahead of the
+  milestone, and `delivered_at` is that day, never empty, because the
+  `days` retention keeps an empty `delivered_at` for good. A promise naming no
+  readable day warns once and the shipment stays in transit.
 - **`None` on purpose:** `sender`, `receiver`, `weight`, `dimensions`
   (`pickup_point` too, until a real name is seen).
 - **`pickup`** is `is_pickup(None, status, event statuses)`: Amazon has no

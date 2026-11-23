@@ -62,6 +62,12 @@ _SHORT_STATUS_MAP: dict[str, ParcelStatus] = {
     "PICKED_UP": ParcelStatus.DELIVERED,
 }
 
+# A shipment Amazon cannot follow, such as a letter sent without tracking
+# (#47): it stays in transit for good, so once its promised day is this far
+# behind it counts as delivered on that day.
+UNTRACKABLE_EXPECTED_DELIVERED = "UNTRACKABLE_STILL_EXPECTED_DELIVERED"
+UNTRACKABLE_GRACE = timedelta(days=3)
+
 _CARRIER_NAMES = {
     "DRAGONFLY": "Dragonfly",
     "DHL_CONNECT": "DHL",
@@ -156,6 +162,8 @@ def resolve_status(raw: dict) -> ParcelStatus:
     status is reported once on its own as well, even when a later source
     resolves the status.
     """
+    if assumed_delivered_on(raw) is not None:
+        return ParcelStatus.DELIVERED
     milestone = raw.get("milestone")
     mapped = _MILESTONE_MAP.get(milestone) if milestone else None
     if mapped is not None:
@@ -173,6 +181,20 @@ def resolve_status(raw: dict) -> ParcelStatus:
         # known, so report a new one even when the timeline can stand in.
         _warn_unmapped_status(f"milestone={milestone}")
     return status
+
+
+def assumed_delivered_on(raw: dict) -> date | None:
+    """Return the promised day of an untrackable shipment past its grace."""
+    state = raw.get("page_state") or {}
+    if state.get("exceptionStateIdentifier") != UNTRACKABLE_EXPECTED_DELIVERED:
+        return None
+    try:
+        promised = date.fromisoformat(str(raw.get("promised_on")))
+    except ValueError:
+        return None
+    if dt_util.now().date() <= promised + UNTRACKABLE_GRACE:
+        return None
+    return promised
 
 
 def _resolve_without_milestone(raw: dict, milestone: str | None) -> ParcelStatus:
@@ -317,7 +339,9 @@ def _delivered_at(raw: dict) -> str | None:
     try:
         day = date.fromisoformat(str(raw.get("delivered_on")))
     except ValueError:
-        return None
+        day = assumed_delivered_on(raw)
+        if day is None:
+            return None
     # A bare day is the user's day: midnight in Home Assistant's zone, not UTC.
     return dt_util.start_of_local_day(day).isoformat()
 
