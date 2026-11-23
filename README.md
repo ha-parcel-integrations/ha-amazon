@@ -188,7 +188,7 @@ Standard HA removal applies: **Settings → Devices & Services → Amazon → �
 
 A delivered parcel moves from its per-parcel sensor to the delivered sensor automatically.
 
-Each parcel's `contents` shows the titles of its order lines; the `amazon_orders.update_contents` action replaces that with your own text for a tracking code (an empty text clears it). With several accounts it goes to every account that lists the code; name one with the optional `config_entry_id` (needed for a code no account lists yet).
+Each parcel's `contents` shows the titles of its order lines; the `amazon_orders.update_contents` action replaces that with your own text for a tracking code (an empty text clears it); it also titles the calendar event and shows on the next-delivery sensor. With several accounts it goes to every account that lists the code; name one with the optional `config_entry_id` (needed for a code no account lists yet).
 
 ## Parcel status reference
 
