@@ -157,8 +157,17 @@
         "contents": {
           "name": "Contenuto",
           "description": "Che cosa c'è nel pacco, con parole tue. Un testo vuoto lo cancella."
+        },
+        "config_entry_id": {
+          "name": "Account",
+          "description": "L'account per cui salvare il valore. Necessario quando nessun account conosce ancora il codice."
         }
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Nessun account conosce questo codice. Scegli l'account per cui salvarlo."
     }
   }
 }

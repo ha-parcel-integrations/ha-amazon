@@ -157,8 +157,17 @@
         "contents": {
           "name": "Inhalt",
           "description": "Was im Paket ist, in deinen eigenen Worten. Ein leerer Text löscht ihn."
+        },
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Das Konto, für das dies gespeichert wird. Nötig, wenn noch kein Konto den Code kennt."
         }
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Kein Konto kennt diesen Code. Wähle das Konto, für das er gespeichert werden soll."
     }
   }
 }

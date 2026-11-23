@@ -36,7 +36,7 @@ from ..const import (
     STAGGER_MINUTES,
     ParcelStatus,
 )
-from ..contents import ContentsStore
+from ..contents import ContentsStore, normalize_code
 from ..handoff import HandOff
 from .client import AmazonClient
 from .errors import AmazonApiError, AmazonAuthError
@@ -194,6 +194,9 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         # Every parcel of the last poll, handed-off ones included, so the
         # hand-off can run again once Home Assistant has started.
         self._all_parcels: list[dict] = []
+        # Every code the account lists, delivered ones included: update_contents
+        # asks which account a code belongs to.
+        self.known_codes: frozenset[str] = frozenset()
         self.delivered: list[dict] = []
         self.unresolved: list[dict] = []
         # Barcode -> delivery photo, for the parcels the delivered list shows.
@@ -384,6 +387,11 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
             self._apply_contents(normalize_parcel(raw, include_history=include_history))
             for raw in raws
         ]
+        self.known_codes = frozenset(
+            normalize_code(parcel["barcode"])
+            for parcel in self._all_parcels
+            if parcel.get("barcode")
+        )
         self.last_success_time = datetime.now(timezone.utc)
         return await self._async_publish()
 

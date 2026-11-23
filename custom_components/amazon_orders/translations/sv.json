@@ -157,8 +157,17 @@
         "contents": {
           "name": "Innehåll",
           "description": "Vad som finns i paketet, med dina egna ord. En tom text rensar det."
+        },
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Kontot som värdet sparas för. Krävs när inget konto känner till koden än."
         }
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Inget konto känner till den här koden. Välj kontot att spara den för."
     }
   }
 }

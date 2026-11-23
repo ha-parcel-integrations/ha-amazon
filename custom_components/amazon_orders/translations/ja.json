@@ -157,8 +157,17 @@
         "contents": {
           "name": "内容",
           "description": "荷物の中身を、自分の言葉で入力します。空のテキストを指定すると消去されます。"
+        },
+        "config_entry_id": {
+          "name": "アカウント",
+          "description": "この内容を保存するアカウント。どのアカウントにもまだ追跡コードがない場合に必要です。"
         }
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "このコードを持つアカウントがありません。保存先のアカウントを選んでください。"
     }
   }
 }

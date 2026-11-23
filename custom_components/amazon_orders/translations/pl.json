@@ -157,8 +157,17 @@
         "contents": {
           "name": "Zawartość",
           "description": "Co jest w paczce, własnymi słowami. Pusty tekst ją usuwa."
+        },
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Konto, dla którego zapisać wartość. Wymagane, gdy żadne konto jeszcze nie zna kodu."
         }
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Żadne konto nie zna tego kodu. Wybierz konto, dla którego go zapisać."
     }
   }
 }

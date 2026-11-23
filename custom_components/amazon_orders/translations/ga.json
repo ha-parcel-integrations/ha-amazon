@@ -157,8 +157,17 @@
         "contents": {
           "name": "Ábhar",
           "description": "Cad atá sa phacáiste, i d'fhocail féin. Glanann téacs folamh é."
+        },
+        "config_entry_id": {
+          "name": "Cuntas",
+          "description": "An cuntas ar chóir an luach a shábháil dó. Riachtanach nuair nach bhfuil an cód ar eolas ag aon chuntas go fóill."
         }
       }
+    }
+  },
+  "exceptions": {
+    "update_contents_entry_required": {
+      "message": "Níl an cód seo ar eolas ag aon chuntas. Roghnaigh an cuntas lena shábháil."
     }
   }
 }

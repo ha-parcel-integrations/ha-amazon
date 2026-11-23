@@ -190,6 +190,7 @@ HISTORY_MAX_EVENTS = 20
 CONF_HAND_OFF = "hand_off"
 CONF_TRACKING_CODE = "tracking_code"
 CONF_CONTENTS = "contents"
+CONF_CONFIG_ENTRY_ID = "config_entry_id"
 DEFAULT_HAND_OFF = True
 DOCS_CARRIERS_URL = "https://ha-parcel-integrations.github.io/carriers/"
 HAND_OFF_CARRIERS = {
