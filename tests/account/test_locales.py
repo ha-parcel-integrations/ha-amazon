@@ -30,6 +30,7 @@ from custom_components.amazon_orders.const import ParcelStatus
         ("Vandaag bezorgd", ParcelStatus.DELIVERED),
         ("Wordt vandaag bezorgd", ParcelStatus.OUT_FOR_DELIVERY),
         ("Wordt morgen bezorgd", ParcelStatus.IN_TRANSIT),
+        ("Wordt bezorgd op donderdag", ParcelStatus.IN_TRANSIT),
         ("Livré : 7 octobre", ParcelStatus.DELIVERED),
         ("Livré aujourd'hui", ParcelStatus.DELIVERED),
         (
@@ -61,6 +62,7 @@ def test_unknown_and_empty_text_classify_as_nothing():
     "text,kind",
     [
         ("Wordt bezorgd donderdag", ParcelStatus.IN_TRANSIT),
+        ("Wordt bezorgd op vrijdag", ParcelStatus.IN_TRANSIT),
         ("Wordt donderdag bezorgd", ParcelStatus.IN_TRANSIT),
         ("Geannuleerd", SKIP),
         ("Pas encore expédié", ParcelStatus.REGISTERED),
