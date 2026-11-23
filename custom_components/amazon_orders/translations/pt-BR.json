@@ -144,5 +144,21 @@
       "title": "{carrier} não está configurado",
       "description": "As encomendas da Amazon entregues por {carrier} podem ser repassadas à integração {carrier}, que mostra mais que a Amazon, como a janela de entrega e o histórico completo. Até ser configurada, elas continuam listadas aqui. Veja [a página de {carrier}]({url}) para adicioná-la, ou desative o repasse nas opções da Amazon."
     }
+  },
+  "services": {
+    "update_contents": {
+      "name": "Atualizar o conteúdo do pacote",
+      "description": "Defina o que há em um pacote, com suas próprias palavras, para um código de rastreamento. Um texto vazio apaga o conteúdo.",
+      "fields": {
+        "tracking_code": {
+          "name": "Código de rastreamento",
+          "description": "O código de rastreamento do pacote."
+        },
+        "contents": {
+          "name": "Conteúdo",
+          "description": "O que há no pacote, com suas próprias palavras. Um texto vazio o apaga."
+        }
+      }
+    }
   }
 }

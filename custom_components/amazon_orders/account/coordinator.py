@@ -36,6 +36,7 @@ from ..const import (
     STAGGER_MINUTES,
     ParcelStatus,
 )
+from ..contents import ContentsStore
 from ..handoff import HandOff
 from .client import AmazonClient
 from .errors import AmazonApiError, AmazonAuthError
@@ -185,6 +186,7 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         )
         self._client = client
         self.handoff = HandOff(hass, entry.entry_id, entry.options)
+        self.contents_store = ContentsStore(hass, entry.entry_id)
         # A delivered Business card names no shipment; what the client learnt
         # in flight must outlive a restart or the parcel changes barcode.
         self._business_store = business_lines_store(hass, entry.entry_id)
@@ -220,6 +222,14 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         self._cached_device_id: str | None = None
         # Timestamp of the last successful poll (diagnostic sensor).
         self.last_success_time: datetime | None = None
+
+    def _apply_contents(self, parcel: dict) -> dict:
+        """Put the user's own contents text over the carrier's, when there is one."""
+        barcode = parcel.get("barcode")
+        user_value = self.contents_store.get(barcode) if barcode else None
+        if user_value is not None:
+            parcel["contents"] = user_value
+        return parcel
 
     @property
     def current_tier_minutes(self) -> int | None:
@@ -371,7 +381,8 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
 
         include_history = self._include_history
         self._all_parcels = [
-            normalize_parcel(raw, include_history=include_history) for raw in raws
+            self._apply_contents(normalize_parcel(raw, include_history=include_history))
+            for raw in raws
         ]
         self.last_success_time = datetime.now(timezone.utc)
         return await self._async_publish()

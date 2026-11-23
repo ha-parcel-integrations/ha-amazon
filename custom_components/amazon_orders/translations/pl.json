@@ -144,5 +144,21 @@
       "title": "{carrier} nie jest skonfigurowany",
       "description": "Przesyłki Amazon dostarczane przez {carrier} można przekazać integracji {carrier}, która pokazuje więcej niż Amazon, np. okno dostawy i pełną historię. Dopóki nie zostanie skonfigurowana, pozostają na tej liście. Zobacz [stronę {carrier}]({url}), aby ją dodać, lub wyłącz przekazywanie w opcjach Amazon."
     }
+  },
+  "services": {
+    "update_contents": {
+      "name": "Zaktualizuj zawartość paczki",
+      "description": "Ustaw własnymi słowami, co jest w paczce o danym numerze śledzenia. Pusty tekst usuwa zawartość.",
+      "fields": {
+        "tracking_code": {
+          "name": "Numer śledzenia",
+          "description": "Numer śledzenia paczki."
+        },
+        "contents": {
+          "name": "Zawartość",
+          "description": "Co jest w paczce, własnymi słowami. Pusty tekst ją usuwa."
+        }
+      }
+    }
   }
 }

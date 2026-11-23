@@ -144,5 +144,21 @@
       "title": "{carrier} är inte inställt",
       "description": "Amazon-paket som levereras av {carrier} kan lämnas över till integrationen för {carrier}, som visar mer än Amazon, till exempel leveransfönstret och hela historiken. Tills den är inställd finns de kvar här. Se [sidan för {carrier}]({url}) för att lägga till den, eller stäng av överlämningen i Amazons alternativ."
     }
+  },
+  "services": {
+    "update_contents": {
+      "name": "Uppdatera paketets innehåll",
+      "description": "Ange vad som finns i ett paket, med dina egna ord, för ett spårningsnummer. En tom text rensar innehållet.",
+      "fields": {
+        "tracking_code": {
+          "name": "Spårningsnummer",
+          "description": "Paketets spårningsnummer."
+        },
+        "contents": {
+          "name": "Innehåll",
+          "description": "Vad som finns i paketet, med dina egna ord. En tom text rensar det."
+        }
+      }
+    }
   }
 }

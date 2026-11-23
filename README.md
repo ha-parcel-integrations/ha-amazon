@@ -191,6 +191,8 @@ Standard HA removal applies: **Settings → Devices & Services → Amazon → �
 
 A delivered parcel moves from its per-parcel sensor to the delivered sensor automatically.
 
+Each parcel's `contents` shows the titles of its order lines; the `amazon_orders.update_contents` action replaces that with your own text for a tracking code (an empty text clears it).
+
 ## Parcel status reference
 
 The `status` field is the carrier-agnostic enum shared by the whole integration family:

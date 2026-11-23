@@ -40,6 +40,7 @@ def _parcel(
         "barcode": barcode,
         "sender": "Sender",
         "receiver": None,
+        "contents": None,
         "status": status,
         "pickup": pickup,
         "planned_from": planned_from,
@@ -77,6 +78,13 @@ def test_next_delivery_picks_earliest():
     sensor = AmazonNextDeliverySensor(coordinator, _entry())
     assert sensor.native_value == datetime(2099, 5, 1, 10, 0, tzinfo=timezone.utc)
     assert sensor.extra_state_attributes["barcode"] == "B"
+
+
+def test_next_delivery_carries_the_contents():
+    parcel = _parcel("A", planned_from="2099-05-01T10:00:00Z")
+    parcel["contents"] = "Running shoes"
+    sensor = AmazonNextDeliverySensor(_coordinator([parcel]), _entry())
+    assert sensor.extra_state_attributes["contents"] == "Running shoes"
 
 
 def test_next_delivery_none_without_moments():

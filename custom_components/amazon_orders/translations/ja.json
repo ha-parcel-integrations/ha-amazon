@@ -144,5 +144,21 @@
       "title": "{carrier} が設定されていません",
       "description": "{carrier} が配送する Amazon の荷物は、{carrier} の連携に引き渡せます。連携では配達時間帯や完全な履歴など、Amazon より詳しい情報が表示されます。設定されるまで、荷物はここに表示されたままです。追加方法は [{carrier} のページ]({url}) を参照するか、Amazon のオプションで引き渡しをオフにしてください。"
     }
+  },
+  "services": {
+    "update_contents": {
+      "name": "荷物の内容を更新",
+      "description": "追跡番号に対して、荷物の中身を自分の言葉で設定します。空のテキストを指定すると消去されます。",
+      "fields": {
+        "tracking_code": {
+          "name": "追跡番号",
+          "description": "荷物の追跡番号。"
+        },
+        "contents": {
+          "name": "内容",
+          "description": "荷物の中身を、自分の言葉で入力します。空のテキストを指定すると消去されます。"
+        }
+      }
+    }
   }
 }

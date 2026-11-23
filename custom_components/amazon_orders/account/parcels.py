@@ -26,6 +26,7 @@ from ..const import (
     HISTORY_MAX_EVENTS,
     ParcelStatus,
 )
+from ..contents import join_contents
 from .locales import (
     DELIVERED_EVENTS,
     EVENTS,
@@ -461,6 +462,12 @@ def is_pickup(
     )
 
 
+def _contents(raw: dict) -> str | None:
+    """Return the order lines' titles of the shipment as one text."""
+    items = raw.get("items")
+    return join_contents(items) if isinstance(items, list) else None
+
+
 def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
     """Return a carrier-agnostic parcel dict with the shipment record as ``raw``.
 
@@ -468,7 +475,8 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
     suite returns exactly these, in this order. A key is ``None`` when Amazon
     does not expose it — never omitted. Amazon's pages carry no sender,
     receiver, weight or dimensions, and no pickup point name; the delivery window only
-    when the tracking page predicts one.
+    when the tracking page predicts one. ``contents`` is the titles of the order
+    lines, which the coordinator replaces with the user's own text when there is one.
     """
     status = resolve_status(raw)
     delivered = status is ParcelStatus.DELIVERED
@@ -487,6 +495,7 @@ def normalize_parcel(raw: dict, *, include_history: bool = False) -> dict:
         "barcode": _barcode(raw),
         "sender": None,
         "receiver": None,
+        "contents": _contents(raw),
         "status": status,
         "raw_status": _raw_status(raw),
         "delivered": delivered,

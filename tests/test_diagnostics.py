@@ -52,6 +52,7 @@ async def test_credentials_never_survive_diagnostics(hass):
 async def test_diagnostics_redacts_the_parcel_and_its_record(hass):
     """Diagnostics get pasted into public issues — nothing identifying may survive."""
     active = normalize_parcel(active_record(), include_history=True)
+    active["contents"] = "Running shoes"
     delivered = normalize_parcel(delivered_record())
 
     result = await async_get_config_entry_diagnostics(
@@ -71,6 +72,7 @@ async def test_diagnostics_redacts_the_parcel_and_its_record(hass):
     }
     parcel = result["incoming"][0]
     assert parcel["barcode"] == REDACTED
+    assert parcel["contents"] == REDACTED
     assert parcel["url"] == REDACTED
     raw = parcel["raw"]
     for key in (
@@ -92,7 +94,7 @@ async def test_diagnostics_redacts_the_parcel_and_its_record(hass):
     assert raw["carrier_code"] == "DRAGONFLY"
     assert raw["milestone"] == "IN_PROGRESS"
     text = str(result)
-    for secret in (ACTIVE_CODE, ORDER_ID, FAKE_CUSTOMER):
+    for secret in (ACTIVE_CODE, ORDER_ID, FAKE_CUSTOMER, "Running shoes"):
         assert secret not in text
 
 

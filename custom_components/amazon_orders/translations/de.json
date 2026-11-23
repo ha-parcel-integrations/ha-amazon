@@ -144,5 +144,21 @@
       "title": "{carrier} ist nicht eingerichtet",
       "description": "Amazon-Pakete, die {carrier} zustellt, können an die {carrier}-Integration weitergegeben werden, die mehr zeigt als Amazon, etwa das Zustellfenster und den vollständigen Verlauf. Bis sie eingerichtet ist, bleiben sie hier aufgelistet. Auf [der Seite zu {carrier}]({url}) steht, wie du sie hinzufügst, oder schalte das Weitergeben in den Amazon-Optionen aus."
     }
+  },
+  "services": {
+    "update_contents": {
+      "name": "Paketinhalt aktualisieren",
+      "description": "Lege für eine Sendungsnummer fest, was im Paket ist, in deinen eigenen Worten. Ein leerer Text löscht den Inhalt.",
+      "fields": {
+        "tracking_code": {
+          "name": "Sendungsnummer",
+          "description": "Die Sendungsnummer des Pakets."
+        },
+        "contents": {
+          "name": "Inhalt",
+          "description": "Was im Paket ist, in deinen eigenen Worten. Ein leerer Text löscht ihn."
+        }
+      }
+    }
   }
 }

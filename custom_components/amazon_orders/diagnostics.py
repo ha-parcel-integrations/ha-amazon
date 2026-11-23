@@ -25,6 +25,7 @@ TO_REDACT = {
     "barcode",
     "sender",
     "receiver",
+    "contents",
     "url",
     # fields of the shipment record
     "tracking_id",

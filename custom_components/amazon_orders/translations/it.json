@@ -144,5 +144,21 @@
       "title": "{carrier} non è configurato",
       "description": "I pacchi Amazon consegnati da {carrier} possono essere passati all'integrazione {carrier}, che mostra più di Amazon, come la fascia di consegna e la cronologia completa. Finché non è configurata restano elencati qui. Vedi [la pagina di {carrier}]({url}) per aggiungerla, oppure disattiva il passaggio nelle opzioni di Amazon."
     }
+  },
+  "services": {
+    "update_contents": {
+      "name": "Aggiorna il contenuto del pacco",
+      "description": "Imposta che cosa c'è in un pacco, con parole tue, per un codice di tracciamento. Un testo vuoto cancella il contenuto.",
+      "fields": {
+        "tracking_code": {
+          "name": "Codice di tracciamento",
+          "description": "Il codice di tracciamento del pacco."
+        },
+        "contents": {
+          "name": "Contenuto",
+          "description": "Che cosa c'è nel pacco, con parole tue. Un testo vuoto lo cancella."
+        }
+      }
+    }
   }
 }

@@ -144,5 +144,21 @@
       "title": "{carrier} is not set up",
       "description": "Amazon parcels delivered by {carrier} can be handed to the {carrier} integration, which shows more than Amazon does, such as the delivery window and the full history. Until it is set up they stay listed here. See [the {carrier} page]({url}) to add it, or turn off handing off in the Amazon options."
     }
+  },
+  "services": {
+    "update_contents": {
+      "name": "Update parcel contents",
+      "description": "Set what is in a parcel, in your own words, for a tracking code. An empty text clears it.",
+      "fields": {
+        "tracking_code": {
+          "name": "Tracking code",
+          "description": "The tracking code of the parcel."
+        },
+        "contents": {
+          "name": "Contents",
+          "description": "What is in the parcel, in your own words. An empty text clears it."
+        }
+      }
+    }
   }
 }

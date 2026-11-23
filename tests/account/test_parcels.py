@@ -382,6 +382,7 @@ CANONICAL_KEYS = [
     "barcode",
     "sender",
     "receiver",
+    "contents",
     "status",
     "raw_status",
     "delivered",
@@ -787,3 +788,31 @@ def test_a_late_promise_alone_is_not_delivered():
     raw = _untrackable_record(10)
     raw["page_state"]["exceptionStateIdentifier"] = "NOT_APPLICABLE"
     assert resolve_status(raw) is ParcelStatus.IN_TRANSIT
+
+
+def test_contents_joins_the_order_line_titles():
+    record = delivered_record()
+    record["items"] = ["Blue widget, large", " Red  widget ", "", "Blue widget, large"]
+    assert normalize_parcel(record)["contents"] == "Blue widget, large; Red widget"
+    assert record["items"][0] == "Blue widget, large"
+
+
+def test_contents_of_one_item_is_its_title():
+    record = delivered_record()
+    record["items"] = ["Example Widget, Blue"]
+    assert normalize_parcel(record)["contents"] == "Example Widget, Blue"
+
+
+def test_contents_is_cut_at_the_cap():
+    record = delivered_record()
+    record["items"] = ["x" * 100, "y" * 100]
+    assert len(normalize_parcel(record)["contents"]) <= 120
+
+
+@pytest.mark.parametrize("items", [[], [""], None, "Widget", 5])
+def test_contents_is_none_without_usable_items(items):
+    record = delivered_record()
+    record["items"] = items
+    assert normalize_parcel(record)["contents"] is None
+    del record["items"]
+    assert normalize_parcel(record)["contents"] is None

@@ -33,7 +33,15 @@ PLATFORMS = [Platform.BUTTON, Platform.CALENDAR, Platform.IMAGE, Platform.SENSOR
 # subset of this — it exists so a typo in CAPABILITIES fails a test instead of
 # silently dropping a carrier off a table on the docs site.
 KNOWN_CAPABILITIES = frozenset(
-    {"weight", "dimensions", "delivery_window", "pickup_point", "url", "history"}
+    {
+        "weight",
+        "dimensions",
+        "delivery_window",
+        "pickup_point",
+        "url",
+        "history",
+        "contents",
+    }
 )
 
 # Every value not listed here must come back as a literal ``None`` from
@@ -181,6 +189,7 @@ HISTORY_MAX_EVENTS = 20
 # track_parcel service.
 CONF_HAND_OFF = "hand_off"
 CONF_TRACKING_CODE = "tracking_code"
+CONF_CONTENTS = "contents"
 DEFAULT_HAND_OFF = True
 DOCS_CARRIERS_URL = "https://ha-parcel-integrations.github.io/carriers/"
 HAND_OFF_CARRIERS = {
