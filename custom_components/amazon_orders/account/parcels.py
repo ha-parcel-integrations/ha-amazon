@@ -337,12 +337,13 @@ def _delivered_at(raw: dict) -> str | None:
     ]
     if stamps:
         return max(stamps)[1]
+    day: date | None
     try:
         day = date.fromisoformat(str(raw.get("delivered_on")))
     except ValueError:
         day = assumed_delivered_on(raw)
-        if day is None:
-            return None
+    if day is None:
+        return None
     # A bare day is the user's day: midnight in Home Assistant's zone, not UTC.
     return dt_util.start_of_local_day(day).isoformat()
 
