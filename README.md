@@ -233,20 +233,20 @@ Things to know:
 
 ## Stops away
 
-While Amazon's own fleet has a parcel on its way to you, the tracking page counts the driver's remaining stops. The parcel sensor carries that number as `raw.stops_away` (`null` when Amazon shows no count), for example for a notification when the driver is close:
+While Amazon's own fleet has a parcel on its way to you, the tracking page counts the driver's remaining stops. The parcel sensor carries that number as `raw.stops_away` (`0` when Amazon says your parcel is the driver's next stop, `null` when Amazon shows no count), for example for a notification when the driver is close:
 
 ```yaml
 triggers:
   - trigger: template
     value_template: >-
-      {{ (state_attr('sensor.amazon_orders_parcel_<code>', 'raw') or {}).get('stops_away') in [1, 2, 3] }}
+      {{ (state_attr('sensor.amazon_orders_parcel_<code>', 'raw') or {}).get('stops_away') in [0, 1, 2, 3] }}
 ```
 
 Things to know:
 
 - **It is as fresh as the last poll.** Out-for-delivery parcels are polled every 15 minutes, so a driver can pass a few stops in between.
 - **A change in the count fires no event**, only the sensor updates.
-- **Only the German and English wording is read so far** ("8 Stopps entfernt", "8 stops away", amazon.de). Other wording is logged once as a warning, so it can be added.
+- **Only the German and English wording is read so far** ("8 Stopps entfernt", "Du bist der nächste Halt", "8 stops away", amazon.de). Other wording is logged once as a warning, so it can be added.
 
 ## Events
 

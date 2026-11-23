@@ -71,6 +71,7 @@ LOCALE = Locale(
     tracking_id_labels=("Tracking ID", "Tracking-ID", "TrackingID"),
     unnamed_carrier_headers=("delivery info",),
     stops_away=("stop away", "stops away"),
+    next_stop=("You're the next stop", "You are the next stop"),
     events={
         "package arrived at an amazon facility": ParcelStatus.IN_TRANSIT,
         "package departed an amazon facility": ParcelStatus.IN_TRANSIT,

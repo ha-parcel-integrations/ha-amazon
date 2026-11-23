@@ -342,6 +342,11 @@ def test_embedded_state_drops_the_third_party_map_key():
         (" 12  Stopps entfernt ", 12),
         ("5 stops away", 5),
         ("1 stop away", 1),
+        ("Du bist der nächste Halt", 0),
+        (" du bist der  nächste Halt. ", 0),
+        ("Sie sind der nächste Halt", 0),
+        ("You’re the next stop!", 0),
+        ("You are the next stop", 0),
     ],
 )
 def test_stops_away_is_read_from_the_live_map(callout, stops):
@@ -363,6 +368,12 @@ def test_unread_stop_wording_warns_once_without_its_digits(caplog):
     assert parse_track_page(page, TODAY).stops_away is None
     assert parse_track_page(page, TODAY).stops_away is None
     assert caplog.text.count('stop count as "Sie sind in # Stopps dran"') == 1
+
+
+def test_next_stop_wording_does_not_warn(caplog):
+    page = track_page(map_tracking={"calloutMessage": "Du bist der nächste Halt"})
+    assert parse_track_page(page, TODAY).stops_away == 0
+    assert "stop count" not in caplog.text
 
 
 def test_record_without_a_tracking_page_has_no_stop_count():

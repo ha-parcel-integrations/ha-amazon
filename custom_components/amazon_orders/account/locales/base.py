@@ -45,6 +45,8 @@ class Locale:
     unnamed_carrier_headers: tuple[str, ...] = ()
     # The live map's callout after the number: "3 stops away".
     stops_away: tuple[str, ...] = ()
+    # The whole callout when this parcel is the driver's next stop.
+    next_stop: tuple[str, ...] = ()
     # Timeline messages, lower case, without trailing "." or "!". Confirmed only.
     events: dict[str, ParcelStatus] = field(default_factory=dict)
     # A timeline message starting with one of these is a delivery.

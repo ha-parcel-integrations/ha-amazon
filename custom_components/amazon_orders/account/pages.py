@@ -22,6 +22,7 @@ from .locales import (
     ARRIVAL_PATTERNS,
     DELIVERY_BY,
     MONTHS,
+    NEXT_STOP,
     ORDER_PLACED,
     PAST_WEEKDAYS,
     SKIP,
@@ -152,6 +153,8 @@ _BUSINESS_FILTERS = {
 _STATE_DROP = {"hereMapsApiKey", "mapTracking"}
 # The live map's callout, seen on amazon.de only, in German and in English.
 _STOPS_RE = re.compile(r"(\d+)\s" + STOPS_AWAY, re.IGNORECASE)
+# "You're the next stop": no stops left before this parcel.
+_NEXT_STOP_RE = re.compile(NEXT_STOP + r"[.!]?", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -535,13 +538,19 @@ def _page_state(page: str) -> dict[str, Any]:
 
 
 def _stops_away(state: dict[str, Any]) -> int | None:
-    """Return how many stops the driver has left before this parcel, if shown."""
+    """Return how many stops the driver has left before this parcel, if shown.
+
+    The callout that names this parcel as the next stop counts as 0.
+    """
     tracking = state.get("mapTracking")
     callout = tracking.get("calloutMessage") if isinstance(tracking, dict) else None
     if not isinstance(callout, str) or not callout.strip():
         return None
-    if match := _STOPS_RE.fullmatch(" ".join(callout.split())):
+    text = " ".join(callout.split()).replace("’", "'")
+    if match := _STOPS_RE.fullmatch(text):
         return int(match.group(1))
+    if _NEXT_STOP_RE.fullmatch(text):
+        return 0
     warn_once(
         f"stops-callout={_mask(callout)}",
         f'Amazon showed the stop count as "{_mask(callout)}", in wording we cannot'
