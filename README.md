@@ -11,9 +11,6 @@
 
 A custom Home Assistant integration that tracks your [Amazon](https://www.amazon.com) orders. Sign in to your own Amazon account once, and every shipment of your recent orders is imported automatically — no tracking codes to enter. Add the integration once per Amazon country and account you shop with.
 
-> [!WARNING]
-> **Pre-1.0.** This integration reads your own Amazon account the way you see it when signed in, not an official tracking service. Amazon can change how that works, or change its sign-in, at any time, in which case updates fail until the integration is updated, and you may be asked to sign in again. Delivered parcels have been confirmed everywhere, parcels still on their way so far only on amazon.fr; elsewhere their statuses are mapped from the tracking timeline, and an unrecognised status shows as `unknown` and logs a warning with a link to report it.
-
 Built on the [ha-parcel-integrations](https://ha-parcel-integrations.github.io/) format: it publishes the same canonical parcel format, statuses and events as the other carrier integrations, so it plugs straight into the [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator) and cross-carrier automations.
 
 ## Contents
