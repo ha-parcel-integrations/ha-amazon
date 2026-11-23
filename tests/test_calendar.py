@@ -49,6 +49,22 @@ def test_event_returns_earliest_upcoming():
     assert event.summary == "Example Sender"
 
 
+def test_contents_become_the_event_title():
+    parcel = _parcel("A", planned_from="2099-01-01T10:00:00Z")
+    parcel["contents"] = "Example kettle, Example mug"
+    assert _cal([parcel]).event.summary == "Example kettle, Example mug"
+
+
+def test_no_contents_keeps_the_old_title():
+    parcel = _parcel("A", planned_from="2099-01-01T10:00:00Z")
+    parcel["contents"] = None
+    assert _cal([parcel]).event.summary == "Example Sender"
+    parcel["sender"] = None
+    assert _cal([parcel]).event.summary == "Parcel A"
+    parcel["barcode"] = None
+    assert _cal([parcel]).event.summary == "Amazon parcel"
+
+
 def test_event_none_when_no_planned():
     assert _cal([_parcel("A")]).event is None
 

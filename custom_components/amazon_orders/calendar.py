@@ -83,8 +83,10 @@ class AmazonDeliveriesCalendar(CoordinatorEntity[AmazonCoordinator], CalendarEnt
                 event_start, event_end = days
 
             barcode = parcel.get("barcode") or ""
-            sender = parcel.get("sender")
-            summary = sender or (f"Parcel {barcode}" if barcode else "Amazon parcel")
+            # Amazon has no sender, so the item titles are the only text that
+            # tells one order's event from another's.
+            fallback = f"Parcel {barcode}" if barcode else "Amazon parcel"
+            summary = parcel.get("contents") or parcel.get("sender") or fallback
             description_parts = [
                 f"Barcode: {barcode}" if barcode else None,
                 f"Status: {parcel.get('status')}" if parcel.get("status") else None,
