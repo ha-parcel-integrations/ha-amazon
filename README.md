@@ -134,6 +134,10 @@ right.
   has more than one account to choose from), a warning in the log says so, and
   the parcel stays listed here. Add the number to that integration by hand if
   you want it tracked there.
+- The parcel's `contents` (the item titles, or your own text from
+  `amazon_orders.update_contents`) goes along, so the carrier integration shows
+  what is inside. A change made here after the hand-over does not follow; set it
+  in the carrier integration instead.
 - Once handed over, a parcel belongs to the carrier integration, which also
   follows a return and removes the parcel after its own retention period.
 

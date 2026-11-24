@@ -342,6 +342,11 @@ which exposes more (delivery window, pickup point, full history).
   cleans it up through its own retention. Inferring "cancelled" from a code
   leaving the order list is wrong here: after a restart the capped fan-out
   lists only part of the shipments, which would untrack and re-hand parcels.
+- **`contents` goes with the hand-off** (the item titles, or the user's own
+  `update_contents` value), left out when empty: the parcel is hidden here
+  from then on. Every carrier in `HAND_OFF_CARRIERS` must take `contents` on
+  `track_parcel`, or the call is refused and the parcel stays here. A later
+  `update_contents` here is not pushed on: the carrier is the authority.
 - **Handed-off codes are remembered** per entry (code -> domain + hand-off
   time), so the service is not called every poll and the parcel stays hidden
   here. A code is forgotten only when it is missing from the order list

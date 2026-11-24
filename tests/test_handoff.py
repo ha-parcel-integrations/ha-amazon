@@ -31,6 +31,7 @@ PARCELS = (
 )
 DRAGONFLY_CODE = ACTIVE_CODE
 DHL_CODE = "AMZNL000000000003"
+CONTENTS = "Example Widget, Blue"
 
 
 def _record(code: str = ACTIVE_CODE, carrier_code: str | None = "DRAGONFLY") -> dict:
@@ -91,7 +92,7 @@ async def test_a_parcel_is_handed_off_once_and_hidden_here(hass):
     track = _register(hass, "dragonfly", "track_parcel")
     entry, fetch = await _setup(hass, [_record()])
 
-    assert track == [{"tracking_code": DRAGONFLY_CODE}]
+    assert track == [{"tracking_code": DRAGONFLY_CODE, "contents": CONTENTS}]
     assert _incoming(hass) == "0"
 
     # Remembered, so the next poll neither calls the service nor shows it again.
@@ -159,7 +160,7 @@ async def test_missing_carrier_raises_one_issue_per_carrier_domain(hass):
     await _refresh(hass, entry, fetch, [_record(DRAGONFLY_CODE)])
     assert registry.async_get_issue(DOMAIN, issue_id("dragonfly")) is None
     assert registry.async_get_issue(DOMAIN, issue_id("dhl")) is not None
-    assert track == [{"tracking_code": DRAGONFLY_CODE}]
+    assert track == [{"tracking_code": DRAGONFLY_CODE, "contents": CONTENTS}]
 
 
 async def test_an_account_integration_covering_the_carrier_raises_no_issue(hass):
@@ -303,7 +304,7 @@ async def test_nothing_is_handed_off_before_home_assistant_started(hass, caplog)
     hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
     await hass.async_block_till_done()
 
-    assert track == [{"tracking_code": DRAGONFLY_CODE}]
+    assert track == [{"tracking_code": DRAGONFLY_CODE, "contents": CONTENTS}]
     assert _incoming(hass) == "1"
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id("dhl")) is not None
 
@@ -376,3 +377,26 @@ async def test_removing_the_entry_forgets_the_stored_state(hass):
 
     assert await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
+
+
+async def test_a_parcel_without_contents_is_handed_off_with_the_code_only(hass):
+    track = _register(hass, "dragonfly", "track_parcel")
+    record = _record()
+    record["items"] = []
+    await _setup(hass, [record])
+    assert track == [{"tracking_code": DRAGONFLY_CODE}]
+
+
+async def test_the_users_own_contents_go_with_the_hand_off(hass):
+    track = _register(hass, "dragonfly", "track_parcel")
+    hass.set_state(CoreState.starting)
+    entry, fetch = await _setup(hass, [_record()])
+    entry.runtime_data.coordinator.contents_store.async_set(
+        DRAGONFLY_CODE, "Birthday present"
+    )
+    await _refresh(hass, entry, fetch, [_record()])
+    assert track == []
+    hass.set_state(CoreState.running)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await hass.async_block_till_done()
+    assert track == [{"tracking_code": DRAGONFLY_CODE, "contents": "Birthday present"}]

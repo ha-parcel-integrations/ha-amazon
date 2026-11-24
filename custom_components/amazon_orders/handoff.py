@@ -19,6 +19,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_CONTENTS,
     CONF_HAND_OFF,
     CONF_TRACKING_CODE,
     DEFAULT_HAND_OFF,
@@ -105,11 +106,15 @@ class HandOff:
         """Forget the stored state when the entry is removed."""
         await self._store.async_remove()
 
-    async def _track(self, domain: str, code: str) -> bool:
+    async def _track(self, domain: str, code: str, contents: str | None) -> bool:
         """Hand a code to the carrier; ``False`` when the carrier refused it."""
+        data = {CONF_TRACKING_CODE: code}
+        # The parcel is hidden here once handed off, so the carrier keeps the titles.
+        if contents:
+            data[CONF_CONTENTS] = contents
         try:
             await self._hass.services.async_call(
-                domain, SERVICE_TRACK_PARCEL, {CONF_TRACKING_CODE: code}, blocking=True
+                domain, SERVICE_TRACK_PARCEL, data, blocking=True
             )
         except HomeAssistantError as err:
             _LOGGER.warning(
@@ -190,7 +195,7 @@ class HandOff:
             if not self._hass.services.has_service(target, SERVICE_TRACK_PARCEL):
                 needed.add(target)
                 shown.append(parcel)
-            elif await self._track(target, code):
+            elif await self._track(target, code, parcel.get("contents")):
                 self._handed[code] = {
                     "domain": target,
                     "since": dt_util.utcnow().isoformat(),
