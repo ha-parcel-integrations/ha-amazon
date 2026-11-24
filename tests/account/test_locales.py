@@ -40,6 +40,9 @@ from custom_components.amazon_orders.const import ParcelStatus
         ("Arrive demain", ParcelStatus.IN_TRANSIT),
         ("Annulé(s)", SKIP),
         ("Llega hoy", ParcelStatus.IN_TRANSIT),
+        ("Llega mañana", ParcelStatus.IN_TRANSIT),
+        ("Llegará el 27 de noviembre", ParcelStatus.IN_TRANSIT),
+        ("Entregado el 21 de noviembre", ParcelStatus.DELIVERED),
     ],
 )
 def test_confirmed_wording(text, kind):

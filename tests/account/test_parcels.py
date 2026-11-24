@@ -227,6 +227,9 @@ def test_only_recognised_not_yet_dispatched_text_is_registered(caplog):
         ("Delivered 3 October", ParcelStatus.DELIVERED),
         ("Livré : 7 octobre", ParcelStatus.DELIVERED),
         ("Livré aujourd'hui", ParcelStatus.DELIVERED),
+        # #48: amazon.es.
+        ("Entregado el 21 de noviembre", ParcelStatus.DELIVERED),
+        ("Llegará el 27 de noviembre", ParcelStatus.IN_TRANSIT),
         (
             "Arrive aujourd'hui dans la tranche horaire suivante : 14:00 - 16:30",
             ParcelStatus.OUT_FOR_DELIVERY,
@@ -246,7 +249,7 @@ def test_confirmed_order_text_resolves_silently(text, expected, caplog):
     [
         ("Out for delivery", ParcelStatus.OUT_FOR_DELIVERY),
         ("Verwacht 3 oktober", ParcelStatus.IN_TRANSIT),
-        ("Entregado el 3 de octubre", ParcelStatus.DELIVERED),
+        ("En reparto", ParcelStatus.OUT_FOR_DELIVERY),
         ("Nog niet verzonden", ParcelStatus.REGISTERED),
     ],
 )

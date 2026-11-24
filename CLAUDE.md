@@ -128,8 +128,9 @@ the structured state a response carries over anything meant for display.
   returned and refunded lines are skipped at parse time. The vocabulary has a
   confirmed table (English, plus the Dutch seen on amazon.com.be, the French
   seen on amazon.fr, the German delivered wording a reporter confirmed on
-  amazon.de, and amazon.es's `llega`, which is `in_transit` like `arriving`
-  because it shows before the parcel leaves the depot, #48) and a separate
+  amazon.de, and amazon.es's `llega`/`llegará`, which are `in_transit` like
+  `arriving` because they show before the parcel leaves the depot, and
+  `entregado`, #48) and a separate
   plausible table (the other languages and the unseen wording): resolving through a plausible entry logs a
   one-shot confirmation request, and an entry moves to confirmed only once a real
   line shows it. Milestones and short statuses are mapped only once a
@@ -177,7 +178,9 @@ the structured state a response carries over anything meant for display.
   `Zustellung: <Wochentag>` (#27, colon optional) for the next such weekday,
   today included, `Ankunft`/`Zustellung` + `heute`/`morgen`, and
   `Zustellung: 20. Oktober` or `Zustellung: 20. Oktober - 21. Oktober`;
-  amazon.es's `Llega hoy` (#48);
+  amazon.es's `Llega hoy`/`Llega mañana` and `Llegará el 27 de noviembre`,
+  a weekday ahead of the day allowed (#48: the reporter described its shape,
+  not a verbatim line);
   matched whole so a timed line never qualifies) gives a
   whole-day window, 00:00 to 23:59:59 in the page's zone, else the HA zone
   `read_at` carries; the calendar shows it as an all-day event (#43). The timed window wins when both exist. A timed order
@@ -188,8 +191,8 @@ the structured state a response carries over anything meant for display.
   An order line starting with a locale's `arrival_leads` (English
   `arriving`, Spanish `llega`, which also catches `llegará`) that gives no
   day warns once, masked. Only the wording a
-  real line has shown: `am <date>` is deliberately not read, `Llega mañana` /
-  `Llegará el …` wait for a real line, and no other language is. The two
+  real line has shown: `am <date>` is deliberately not read, and no other
+  language is. The two
   weekday fields are separate on purpose — `upcoming_weekdays` names days
   ahead, `past_weekdays` the past weekday a delivered line can carry. No structured date exists to prefer: an in-flight tracking page's
   `promise.promiseMessage` carries the same text as the order line
@@ -327,7 +330,8 @@ which exposes more (delivery window, pickup point, full history).
 - **Hand off only when `hass.services.has_service(domain, "track_parcel")`**,
   and only after `EVENT_HOMEASSISTANT_STARTED`: during startup the carrier may
   not have registered its service yet, which would read as "not installed".
-- **Never handed off:** `carrier: "Amazon"` (Amazon Logistics) and any parcel
+- **Never handed off:** `carrier: "Amazon"` (Amazon Logistics; amazon.es's
+  header `Enviado con Amazon` reads as it, #48) and any parcel
   without a real tracking id (`raw["barcode_source"]` stand-in).
 - **The shop always falls back to showing the parcel itself.** A parcel only
   disappears from this integration once the carrier accepted it. Nothing is

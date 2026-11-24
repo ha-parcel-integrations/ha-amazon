@@ -421,6 +421,12 @@ def test_carrier_header_is_kept_when_its_wording_is_not_read():
     assert info.carrier_header == "Delivery By DHL_CONNECT"
 
 
+def test_enviado_con_amazon_names_amazon_logistics():
+    # #48: the amazon.es header for a parcel Amazon delivers itself.
+    info = parse_track_page(track_page(carrier_header="Enviado con Amazon"), TODAY)
+    assert info.carrier_code == "Amazon"
+
+
 def test_intelcom_is_aliased_to_dragonfly():
     info = parse_track_page(track_page(carrier="Intelcom"), TODAY)
     assert info.carrier_code == "DRAGONFLY"
@@ -1361,6 +1367,16 @@ ARRIVAL_TODAY = date(2026, 10, 25)
         ("Llega hoy", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
         ("llega  HOY", (ARRIVAL_TODAY, ARRIVAL_TODAY)),
         ("Llega hoy 14:00 - 18:00", None),
+        ("Llega mañana", (date(2026, 10, 26), date(2026, 10, 26))),
+        ("Llega MAÑANA", (date(2026, 10, 26), date(2026, 10, 26))),
+        ("Llegará el 27 de noviembre", (date(2026, 11, 27), date(2026, 11, 27))),
+        (
+            "Llegará el jueves, 27 de noviembre",
+            (date(2026, 11, 27), date(2026, 11, 27)),
+        ),
+        ("Llegará el 3 de enero", (date(2027, 1, 3), date(2027, 1, 3))),
+        ("Llegará el 31 de febrero", None),
+        ("Llegará el 3 de foo", None),
         (None, None),
     ],
 )
@@ -1462,9 +1478,17 @@ def test_a_spanish_llega_hoy_line_keeps_its_window_after_a_tracking_event(caplog
 
 def test_an_unread_spanish_llega_line_warns_once(caplog):
     for _ in range(2):
-        parcel = _arrival_record("Llega mañana")
+        parcel = _arrival_record("Llega pronto")
         assert parcel["planned_from"] is None
-    assert caplog.text.count('"Llega mañana", in wording we cannot read') == 1
+    assert caplog.text.count('"Llega pronto", in wording we cannot read') == 1
+
+
+def test_a_spanish_llega_manana_line_gives_tomorrow_as_a_whole_day(caplog):
+    # #48: amazon.es, the day before delivery.
+    parcel = _arrival_record("Llega mañana")
+    assert parcel["planned_from"] == "2026-11-20T00:00:00+01:00"
+    assert parcel["planned_to"] == "2026-11-20T23:59:59+01:00"
+    assert "cannot read" not in caplog.text
 
 
 def test_a_german_zustellung_weekday_line_gives_a_whole_day_window():
