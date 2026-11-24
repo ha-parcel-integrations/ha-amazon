@@ -185,8 +185,9 @@ HISTORY_MAX_EVENTS = 20
 # Hand-off to carrier integrations: this integration is a shop, so a parcel a
 # suite carrier delivers is passed on to that carrier's integration, which
 # exposes more. Amazon's carrier_code -> (HA domain, name, page on the docs
-# site). DHL goes to ``dhl``, never ``dhl_nl``, because only ``dhl`` has the
-# track_parcel service.
+# site), keyed in lower case because Amazon's casing of a code varies. DHL goes
+# to ``dhl``, never ``dhl_nl``, because only ``dhl`` has the track_parcel
+# service.
 CONF_HAND_OFF = "hand_off"
 CONF_TRACKING_CODE = "tracking_code"
 CONF_CONTENTS = "contents"
@@ -194,11 +195,13 @@ CONF_CONFIG_ENTRY_ID = "config_entry_id"
 DEFAULT_HAND_OFF = True
 DOCS_CARRIERS_URL = "https://ha-parcel-integrations.github.io/carriers/"
 HAND_OFF_CARRIERS = {
-    "DHL_CONNECT": ("dhl", "DHL", "dhl"),
-    "COLIS_PRIVE_BELU": ("colis_prive", "Colis Privé", "colis-prive"),
-    "DRAGONFLY": ("dragonfly", "Dragonfly", "dragonfly"),
+    "dhl_connect": ("dhl", "DHL", "dhl"),
+    "colis_prive_belu": ("colis_prive", "Colis Privé", "colis-prive"),
+    "dragonfly": ("dragonfly", "Dragonfly", "dragonfly"),
+    "bpost": ("bpost", "bpost", "bpost"),
 }
 # Account-based integrations that already list the carrier's parcels without a
-# hand-off: with one of them set up, the carrier is not "missing".
-HAND_OFF_COVERED_BY = {"dhl": ("dhl_nl",)}
+# hand-off: with one of them set up, the carrier is not "missing". A bpost
+# account entry shares the bpost domain but has no track_parcel service.
+HAND_OFF_COVERED_BY = {"dhl": ("dhl_nl",), "bpost": ("bpost",)}
 SERVICE_TRACK_PARCEL = "track_parcel"

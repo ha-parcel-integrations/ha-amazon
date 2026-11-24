@@ -113,7 +113,9 @@ So when a carrier has its own integration in the
 [ha-parcel-integrations](https://ha-parcel-integrations.github.io/carriers/)
 family and you have it set up, this integration hands the parcel over to it and
 stops listing it, so you do not see it twice. Today that covers
-**DHL** (the `dhl` integration), **Colis Privé** and **Dragonfly**.
+**DHL** (the `dhl` integration), **Colis Privé**, **Dragonfly** and **bpost**
+(a bpost hub set up for your postal code; with only a My bpost account the
+parcel stays listed here as well).
 
 On amazon.fr, a tracking page sometimes names no courier at all. When its
 tracking number has the Colissimo shape (a digit, a letter, then 11 digits), the

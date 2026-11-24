@@ -69,15 +69,17 @@ _SHORT_STATUS_MAP: dict[str, ParcelStatus] = {
 UNTRACKABLE_EXPECTED_DELIVERED = "UNTRACKABLE_STILL_EXPECTED_DELIVERED"
 UNTRACKABLE_GRACE = timedelta(days=3)
 
+# Keyed in lower case: Amazon's casing of a carrier code varies.
 _CARRIER_NAMES = {
-    "DRAGONFLY": "Dragonfly",
-    "DHL_CONNECT": "DHL",
+    "dragonfly": "Dragonfly",
+    "dhl_connect": "DHL",
     # DPD Germany (#41).
-    "DPDDE": "DPD",
-    "Amazon": "Amazon",
-    "COLIS_PRIVE_BELU": "Colis Privé",
+    "dpdde": "DPD",
+    "amazon": "Amazon",
+    "colis_prive_belu": "Colis Privé",
     # Not an Amazon code: guessed from the tracking id (pages._guess_carrier).
-    "LA_POSTE": "La Poste",
+    "la_poste": "La Poste",
+    "bpost": "bpost",
 }
 
 # Status texts we have already warned about, so each unmapped one is logged
@@ -306,7 +308,7 @@ def _carrier(raw: dict) -> str:
                 " find; please share which carrier the page shows.",
             )
         return "Amazon"
-    name = _CARRIER_NAMES.get(code)
+    name = _CARRIER_NAMES.get(str(code).lower())
     if name is None:
         warn_once(
             f"carrier={code}",

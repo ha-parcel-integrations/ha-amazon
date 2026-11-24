@@ -311,7 +311,10 @@ which exposes more (delivery window, pickup point, full history).
   handed off and shows those parcels here again; it untracks nothing.
 - **Mapping is a fixed table** from Amazon `carrier_code` to HA domain
   (`DHL_CONNECT -> dhl`, `COLIS_PRIVE_BELU -> colis_prive`,
-  `DRAGONFLY -> dragonfly`). DHL goes to `dhl`, never `dhl_nl` (no
+  `DRAGONFLY -> dragonfly`, `BPOST -> bpost`), looked up in lower case
+  because Amazon's casing of a code varies. `_CARRIER_NAMES` is keyed the
+  same way and gives the carrier's own spelling (`bpost`, not the title-case
+  fallback `Bpost`), so the aggregator's dedupe matches. DHL goes to `dhl`, never `dhl_nl` (no
   `track_parcel` there). `DPDDE` (DPD Germany, #41) is named `DPD` but
   deliberately not in the table: `dpd.track_parcel` only adds to a myDPD app
   account and refuses DPD Germany, so a German user would get a Repair issue
@@ -357,8 +360,10 @@ which exposes more (delivery window, pickup point, full history).
   service appears, or with the last Amazon entry, never when the parcels
   needing it go away (that would re-nag a user who ignored it).
 - **Covered by an account-based sibling:** `HAND_OFF_COVERED_BY` (`dhl` ->
-  `dhl_nl`) means a set-up `dhl_nl` entry stops the `dhl` Repair issue (and
-  clears a raised one). The parcel is still shown here, not handed off; the
+  `dhl_nl`, `bpost` -> `bpost`) means a set-up `dhl_nl` entry stops the `dhl`
+  Repair issue (and clears a raised one). A bpost account shares the `bpost`
+  domain but only a postal-code hub registers `track_parcel`, so any bpost
+  entry covers it. The parcel is still shown here, not handed off; the
   aggregator de-duplicates.
 - **Carrier in the suite without `track_parcel`** (account-based: PostNL, DPD,
   …): no hand-off, no Repair issue. The carrier account already shows the

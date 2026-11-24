@@ -560,6 +560,10 @@ def test_carrier_names(caplog):
     assert normalize_parcel(raw)["carrier"] == "DPD"
     raw["carrier_code"] = "Amazon"
     assert normalize_parcel(raw)["carrier"] == "Amazon"
+    # Amazon's casing of a code varies; the name is the carrier's own spelling.
+    for code in ("BPOST", "Bpost", "bpost"):
+        raw["carrier_code"] = code
+        assert normalize_parcel(raw)["carrier"] == "bpost"
     assert "carrier_code=" not in caplog.text
     raw["carrier_code"] = "SOME_NEW_CARRIER"
     assert normalize_parcel(raw)["carrier"] == "Some New Carrier"

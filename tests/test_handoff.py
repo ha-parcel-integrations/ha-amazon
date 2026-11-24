@@ -118,6 +118,28 @@ async def test_each_carrier_gets_its_own_service_call(hass):
     assert [c["tracking_code"] for c in colis] == ["AMZNL000000000004"]
 
 
+async def test_a_bpost_parcel_goes_to_bpost_whatever_amazon_s_casing(hass):
+    bpost = _register(hass, "bpost", "track_parcel")
+    await _setup(
+        hass,
+        [_record("AMZNL000000000006", "BPOST"), _record("AMZNL000000000007", "Bpost")],
+    )
+    assert [c["tracking_code"] for c in bpost] == [
+        "AMZNL000000000006",
+        "AMZNL000000000007",
+    ]
+    assert _incoming(hass) == "0"
+
+
+async def test_a_bpost_account_raises_no_issue_and_keeps_the_parcel_here(hass):
+    MockConfigEntry(domain="bpost").add_to_hass(hass)
+    await _setup(hass, [_record("AMZNL000000000006", "BPOST")])
+
+    # The account lists the parcel itself; the aggregator de-duplicates.
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id("bpost")) is None
+    assert _incoming(hass) == "1"
+
+
 async def test_a_guessed_carrier_is_shown_here_not_handed_off(hass):
     laposte = _register(hass, "laposte", "track_parcel")
     record = _record("6A00000000001", "LA_POSTE")

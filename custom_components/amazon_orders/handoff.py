@@ -61,7 +61,7 @@ def _hand_off_target(parcel: dict[str, Any]) -> str | None:
     # A wrong guess would hide the parcel here and strand it at the carrier.
     if raw.get("carrier_guessed"):
         return None
-    target = HAND_OFF_CARRIERS.get(raw.get("carrier_code"))
+    target = HAND_OFF_CARRIERS.get(str(raw.get("carrier_code")).lower())
     return target[0] if target else None
 
 
