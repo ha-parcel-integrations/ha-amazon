@@ -479,6 +479,28 @@ async def test_order_lines_of_one_shipment_cost_one_read():
     assert sum("pop?" in url for url in _gets(session)) == 1
 
 
+async def test_shipments_sharing_one_tracking_id_are_one_parcel():
+    session = _session(
+        _active_tile("SHIPactive1", line_item="lineitem0001"),
+        _active_tile("SHIPactive2", line_item="lineitem0002", title="Second item"),
+    )
+    _shipment(session, "SHIPactive1", milestone="IN_PROGRESS")
+    _shipment(session, "SHIPactive2", milestone="IN_PROGRESS")
+    session.add(
+        "GET",
+        "lineItemId=lineitem0002&shipmentId=SHIPactive2",
+        FakeResponse(200, pop_page(track_path("SHIPactive2"))),
+    )
+    client = _client(session)
+
+    (record,) = await client.async_get_parcels()
+    (again,) = await client.async_get_parcels()
+
+    assert record["tracking_id"] == ACTIVE_CODE
+    assert again["items"] == ["Example Widget, Blue", "Second item"]
+    assert again["line_item_ids"] == ["lineitem0001", "lineitem0002"]
+
+
 async def test_today_is_home_assistant_s_day_not_the_os_s(monkeypatch):
     # 23:30 UTC is already the next day in Amsterdam.
     monkeypatch.setattr(
@@ -539,7 +561,9 @@ async def test_a_poll_follows_at_most_the_capped_number_of_shipments(monkeypatch
     shipments = [f"SHIP{n:07d}" for n in range(5)]
     session = _session(*(_active_tile(s) for s in shipments))
     for shipment in shipments:
-        _shipment(session, shipment, milestone="IN_PROGRESS")
+        _shipment(
+            session, shipment, milestone="IN_PROGRESS", tracking_id=f"TBA{shipment}"
+        )
     client = _client(session)
 
     first = await client.async_get_parcels()
@@ -1216,10 +1240,18 @@ async def test_delivered_business_cards_do_not_use_up_the_page_loads():
         )
     )
     _business_track(
-        session, "SHIPab00001", milestone="SHIPPED", short_status="IN_TRANSIT"
+        session,
+        "SHIPab00001",
+        milestone="SHIPPED",
+        short_status="IN_TRANSIT",
+        tracking_id="TBA000000001",
     )
     _business_track(
-        session, "SHIPab00002", milestone="SHIPPED", short_status="IN_TRANSIT"
+        session,
+        "SHIPab00002",
+        milestone="SHIPPED",
+        short_status="IN_TRANSIT",
+        tracking_id="TBA000000002",
     )
 
     records = await AmazonClient("amazon.fr", "refresh", session).async_get_parcels()

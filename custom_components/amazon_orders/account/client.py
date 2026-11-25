@@ -375,6 +375,32 @@ class AmazonClient:
             self._photo_urls[_record_shipment(record)] = track.delivery_photo_url
         return record
 
+    def _merge_shared_tracking(
+        self, records: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Fold shipments Amazon lists apart but ships in one parcel (#54)."""
+        merged: list[dict[str, Any]] = []
+        by_code: dict[str, dict[str, Any]] = {}
+        for record in records:
+            code = record.get("tracking_id")
+            if not code or code not in by_code:
+                if code:
+                    # A copy, so the cached record does not grow every poll.
+                    record = {**record, "items": list(record["items"])}
+                    by_code[code] = record
+                merged.append(record)
+                continue
+            kept = by_code[code]
+            kept["items"].extend(record["items"])
+            kept["line_item_ids"] = [
+                *kept["line_item_ids"],
+                *(i for i in record["line_item_ids"] if i not in kept["line_item_ids"]),
+            ]
+            photo = self._photo_urls.get(_record_shipment(record))
+            if photo:
+                self._photo_urls.setdefault(_record_shipment(kept), photo)
+        return merged
+
     def delivery_photo_url(self, shipment: tuple[Any, Any, Any]) -> str | None:
         """Return the delivery photo's link for a shipment, if its page had one."""
         return self._photo_urls.get(shipment)
@@ -486,6 +512,7 @@ class AmazonClient:
                 records.append(self._final[key])
             elif key in self._last:
                 records.append(self._last[key][0])
+        records = self._merge_shared_tracking(records)
         listed = {_record_shipment(record) for record in records}
         self._photo_urls = {
             shipment: url

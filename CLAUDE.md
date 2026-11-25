@@ -119,6 +119,9 @@ the structured state a response carries over anything meant for display.
   twice. After a restart the capped fan-out needs a few polls to read every
   shipment again; until `client.listing_complete`, a barcode that turns up
   counts as already known, so a busy account is not flooded with `registered`.
+  Two shipments that come back with the same tracking id are one parcel
+  (#54, amazon.de): the first listed keeps its record and gains the other's
+  items and line ids, so one code never yields two entities.
 - **Status resolution:** milestone, else the tracking page's `shortStatus`
   (language-independent; an unmapped value warns once like a milestone), else
   newest mappable timeline event, else order-line text (`account/locales/`), else `unknown` + one warning. A line
