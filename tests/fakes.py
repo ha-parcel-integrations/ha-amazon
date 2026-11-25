@@ -92,5 +92,7 @@ def fake_client() -> AsyncMock:
     client.business_lines = []
     client.listing_complete = True
     client.restore_business_lines = MagicMock()
+    client.track_paths = []
+    client.restore_track_paths = MagicMock()
     client.delivery_photo_url = MagicMock(return_value=None)
     return client

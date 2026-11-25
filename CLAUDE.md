@@ -122,6 +122,12 @@ the structured state a response carries over anything meant for display.
   Two shipments that come back with the same tracking id are one parcel
   (#54, amazon.de): the first listed keeps its record and gains the other's
   items and line ids, so one code never yields two entities.
+  A delivered line's page may link no tracking page (amazon.de), so the client
+  remembers each shipment's tracking page from its in-flight reads (keyed on
+  order, shipment and package) and follows it once delivered; without it the
+  parcel fell back to the stand-in, lost its tracking id, its photo and the
+  `delivered` event. The memory is persisted next to the Business lines (same
+  store, key `track_paths`), pruned to listed shipments, never by an empty list.
 - **Status resolution:** milestone, else the tracking page's `shortStatus`
   (language-independent; an unmapped value warns once like a milestone), else
   newest mappable timeline event, else order-line text (`account/locales/`), else `unknown` + one warning. A line

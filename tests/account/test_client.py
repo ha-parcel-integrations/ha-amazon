@@ -581,6 +581,85 @@ async def test_a_poll_follows_at_most_the_capped_number_of_shipments(monkeypatch
     assert [r["shipment_id"] for r in third] == shipments
 
 
+def _turning_delivered(shipment: str) -> FakeSession:
+    """An in-flight line linking its tracking page, then delivered without one."""
+    path = progress_tracker_path(shipment)
+    session = _session()
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(200, orders_page(_active_tile(shipment, href=path))),
+        FakeResponse(200, orders_page(_delivered_tile(shipment, days_ago=0))),
+    )
+    _shipment(session, shipment, tracked=False)
+    session.add(
+        "GET",
+        "progress-tracker/package?",
+        FakeResponse(
+            200,
+            track_page(milestone="OUT_FOR_DELIVERY", short_status="OUT_FOR_DELIVERY"),
+        ),
+        FakeResponse(200, track_page(events=DELIVERED_EVENTS)),
+    )
+    return session
+
+
+async def test_a_delivered_line_without_a_tracking_link_keeps_its_tracking_id():
+    session = _turning_delivered("SHIPde00001")
+    client = _client(session)
+
+    (first,) = await client.async_get_parcels()
+    (second,) = await client.async_get_parcels()
+
+    assert normalize_parcel(first)["barcode"] == ACTIVE_CODE
+    assert normalize_parcel(second)["barcode"] == ACTIVE_CODE
+    assert normalize_parcel(second)["status"] == "delivered"
+    assert second["barcode_source"] == "tracking_id"
+    assert second["track_path"] == progress_tracker_path("SHIPde00001")
+
+
+async def test_remembered_tracking_pages_survive_a_restart_and_a_silent_empty_list():
+    session = _turning_delivered("SHIPde00001")
+    before = _client(session)
+    await before.async_get_parcels()
+    stored = before.track_paths
+    assert stored == [
+        [ORDER_ID, "SHIPde00001", "1", progress_tracker_path("SHIPde00001")]
+    ]
+
+    after = _client(session)
+    after.restore_track_paths([*stored, ["not", "a", "path"], [1, 2, 3, 4], "junk"])
+    assert after.track_paths == stored
+    session.add("GET", "/your-orders/orders", FakeResponse(200, orders_page()))
+    session.add("GET", "/gp/css/order-history", FakeResponse(200, orders_page()))
+    assert await after.async_get_parcels() == []
+    assert after.track_paths == stored
+
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(200, orders_page(_delivered_tile("SHIPde00001", days_ago=0))),
+    )
+    (record,) = await after.async_get_parcels()
+    assert normalize_parcel(record)["barcode"] == ACTIVE_CODE
+
+
+async def test_a_remembered_tracking_page_is_forgotten_with_its_shipment():
+    session = _turning_delivered("SHIPde00001")
+    client = _client(session)
+    await client.async_get_parcels()
+
+    session.add(
+        "GET",
+        "/your-orders/orders",
+        FakeResponse(200, orders_page(_delivered_tile("SHIPdone001"))),
+    )
+    _shipment(session, "SHIPdone001", events=DELIVERED_EVENTS)
+    await client.async_get_parcels()
+
+    assert [path[1] for path in client.track_paths] == ["SHIPdone001"]
+
+
 async def test_shipments_that_left_the_orders_page_are_forgotten():
     session = _session(_delivered_tile("SHIPdone001"))
     _shipment(session, "SHIPdone001", events=DELIVERED_EVENTS)

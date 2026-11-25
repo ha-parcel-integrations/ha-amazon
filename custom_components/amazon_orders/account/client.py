@@ -118,6 +118,9 @@ class AmazonClient:
         # Business: a delivered card drops its shipment and tracking link, so
         # the in-flight card's are kept to carry the parcel over.
         self._business_lines: dict[tuple[str, str], tuple[str, str]] = {}
+        # A delivered line's page may link no tracking page (amazon.de), so the
+        # in-flight one is kept: without it the parcel loses its tracking id.
+        self._track_paths: dict[_ShipmentKey, str] = {}
         # Kept out of the records: the link opens without signing in, and a
         # record is what reaches attributes and event payloads.
         self._photo_urls: dict[tuple[Any, Any, Any], str] = {}
@@ -312,6 +315,21 @@ class AmazonClient:
             if isinstance(line, list) and len(line) == 4
         }
 
+    @property
+    def track_paths(self) -> list[list[str]]:
+        """The remembered tracking pages, in a shape that can be stored."""
+        return [[*key, path] for key, path in self._track_paths.items()]
+
+    def restore_track_paths(self, paths: list[list[str]]) -> None:
+        """Take back the tracking pages remembered before a restart."""
+        self._track_paths = {
+            (path[0], path[1], path[2]): path[3]
+            for path in paths
+            if isinstance(path, list)
+            and len(path) == 4
+            and all(isinstance(part, str) for part in path)
+        }
+
     def _carry_business_line(self, tile: OrderTile) -> OrderTile:
         """Keep a Business parcel's shipment once its card reads as delivered."""
         line = (tile.order_id, tile.title)
@@ -339,9 +357,13 @@ class AmazonClient:
             track_path = lead_path
             track_page = await self._fetch_page(lead_path)
         else:
-            track_path = parse_track_link(await self._fetch_page(lead_path))
+            track_path = parse_track_link(
+                await self._fetch_page(lead_path)
+            ) or self._track_paths.get(tiles[0].key)
             if track_path:
                 track_page = await self._fetch_page(track_path)
+        if track_path:
+            self._track_paths[tiles[0].key] = track_path
         track = None
         if track_page is not None:
             track = parse_track_page(
@@ -464,6 +486,10 @@ class AmazonClient:
         self._last = {k: v for k, v in self._last.items() if k in groups}
         self._undated = {k: v for k, v in self._undated.items() if k in groups}
         self._throttled = {k: v for k, v in self._throttled.items() if k in groups}
+        if groups:  # An empty list may be a bad page, not an empty account.
+            self._track_paths = {
+                k: v for k, v in self._track_paths.items() if k in groups
+            }
 
         cutoff = today - timedelta(days=DELIVERED_LOOKBACK_DAYS)
         work: list[_ShipmentKey] = []
