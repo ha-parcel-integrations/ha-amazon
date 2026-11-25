@@ -515,6 +515,29 @@ async def test_business_lines_are_stored_and_restored(hass, hass_storage):
     client.restore_business_lines.assert_called_once()
 
 
+async def test_tracking_pages_are_stored_and_restored(hass, hass_storage):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    key = f"{DOMAIN}.business_lines.{entry.entry_id}"
+    old = [["000-1", "SHIP1", "1", "/progress-tracker/package?x"]]
+    hass_storage[key] = {"version": 1, "key": key, "data": {"track_paths": old}}
+    client = fake_client()
+    client.async_get_parcels.return_value = []
+    client.track_paths = old
+    coordinator = AmazonCoordinator(hass, client, entry)
+
+    await coordinator._async_update_data()
+    client.restore_business_lines.assert_called_once_with([])
+    client.restore_track_paths.assert_called_once_with(old)
+
+    client.track_paths = [["000-2", "SHIP2", "1", "/progress-tracker/package?y"]]
+    await coordinator._async_update_data()
+    await coordinator._async_update_data()
+    await hass.async_block_till_done()
+    assert hass_storage[key]["data"] == {"lines": [], "track_paths": client.track_paths}
+    client.restore_track_paths.assert_called_once()
+
+
 # ---------------------------------------------------------------------------
 # contents overlay
 # ---------------------------------------------------------------------------

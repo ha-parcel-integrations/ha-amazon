@@ -187,10 +187,12 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
         self._client = client
         self.handoff = HandOff(hass, entry.entry_id, entry.options)
         self.contents_store = ContentsStore(hass, entry.entry_id)
-        # A delivered Business card names no shipment; what the client learnt
-        # in flight must outlive a restart or the parcel changes barcode.
+        # A delivered Business card names no shipment, and a delivered line may
+        # link no tracking page; what the client learnt in flight must outlive
+        # a restart or the parcel changes barcode. Both share one store.
         self._business_store = business_lines_store(hass, entry.entry_id)
         self._business_saved: list[list[str]] | None = None
+        self._track_paths_saved: list[list[str]] = []
         # Every parcel of the last poll, handed-off ones included, so the
         # hand-off can run again once Home Assistant has started.
         self._all_parcels: list[dict] = []
@@ -363,6 +365,8 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
             stored = await self._business_store.async_load() or {}
             self._business_saved = list(stored.get("lines", []))
             self._client.restore_business_lines(self._business_saved)
+            self._track_paths_saved = list(stored.get("track_paths", []))
+            self._client.restore_track_paths(self._track_paths_saved)
         try:
             raws = await self._client.async_get_parcels()
         except AmazonAuthError as err:
@@ -378,9 +382,14 @@ class AmazonCoordinator(DataUpdateCoordinator[list[dict]]):
                 f"Amazon rate-limited (HTTP {err.status_code})", retry_after=retry_after
             ) from err
         self._consecutive_429 = 0
-        if (lines := self._client.business_lines) != self._business_saved:
-            await self._business_store.async_save({"lines": lines})
+        lines = self._client.business_lines
+        paths = self._client.track_paths
+        if lines != self._business_saved or paths != self._track_paths_saved:
+            await self._business_store.async_save(
+                {"lines": lines, "track_paths": paths}
+            )
             self._business_saved = lines
+            self._track_paths_saved = paths
 
         include_history = self._include_history
         self._all_parcels = [
