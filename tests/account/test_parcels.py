@@ -590,6 +590,8 @@ def test_generic_carrier_header_is_not_reported_as_unreadable(caplog):
     raw["carrier_code"] = None
     raw["carrier_header"] = "Delivery info"
     assert normalize_parcel(raw)["carrier"] == "Amazon"
+    raw["carrier_header"] = "Lieferinformationen"  # amazon.de, #53
+    assert normalize_parcel(raw)["carrier"] == "Amazon"
     assert "could not read" not in caplog.text
 
 
