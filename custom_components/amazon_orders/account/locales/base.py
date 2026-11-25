@@ -60,5 +60,6 @@ class Locale:
     # one no arrival or window-day pattern reads warns once.
     arrival_leads: tuple[str, ...] = ()
     # Regular expressions (case-insensitive, matching the start of a timed
-    # promise) whose ``rel`` group names the window's day.
+    # promise) whose ``rel`` group (today/tomorrow) or ``weekday`` group (the
+    # next such day, today included) names the window's day.
     window_day: tuple[str, ...] = ()

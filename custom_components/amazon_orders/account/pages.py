@@ -628,10 +628,16 @@ def arrival_days(text: str | None, today: date) -> tuple[date, date] | None:
 
 
 def _named_day(text: str, today: date) -> date | None:
-    """Return the day a timed text names with its own today/tomorrow word."""
+    """Return the day a timed text names: today, tomorrow, or a weekday."""
     match = next((m for p in WINDOW_DAY_PATTERNS if (m := p.match(text))), None)
     if match is None:
         return None
+    groups = match.groupdict()
+    if groups.get("weekday"):
+        number = UPCOMING_WEEKDAYS.get(groups["weekday"].lower())
+        if number is None:
+            return None
+        return today + timedelta(days=(number - today.weekday()) % 7)
     return today + timedelta(days=match["rel"].lower() in TOMORROW_WORDS)
 
 

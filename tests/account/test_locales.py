@@ -185,4 +185,4 @@ def test_a_language_file_is_well_formed(code):
     for pattern in locale.arrival + locale.window_day:
         assert set(re.compile(pattern).groupindex) <= groups
     for pattern in locale.window_day:
-        assert "rel" in re.compile(pattern).groupindex
+        assert {"rel", "weekday"} & set(re.compile(pattern).groupindex)

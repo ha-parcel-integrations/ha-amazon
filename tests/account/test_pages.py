@@ -987,6 +987,15 @@ def test_a_window_without_its_countdown_is_reported_once(countdown, caplog):
             "Arriving tomorrow 11:00 AM - 1:15 PM",
             ("2026-10-25T11:00:00+01:00", "2026-10-25T13:15:00+01:00"),
         ),
+        # amazon.nl, a rescheduled delivery: the next such weekday.
+        (
+            "Bezorging nu op vrijdag tussen 17h - 19h",
+            ("2026-10-30T17:00:00+01:00", "2026-10-30T19:00:00+01:00"),
+        ),
+        (
+            "Bezorging op zaterdag tussen 8h - 12h",
+            ("2026-10-24T08:00:00+02:00", "2026-10-24T12:00:00+02:00"),
+        ),
     ],
 )
 def test_a_window_without_its_countdown_takes_the_day_it_names(message, expected):

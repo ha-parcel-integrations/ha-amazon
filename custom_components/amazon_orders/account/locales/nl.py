@@ -49,14 +49,32 @@ LOCALE = Locale(
     },
     today=("vandaag",),
     yesterday=("gisteren",),
+    upcoming_weekdays=(
+        "maandag",
+        "dinsdag",
+        "woensdag",
+        "donderdag",
+        "vrijdag",
+        "zaterdag",
+        "zondag",
+    ),
     delivery_by=("Bezorging door", "Levering door"),
     events={
         "je pakket is aangekomen bij een amazon-faciliteit": ParcelStatus.IN_TRANSIT,
         "je pakket heeft een amazon-faciliteit verlaten": ParcelStatus.IN_TRANSIT,
         "het pakket heeft de verzendingsfaciliteit verlaten": ParcelStatus.IN_TRANSIT,
         "pakket aangekomen bij het laatste bezorgstation": ParcelStatus.IN_TRANSIT,
+        "pakket aangekomen bij transportdienst": ParcelStatus.IN_TRANSIT,
+        "bezorgafspraak gepland": ParcelStatus.IN_TRANSIT,
+        "klant heeft de levering van de zending opnieuw gepland met de vervoerder."
+        " pakket wordt nu geleverd op de afgesproken datum": ParcelStatus.IN_TRANSIT,
         "uit voor levering": ParcelStatus.OUT_FOR_DELIVERY,
         "bezorgd in brievenbus": ParcelStatus.DELIVERED,
     },
     delivered_events=("bezorgd",),
+    window_day=(
+        # "Bezorging nu op vrijdag tussen 17h - 19h": a rescheduled delivery,
+        # sent without a countdown.
+        r"bezorging\s+(?:nu\s+)?op\s+(?P<weekday>[^\W\d_]+)\b",
+    ),
 )

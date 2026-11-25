@@ -64,6 +64,14 @@ from ..payloads import (
         ("Pakket aangekomen bij het laatste bezorgstation", ParcelStatus.IN_TRANSIT),
         ("Uit voor levering", ParcelStatus.OUT_FOR_DELIVERY),
         ("Bezorgd in brievenbus", ParcelStatus.DELIVERED),
+        # nl, an amazon.nl delivery the customer rescheduled with the courier
+        ("Pakket aangekomen bij transportdienst.", ParcelStatus.IN_TRANSIT),
+        ("Bezorgafspraak gepland", ParcelStatus.IN_TRANSIT),
+        (
+            "Klant heeft de levering van de zending opnieuw gepland met de"
+            " vervoerder. Pakket wordt nu geleverd op de afgesproken datum.",
+            ParcelStatus.IN_TRANSIT,
+        ),
         # The one message Amazon ends with a full stop.
         (
             "Het pakket heeft de verzendingsfaciliteit verlaten.",
