@@ -48,6 +48,7 @@ LOCALE = Locale(
         "september": 9,
     },
     today=("vandaag",),
+    tomorrow=("morgen",),
     yesterday=("gisteren",),
     upcoming_weekdays=(
         "maandag",
@@ -76,5 +77,7 @@ LOCALE = Locale(
         # "Bezorging nu op vrijdag tussen 17h - 19h": a rescheduled delivery,
         # sent without a countdown.
         r"bezorging\s+(?:nu\s+)?op\s+(?P<weekday>[^\W\d_]+)\b",
+        # "Bezorging morgen tussen 17h - 19h": amazon.nl sends no countdown.
+        r"bezorging\s+(?P<rel>vandaag|morgen)\b",
     ),
 )

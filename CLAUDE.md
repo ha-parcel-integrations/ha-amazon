@@ -178,7 +178,7 @@ the structured state a response carries over anything meant for display.
   sends no countdown (#24, #37), in English either (#39): a window without
   one takes its day from the message's own `Ankunft`/`Zustellung` +
   `heute`/`morgen`, `[Now] arriving` + `today`/`tomorrow`, or amazon.nl's
-  rescheduled `Bezorging nu op <weekday>` (the next such day, today included), in the page's zone; one naming no such day warns once
+  rescheduled `Bezorging nu op <weekday>` (the next such day, today included) and `Bezorging` + `vandaag`/`morgen`, in the page's zone; one naming no such day warns once
   instead of being dropped silently.
   Fallback: an order line naming only a day (`Arriving tomorrow`, `today`,
   `Arriving Oct 27`, `Oct 27-29`, `Oct 30-Nov 2`, day first as amazon.de
