@@ -427,6 +427,12 @@ def test_enviado_con_amazon_names_amazon_logistics():
     assert info.carrier_code == "Amazon"
 
 
+def test_expedie_avec_amazon_names_amazon_logistics():
+    # #58: the amazon.fr header for a parcel Amazon delivers itself.
+    info = parse_track_page(track_page(carrier_header="Expédié avec Amazon"), TODAY)
+    assert info.carrier_code == "Amazon"
+
+
 def test_intelcom_is_aliased_to_dragonfly():
     info = parse_track_page(track_page(carrier="Intelcom"), TODAY)
     assert info.carrier_code == "DRAGONFLY"

@@ -54,7 +54,7 @@ LOCALE = Locale(
         "dimanche",
     ),
     order_placed=("Commande effectuée le",),
-    delivery_by=("Livraison par",),
+    delivery_by=("Livraison par", "Expédié avec"),
     tracking_id_labels=("Numéro de suivi",),
     unnamed_carrier_headers=("informations sur la livraison",),
     events={
