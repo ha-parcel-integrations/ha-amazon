@@ -1565,3 +1565,11 @@ def test_untrackable_promise_without_a_day_warns_once(caplog):
     assert build_record(COUNTRY, _tiles("Unterwegs"), None, info)["promised_on"] is None
     build_record(COUNTRY, _tiles("Unterwegs"), None, info)
     assert caplog.text.count("Wahrscheinlich bald zugestellt") == 1
+
+
+def test_amazon_com_drops_the_map_key_in_its_own_casing():
+    # #32: amazon.com writes "hereMapsAPIKey".
+    page = track_page().replace("hereMapsApiKey", "hereMapsAPIKey")
+    info = parse_track_page(page, TODAY)
+    assert FAKE_MAPS_KEY not in str(info.state)
+    assert "customerId" in info.state

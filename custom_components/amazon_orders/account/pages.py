@@ -150,7 +150,8 @@ _BUSINESS_FILTERS = {
 
 # A third-party map key, and the live map of a parcel on its way, which holds
 # the delivery address's coordinates: attributes and events would publish them.
-_STATE_DROP = {"hereMapsApiKey", "mapTracking"}
+# Compared in lower case: amazon.com writes "hereMapsAPIKey" (#32).
+_STATE_DROP = {"heremapsapikey", "maptracking"}
 # The live map's callout, seen on amazon.de only, in German and in English.
 _STOPS_RE = re.compile(r"(\d+)\s" + STOPS_AWAY, re.IGNORECASE)
 # "You're the next stop": no stops left before this parcel.
@@ -211,6 +212,10 @@ class TrackInfo:
     delivery_photo_url: str | None = None
     zone: tzinfo | None = None
     stops_away: int | None = None
+
+
+def _drop_private(state: dict[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in state.items() if k.lower() not in _STATE_DROP}
 
 
 def looks_signed_out(page: str) -> bool:
@@ -534,7 +539,7 @@ def _full_page_state(page: str) -> dict[str, Any]:
 
 def _page_state(page: str) -> dict[str, Any]:
     state = _full_page_state(page)
-    return {key: value for key, value in state.items() if key not in _STATE_DROP}
+    return _drop_private(state)
 
 
 def _stops_away(state: dict[str, Any]) -> int | None:
@@ -816,7 +821,7 @@ def parse_track_page(page: str, today: date, zone: tzinfo | None) -> TrackInfo:
     ``zone`` is the page's zone, resolved by the client off the event loop.
     """
     full_state = _full_page_state(page)
-    state = {key: value for key, value in full_state.items() if key not in _STATE_DROP}
+    state = _drop_private(full_state)
     header = _CARRIER_HEADER_RE.search(page)
     carrier_header = header.group(1) if header and header.group(1) else None
     carrier = (

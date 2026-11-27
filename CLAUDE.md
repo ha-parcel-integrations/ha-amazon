@@ -259,7 +259,8 @@ the structured state a response carries over anything meant for display.
 - **`raw` carries the whole shipment record**; privacy is the diagnostics
   redaction's job only. It has exactly one documented exception to the suite's
   "`raw` is never trimmed" rule: `_STATE_DROP` in `account/pages.py` drops the
-  map-provider key Amazon embeds beside the delivery state. It is a
+  map-provider key Amazon embeds beside the delivery state, matched in any
+  case (amazon.com writes `hereMapsAPIKey`, #32). It is a
   third-party credential rather than anything about the parcel, so it is
   dropped where the record is read instead of being carried into every
   parcel's attributes. Add nothing else to that set.
