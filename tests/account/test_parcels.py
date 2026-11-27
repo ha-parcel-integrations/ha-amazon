@@ -66,6 +66,11 @@ from ..payloads import (
         ("Bezorgd in brievenbus", ParcelStatus.DELIVERED),
         # nl, an amazon.nl delivery the customer rescheduled with the courier
         ("Pakket aangekomen bij transportdienst.", ParcelStatus.IN_TRANSIT),
+        # nl, an amazon.com.be parcel handed to the courier
+        (
+            "Het pakket dat wordt verwerkt bij de transportdienst.",
+            ParcelStatus.IN_TRANSIT,
+        ),
         ("Bezorgafspraak gepland", ParcelStatus.IN_TRANSIT),
         (
             "Klant heeft de levering van de zending opnieuw gepland met de"

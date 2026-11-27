@@ -66,6 +66,7 @@ LOCALE = Locale(
         "het pakket heeft de verzendingsfaciliteit verlaten": ParcelStatus.IN_TRANSIT,
         "pakket aangekomen bij het laatste bezorgstation": ParcelStatus.IN_TRANSIT,
         "pakket aangekomen bij transportdienst": ParcelStatus.IN_TRANSIT,
+        "het pakket dat wordt verwerkt bij de transportdienst": ParcelStatus.IN_TRANSIT,
         "bezorgafspraak gepland": ParcelStatus.IN_TRANSIT,
         "klant heeft de levering van de zending opnieuw gepland met de vervoerder."
         " pakket wordt nu geleverd op de afgesproken datum": ParcelStatus.IN_TRANSIT,
