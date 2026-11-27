@@ -24,6 +24,7 @@ from .locales import (
     MONTHS,
     NEXT_STOP,
     ORDER_PLACED,
+    OVERNIGHT_PATTERNS,
     PAST_WEEKDAYS,
     SKIP,
     STATUS_PREFIXES,
@@ -31,6 +32,7 @@ from .locales import (
     TODAY_WORDS,
     TOMORROW_WORDS,
     TRACKING_ID_LABEL,
+    UNDATED_DELIVERED_PATTERNS,
     UNNAMED_CARRIER_HEADERS,
     UPCOMING_WEEKDAYS,
     WINDOW_DAY_PATTERNS,
@@ -489,6 +491,8 @@ def _warn_undated(status_text: str) -> None:
     # A bare "Delivered" carries no date to read; anything longer should.
     if status_text.strip().lower() in STATUS_PREFIXES:
         return
+    if any(p.fullmatch(status_text.strip()) for p in UNDATED_DELIVERED_PATTERNS):
+        return
     masked = _mask(status_text)
     warn_once(
         f"undated-delivery={masked}",
@@ -646,6 +650,25 @@ def _named_day(text: str, today: date) -> date | None:
     return today + timedelta(days=match["rel"].lower() in TOMORROW_WORDS)
 
 
+def _overnight(text: str, read_at: datetime, zone: tzinfo) -> tuple[str, str] | None:
+    """Return an overnight window: the next one whose end is still ahead."""
+    if not any(p.match(text) for p in OVERNIGHT_PATTERNS):
+        return None
+    match = _WINDOW_RE.search(text)
+    start = _parse_time(match.group(1)) if match else None
+    end = _parse_time(match.group(2)) if match else None
+    if start is None or end is None or start == end:
+        return None
+    now = read_at.astimezone(zone)
+    window_to = datetime.combine(now.date(), end, tzinfo=zone)
+    if window_to <= now:
+        window_to += timedelta(days=1)
+    window_from = datetime.combine(window_to.date(), start, tzinfo=zone)
+    if window_from >= window_to:
+        window_from -= timedelta(days=1)
+    return window_from.isoformat(), window_to.isoformat()
+
+
 def _times_on(text: str, day: date, zone: tzinfo) -> tuple[str, str] | None:
     """Return the window a text's time range spans on ``day``, if readable."""
     match = _WINDOW_RE.search(text)
@@ -708,6 +731,10 @@ def _arrival_window(
     text = (text or "").strip()
     today = read_at.astimezone(zone).date()
     days = arrival_days(text, today)
+    if days is None and any(p.match(text) for p in OVERNIGHT_PATTERNS):
+        if track and _promise_message(track.state):
+            return None
+        return _overnight(text, read_at, zone) or _warn_unread_arrival(text)
     if days is None:
         day = _named_day(text, today)
         if day is None:
@@ -865,6 +892,8 @@ def delivery_window(
     if zone is None:
         return None
     if not isinstance(countdown, int) or isinstance(countdown, bool):
+        if message and (overnight := _overnight(message, read_at, zone)):
+            return overnight
         day = _named_day(message, read_at.astimezone(zone).date())
         if match and day is not None and (window := _times_on(message, day, zone)):
             return window

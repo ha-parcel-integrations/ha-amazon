@@ -7,6 +7,12 @@ LOCALE = Locale(
     status_confirmed={
         "delivered": ParcelStatus.DELIVERED,
         "arriving": ParcelStatus.IN_TRANSIT,
+        # #62: a revised estimate, "Now arriving tomorrow" included.
+        "now arriving": ParcelStatus.IN_TRANSIT,
+        # #62: shown minutes before the parcel was delivered.
+        "arriving now": ParcelStatus.OUT_FOR_DELIVERY,
+        # #62: an Amazon Now order on its way; "Delivered in 12 mins" follows.
+        "amazon now delivery": ParcelStatus.IN_TRANSIT,
         "shipped": ParcelStatus.IN_TRANSIT,
         "dispatched": ParcelStatus.IN_TRANSIT,
         "cancelled": SKIP,
@@ -67,7 +73,8 @@ LOCALE = Locale(
         "sunday",
     ),
     order_placed=("Order placed",),
-    delivery_by=("Delivery By",),
+    # #62: amazon.com's headers for Amazon's own fleet.
+    delivery_by=("Delivery By", "Delivery facilitated by", "Shipped with"),
     tracking_id_labels=("Tracking ID", "Tracking-ID", "TrackingID"),
     unnamed_carrier_headers=("delivery info",),
     stops_away=("stop away", "stops away"),
@@ -83,6 +90,8 @@ LOCALE = Locale(
         "delivered to letterbox": ParcelStatus.DELIVERED,
     },
     delivered_events=("delivered",),
+    # #62: an Amazon Now order, delivered minutes after it was placed.
+    undated_delivered=(r"delivered\s+in\s+\d+\s+mins?",),
     arrival=(
         # "Arriving tomorrow", "Arriving Oct 27", "Arriving Oct 27-29",
         # "Arriving Oct 27-Nov 2". A timed "Arriving today 11:00 AM - ..." does
@@ -95,6 +104,8 @@ LOCALE = Locale(
         # "Arriving 20 November - 18 December" (#40).
         r"arriving\s+(?P<d1>\d{1,2})\s+(?P<m1>[a-z]+)\s*[-–]\s*(?P<d2>\d{1,2})"
         r"\s+(?P<m2>[a-z]+)",
+        # "Arriving now" (#62): the driver is about to deliver, so today.
+        r"arriving\s+(?P<rel>now)",
         # "Arriving Wednesday" (#40).
         r"arriving\s+(?P<weekday>[a-z]+)",
     ),
@@ -104,4 +115,7 @@ LOCALE = Locale(
         # no countdown.
         r"(?:now\s+)?arriving\s+(?P<rel>today|tomorrow)\b",
     ),
+    # "Arriving overnight 1 AM – 6 AM" (#62): the coming night, so the next
+    # time the window's end comes round.
+    overnight=(r"arriving\s+overnight\b",),
 )

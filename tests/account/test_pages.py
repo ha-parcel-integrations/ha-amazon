@@ -1573,3 +1573,100 @@ def test_amazon_com_drops_the_map_key_in_its_own_casing():
     info = parse_track_page(page, TODAY)
     assert FAKE_MAPS_KEY not in str(info.state)
     assert "customerId" in info.state
+
+
+@pytest.mark.parametrize(
+    "header", ["Delivery facilitated by Amazon", "Shipped with Amazon"]
+)
+def test_amazon_com_headers_name_amazon_logistics(header, caplog):
+    # #62: amazon.com's headers for a parcel Amazon delivers itself.
+    info = parse_track_page(track_page(carrier_header=header), TODAY)
+    assert info.carrier_code == "Amazon"
+
+
+@pytest.mark.parametrize(
+    ("text", "status", "expected"),
+    [
+        # #62: amazon.com's revised estimate once the van has left.
+        (
+            "Now arriving today 2:15 PM - 4:15 PM",
+            ParcelStatus.IN_TRANSIT,
+            ("2026-11-19T14:15:00+01:00", "2026-11-19T16:15:00+01:00"),
+        ),
+        (
+            "Now arriving today 2 PM - 4 PM",
+            ParcelStatus.IN_TRANSIT,
+            ("2026-11-19T14:00:00+01:00", "2026-11-19T16:00:00+01:00"),
+        ),
+        (
+            "Now arriving tomorrow",
+            ParcelStatus.IN_TRANSIT,
+            ("2026-11-20T00:00:00+01:00", "2026-11-20T23:59:59+01:00"),
+        ),
+        (
+            "Arriving now",
+            ParcelStatus.OUT_FOR_DELIVERY,
+            ("2026-11-19T00:00:00+01:00", "2026-11-19T23:59:59+01:00"),
+        ),
+        # Read at 09:00: this night's window has passed, so it is the next.
+        (
+            "Arriving overnight 1 AM – 6 AM",
+            ParcelStatus.IN_TRANSIT,
+            ("2026-11-20T01:00:00+01:00", "2026-11-20T06:00:00+01:00"),
+        ),
+        (
+            "Arriving overnight 11 PM – 6 AM",
+            ParcelStatus.IN_TRANSIT,
+            ("2026-11-19T23:00:00+01:00", "2026-11-20T06:00:00+01:00"),
+        ),
+        (
+            "Arriving overnight 1 AM – 11 AM",
+            ParcelStatus.IN_TRANSIT,
+            ("2026-11-19T01:00:00+01:00", "2026-11-19T11:00:00+01:00"),
+        ),
+    ],
+)
+def test_amazon_com_arrival_wording(text, status, expected, caplog):
+    parcel = _arrival_record(text)
+    assert parcel["status"] == status
+    assert (parcel["planned_from"], parcel["planned_to"]) == expected
+    assert caplog.text == ""
+
+
+def test_an_unreadable_overnight_line_warns_once(caplog):
+    for _ in range(2):
+        assert _arrival_record("Arriving overnight soon")["planned_from"] is None
+    assert caplog.text.count('"Arriving overnight soon", in wording') == 1
+
+
+def test_an_overnight_line_defers_to_the_tracking_page_promise():
+    track = parse_track_page(
+        track_page(milestone="SHIPPED", timezone="Europe/Berlin"), TODAY
+    )
+    track.state["promise"] = {"promiseMessage": "Arriving overnight 1 AM – 6 AM"}
+    track.state["timeUntilPredictedDeliveryWindowEnd"] = 1_000
+    parcel = _arrival_record("Arriving overnight 1 AM – 6 AM", track)
+    assert parcel["planned_from"] is None
+
+
+def test_an_overnight_promise_needs_no_countdown(caplog):
+    # #62: amazon.com sends none.
+    state = {
+        "timezone": "America/Chicago",
+        "promise": {"promiseMessage": "Arriving overnight 1 AM – 6 AM"},
+    }
+    read_at = datetime(2026, 11, 24, 16, 17, tzinfo=ZoneInfo("America/Chicago"))
+    assert delivery_window(state, read_at) == (
+        "2026-11-25T01:00:00-06:00",
+        "2026-11-25T06:00:00-06:00",
+    )
+    assert caplog.text == ""
+
+
+def test_an_amazon_now_line_is_delivered_without_a_warning(caplog):
+    # #62: "Delivered in 12 mins" names no day; the day it is seen stands in.
+    (parsed,) = parse_order_tiles(
+        orders_page(tile(DELIVERED_SHIPMENT, "Delivered in 12 mins", None)), TODAY
+    )
+    assert parsed.delivered
+    assert "gave no date we could read" not in caplog.text

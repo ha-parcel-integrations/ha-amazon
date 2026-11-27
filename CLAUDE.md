@@ -139,7 +139,10 @@ the structured state a response carries over anything meant for display.
   seen on amazon.fr, the German delivered wording a reporter confirmed on
   amazon.de, and amazon.es's `llega`/`llegará`, which are `in_transit` like
   `arriving` because they show before the parcel leaves the depot, and
-  `entregado`, #48) and a separate
+  `entregado`, #48; amazon.com's `now arriving`, a revised estimate that also
+  reads `tomorrow`, `arriving now`, seen minutes before delivery and so
+  `out_for_delivery`, and `amazon now delivery`, an Amazon Now order on its
+  way, #62) and a separate
   plausible table (the other languages and the unseen wording): resolving through a plausible entry logs a
   one-shot confirmation request, and an entry moves to confirmed only once a real
   line shows it. Milestones and short statuses are mapped only once a
@@ -198,6 +201,12 @@ the structured state a response carries over anything meant for display.
   tracking page carries no promise of its own, so a window the countdown
   check dropped never returns through the order line; otherwise, or when
   the times are unreadable, it gives the day its `window_day` word names.
+  An overnight window (`Arriving overnight 1 AM – 6 AM`, amazon.com, #62,
+  in the order line and the promise alike, with no countdown) is the next
+  one whose end is still ahead of the read, so a window read at 07:00 is the
+  coming night's; it starts the evening before when it spans midnight. The
+  order line's overnight times follow the same promise rule as any timed
+  line. `Arriving now` (#62) is today.
   An order line starting with a locale's `arrival_leads` (English
   `arriving`, Spanish `llega`, which also catches `llegará`) that gives no
   day warns once, masked. Only the wording a
@@ -211,7 +220,9 @@ the structured state a response carries over anything meant for display.
   (today, yesterday, a French weekday within the past week). A day with no
   delivered event is midnight in Home Assistant's zone, never UTC. A delivered text
   longer than the bare status word that gives no day warns once, so the
-  wording can be added.
+  wording can be added, except a locale's `undated_delivered` shape
+  (amazon.com's Amazon Now `Delivered in 12 mins`, #62), which names no day
+  by design: the day it is first seen stands in.
 - **An order line is split on its own "order placed" anchor** (English,
   French and German), else by looking for the first comma-separated segment
   that opens with a known status wording. amazon.de's
@@ -345,7 +356,8 @@ which exposes more (delivery window, pickup point, full history).
   and only after `EVENT_HOMEASSISTANT_STARTED`: during startup the carrier may
   not have registered its service yet, which would read as "not installed".
 - **Never handed off:** `carrier: "Amazon"` (Amazon Logistics; amazon.es's
-  header `Enviado con Amazon` reads as it, #48) and any parcel
+  header `Enviado con Amazon` reads as it, #48, as do amazon.com's
+  `Delivery facilitated by Amazon` and `Shipped with Amazon`, #62) and any parcel
   without a real tracking id (`raw["barcode_source"]` stand-in).
 - **The shop always falls back to showing the parcel itself.** A parcel only
   disappears from this integration once the carrier accepted it. Nothing is

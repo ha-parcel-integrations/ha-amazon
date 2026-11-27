@@ -52,9 +52,12 @@ class Locale:
     # A timeline message starting with one of these is a delivery.
     delivered_events: tuple[str, ...] = ()
     # Regular expressions (case-insensitive, matching the whole order line)
-    # for the day a parcel arrives. Named groups: ``rel`` (a today/tomorrow
-    # word), ``weekday``, or ``d1``/``m1`` with optional ``d2``/``m2``. The
-    # first pattern that matches decides.
+    # for a delivered line that by design names no day.
+    undated_delivered: tuple[str, ...] = ()
+    # Regular expressions (case-insensitive, matching the whole order line)
+    # for the day a parcel arrives. Named groups: ``rel`` (a tomorrow word,
+    # else today), ``weekday``, or ``d1``/``m1`` with optional ``d2``/``m2``.
+    # The first pattern that matches decides.
     arrival: tuple[str, ...] = ()
     # An order line starting with one of these (lower case) names its arrival;
     # one no arrival or window-day pattern reads warns once.
@@ -63,3 +66,7 @@ class Locale:
     # promise) whose ``rel`` group (today/tomorrow) or ``weekday`` group (the
     # next such day, today included) names the window's day.
     window_day: tuple[str, ...] = ()
+    # Regular expressions (case-insensitive, matching the start of a timed
+    # promise) for a window in the coming night: its times are read, and its
+    # day is the next one on which the window's end is still ahead.
+    overnight: tuple[str, ...] = ()

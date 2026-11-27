@@ -166,11 +166,12 @@ parcel out for delivery, for example "14:00 - 16:30"; amazon.de writes
 "Ankunft heute 7h – 13h", or "Now arriving today 3 pm - 6 pm" in English), it fills `planned_from` /
 `planned_to` and the delivery calendar. When the order line only names a day
 ("Arriving tomorrow", "Arriving Oct 27-29", "Arriving 20 November",
-"Arriving Wednesday", "Zustellung: Freitag", "Llega hoy", "Llega mañana", "Llegará el 27 de noviembre"), the window is that whole day, or
+"Arriving Wednesday", "Arriving now", "Zustellung: Freitag", "Llega hoy", "Llega mañana", "Llegará el 27 de noviembre"), the window is that whole day, or
 the whole span of days, shown in the calendar as an all-day event, until a
 timed window replaces it. An order line with
-times ("Arriving today 6 pm – 10 pm") gives that window when the parcel has no
-tracking page of its own yet.
+times ("Arriving today 6 pm – 10 pm", "Now arriving today 2 PM - 4 PM") gives
+that window when the parcel has no tracking page of its own yet. An overnight
+window ("Arriving overnight 1 AM – 6 AM") is placed in the coming night.
 Without either, a parcel that is out for
 delivery is treated as "hot" and polled every 15 minutes until it is delivered.
 

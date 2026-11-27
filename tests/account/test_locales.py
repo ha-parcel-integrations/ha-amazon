@@ -43,6 +43,11 @@ from custom_components.amazon_orders.const import ParcelStatus
         ("Llega mañana", ParcelStatus.IN_TRANSIT),
         ("Llegará el 27 de noviembre", ParcelStatus.IN_TRANSIT),
         ("Entregado el 21 de noviembre", ParcelStatus.DELIVERED),
+        ("Now arriving today 2 PM - 4 PM", ParcelStatus.IN_TRANSIT),
+        ("Arriving now", ParcelStatus.OUT_FOR_DELIVERY),
+        ("Arriving overnight 1 AM – 6 AM", ParcelStatus.IN_TRANSIT),
+        ("Amazon Now Delivery", ParcelStatus.IN_TRANSIT),
+        ("Delivered in 12 mins", ParcelStatus.DELIVERED),
     ],
 )
 def test_confirmed_wording(text, kind):
