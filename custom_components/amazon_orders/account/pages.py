@@ -770,7 +770,9 @@ def _arrival_window(
     if days is None and any(p.match(text) for p in OVERNIGHT_PATTERNS):
         if track and _promise_message(track.state):
             return None
-        return _overnight(text, read_at, zone) or _warn_unread_arrival(text)
+        if (overnight := _overnight(text, read_at, zone)) is None:
+            _warn_unread_arrival(text)
+        return overnight
     if days is None:
         day = _named_day(text, today)
         if day is None:
