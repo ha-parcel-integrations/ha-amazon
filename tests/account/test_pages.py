@@ -265,11 +265,11 @@ def test_day_month(text, reference, forward, expected):
 
 def test_track_link_is_found_and_unescaped():
     path = track_path(DELIVERED_SHIPMENT)
-    assert parse_track_link(pop_page(path)) == path
+    assert parse_track_link(pop_page(path), DELIVERED_SHIPMENT) == path
 
 
 def test_track_link_missing_is_none():
-    assert parse_track_link(pop_page(None)) is None
+    assert parse_track_link(pop_page(None), DELIVERED_SHIPMENT) is None
 
 
 def test_signed_out_page_is_recognised():
@@ -826,7 +826,7 @@ def test_delivered_pop_page_picks_ship_track_over_the_feedback_survey():
         f'<html><body><a href="{FEEDBACK_PATH}">Comment s&#39;est passée la'
         f' livraison ?</a><a href="{path}">Suivre votre colis</a></body></html>'
     )
-    assert parse_track_link(page) == path
+    assert parse_track_link(page, DELIVERED_SHIPMENT) == path
 
 
 def test_french_tracking_page_reads_carrier_tracking_id_and_timeline(caplog):
@@ -1689,3 +1689,30 @@ def test_a_delivered_line_keeps_its_time(text, expected, caplog):
     record = build_record("amazon.com", [parsed], None, None)
     assert record["delivered_time"] == expected
     assert "gave no date we could read" not in caplog.text
+
+
+def _multi_shipment_pop(*paths):
+    links = "".join(f'<a href="{p}">Track package</a>' for p in paths)
+    return f"<html><body>{links}</body></html>"
+
+
+def test_an_order_with_several_shipments_links_each_its_own_page():
+    # #61: amazon.com; the first link used to go to every line of the order.
+    first, second = track_path("SHIPfirst01"), track_path("SHIPsecond1")
+    page = _multi_shipment_pop(first, second)
+    assert parse_track_link(page, "SHIPsecond1") == second
+    assert parse_track_link(page, "SHIPfirst01") == first
+    assert parse_track_link(page, "SHIPother01") is None
+
+
+def test_a_line_not_yet_dispatched_never_takes_a_shipped_line_s_page():
+    page = _multi_shipment_pop(track_path("SHIPfirst01"))
+    assert parse_track_link(page, "") is None
+
+
+def test_a_link_naming_no_shipment_is_taken_only_without_a_match():
+    bare = "/-/en/gp/your-account/ship-track?itemId=item0001&orderId=" + ORDER_ID
+    own = track_path("SHIPfirst01")
+    assert parse_track_link(_multi_shipment_pop(bare, own), "SHIPfirst01") == own
+    assert parse_track_link(_multi_shipment_pop(bare), "SHIPfirst01") == bare
+    assert parse_track_link(_multi_shipment_pop(bare), "") == bare

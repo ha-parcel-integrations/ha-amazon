@@ -1339,3 +1339,17 @@ async def test_delivered_business_cards_do_not_use_up_the_page_loads():
     assert statuses == ["delivered"] * 11 + ["in_transit"] * 2
     page_loads = [url for url in _gets(session) if "progress-tracker" in url]
     assert len(page_loads) == 2 <= client_module.MAX_TRACK_LOADS
+
+
+async def test_a_remembered_tracking_page_of_another_shipment_is_not_used():
+    # #61: a path stored before the fix may be the order's first shipment's.
+    session = _session(_delivered_tile("SHIPsecond1", days_ago=0))
+    _shipment(session, "SHIPsecond1", tracked=False)
+    client = _client(session)
+    client.restore_track_paths(
+        [[ORDER_ID, "SHIPsecond1", "1", track_path("SHIPfirst01")]]
+    )
+    (record,) = await client.async_get_parcels()
+    assert record["track_path"] is None
+    assert record["barcode_source"] == "shipment_key"
+    assert not any("SHIPfirst01" in url for url in _gets(session))

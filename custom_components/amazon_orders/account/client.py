@@ -40,6 +40,7 @@ from .pages import (
     DISABLE_CSD_QUERY,
     BusinessRequest,
     OrderTile,
+    belongs_to_shipment,
     build_record,
     business_card_count,
     business_cards_found,
@@ -357,9 +358,15 @@ class AmazonClient:
             track_path = lead_path
             track_page = await self._fetch_page(lead_path)
         else:
-            track_path = parse_track_link(
-                await self._fetch_page(lead_path)
-            ) or self._track_paths.get(tiles[0].key)
+            shipment_id = tiles[0].shipment_id
+            remembered = self._track_paths.get(tiles[0].key)
+            # A path remembered before #61 may be another shipment's.
+            if remembered and not belongs_to_shipment(remembered, shipment_id):
+                remembered = None
+            track_path = (
+                parse_track_link(await self._fetch_page(lead_path), shipment_id)
+                or remembered
+            )
             if track_path:
                 track_page = await self._fetch_page(track_path)
         if track_path:

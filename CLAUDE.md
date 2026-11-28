@@ -122,6 +122,14 @@ the structured state a response carries over anything meant for display.
   Two shipments that come back with the same tracking id are one parcel
   (#54, amazon.de): the first listed keeps its record and gains the other's
   items and line ids, so one code never yields two entities.
+  An order line's page of an order with several shipments links each one's
+  tracking page (#61, amazon.com): the link whose `shipmentId` is the line's
+  own wins, a link naming no shipment is taken only when none does, and a
+  line not yet dispatched never takes a link naming a shipment. Taking the
+  first link gave every line of the order the first shipment's tracking id,
+  which the merge above then folded into one parcel. A remembered tracking
+  page that names another shipment is ignored the same way, since paths
+  stored before the fix may be wrong.
   A delivered line's page may link no tracking page (amazon.de), so the client
   remembers each shipment's tracking page from its in-flight reads (keyed on
   order, shipment and package) and follows it once delivered; without it the

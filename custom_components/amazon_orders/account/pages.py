@@ -536,10 +536,34 @@ def is_track_page_path(path: str) -> bool:
     return bool(_TRACK_PAGE_PATH_RE.search(urlparse(path).path))
 
 
-def parse_track_link(page: str) -> str | None:
-    """Return the ship-track path from an order-line page, if it has one."""
-    match = _TRACK_LINK_RE.search(page)
-    return html.unescape(match.group(1)) if match else None
+def parse_track_link(page: str, shipment_id: str) -> str | None:
+    """Return the ship-track path of this shipment from an order-line page.
+
+    The page of an order with several shipments links each one's tracking
+    page; taking the first gave every line the first shipment's tracking id
+    (#61). A link naming its shipment wins; one naming none is taken only
+    when no link names this shipment.
+    """
+    paths = [html.unescape(m.group(1)) for m in _TRACK_LINK_RE.finditer(page)]
+    return next(
+        (p for p in paths if shipment_id and _link_shipment(p) == shipment_id),
+        None,
+    ) or next((p for p in paths if belongs_to_shipment(p, shipment_id)), None)
+
+
+def _link_shipment(path: str) -> str:
+    query = {k.lower(): v for k, v in parse_qs(urlparse(path).query).items()}
+    return (query.get("shipmentid") or [""])[0]
+
+
+def belongs_to_shipment(path: str, shipment_id: str) -> bool:
+    """Whether a tracking link can be this shipment's.
+
+    A link naming another shipment never is. A line not yet dispatched has no
+    shipment of its own, so a link naming any shipment is someone else's.
+    """
+    linked = _link_shipment(path)
+    return not linked or linked == shipment_id
 
 
 def _full_page_state(page: str) -> dict[str, Any]:
