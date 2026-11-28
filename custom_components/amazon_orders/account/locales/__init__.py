@@ -94,6 +94,9 @@ ARRIVAL_LEADS: tuple[str, ...] = tuple(
 WINDOW_DAY_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE) for loc in _ALL for pattern in loc.window_day
 )
+DELIVERED_TIME_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(pattern, re.IGNORECASE) for loc in _ALL for pattern in loc.delivered_time
+)
 UNDATED_DELIVERED_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
     re.compile(pattern, re.IGNORECASE)
     for loc in _ALL

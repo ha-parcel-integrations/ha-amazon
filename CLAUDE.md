@@ -218,7 +218,9 @@ the structured state a response carries over anything meant for display.
   ("Arriving tomorrow", seen 2026-10-25), `secondaryPromiseIdentifier` is `NONE`.
 - **Delivered day** from the order line's date, else from a relative word
   (today, yesterday, a French weekday within the past week). A day with no
-  delivered event is midnight in Home Assistant's zone, never UTC. A delivered text
+  delivered event is midnight in Home Assistant's zone, never UTC, unless the
+  line names its time (`Delivered on November 25 at 9:02 PM`, amazon.com, #62:
+  `raw["delivered_time"]`, read in the same zone). A delivered text
   longer than the bare status word that gives no day warns once, so the
   wording can be added, except a locale's `undated_delivered` shape
   (amazon.com's Amazon Now `Delivered in 12 mins`, #62), which names no day

@@ -1670,3 +1670,22 @@ def test_an_amazon_now_line_is_delivered_without_a_warning(caplog):
     )
     assert parsed.delivered
     assert "gave no date we could read" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        # #62: amazon.com.
+        ("Delivered on November 25 at 9:02 PM", "21:02"),
+        ("Delivered November 25", None),
+    ],
+)
+def test_a_delivered_line_keeps_its_time(text, expected, caplog):
+    (parsed,) = parse_order_tiles(
+        orders_page(tile(DELIVERED_SHIPMENT, text, None, placed="November 20, 2026")),
+        date(2026, 11, 27),
+    )
+    assert parsed.delivered_on == date(2026, 11, 25)
+    record = build_record("amazon.com", [parsed], None, None)
+    assert record["delivered_time"] == expected
+    assert "gave no date we could read" not in caplog.text

@@ -90,6 +90,8 @@ LOCALE = Locale(
         "delivered to letterbox": ParcelStatus.DELIVERED,
     },
     delivered_events=("delivered",),
+    # "Delivered on November 25 at 9:02 PM" (amazon.com, #62).
+    delivered_time=(r"\bat\s+(?P<time>\d{1,2}:\d{2}\s*[ap]m)\b",),
     # #62: an Amazon Now order, delivered minutes after it was placed.
     undated_delivered=(r"delivered\s+in\s+\d+\s+mins?",),
     arrival=(

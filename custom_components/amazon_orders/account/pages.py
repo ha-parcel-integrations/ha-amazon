@@ -20,6 +20,7 @@ from ..const import ParcelStatus
 from .locales import (
     ARRIVAL_LEADS,
     ARRIVAL_PATTERNS,
+    DELIVERED_TIME_PATTERNS,
     DELIVERY_BY,
     MONTHS,
     NEXT_STOP,
@@ -175,6 +176,7 @@ class OrderTile:
     placed_on: date | None
     delivered_on: date | None
     position: int = 0
+    delivered_time: time | None = None
     # False for a line whose link leads to no tracking (a Business order page).
     follow: bool = True
 
@@ -346,6 +348,7 @@ def parse_order_tiles(page: str, today: date) -> list[OrderTile]:
                 status_note=note or None,
                 placed_on=placed_on,
                 delivered_on=delivered_on,
+                delivered_time=_delivered_time(status_text) if delivered_on else None,
                 position=position,
             )
         )
@@ -474,6 +477,7 @@ def parse_business_cards(fragment: str, today: date) -> list[OrderTile]:
                 status_note=_text(note.group(1)) if note else None,
                 placed_on=None,
                 delivered_on=delivered_on,
+                delivered_time=_delivered_time(status_text) if delivered_on else None,
                 position=position,
                 follow=is_track_page_path(href),
             )
@@ -484,6 +488,14 @@ def parse_business_cards(fragment: str, today: date) -> list[OrderTile]:
 def _mask(text: str) -> str:
     """Hide digits so a moving date cannot make a warning repeat."""
     return re.sub(r"\d+", "#", text)
+
+
+def _delivered_time(status_text: str) -> time | None:
+    """Return the time of day a delivered line names, if any."""
+    for pattern in DELIVERED_TIME_PATTERNS:
+        if match := pattern.search(status_text):
+            return _parse_time(match["time"])
+    return None
 
 
 def _warn_undated(status_text: str) -> None:
@@ -986,6 +998,9 @@ def build_record(
         "order_status": lead.status_text or None,
         "order_status_note": lead.status_note,
         "delivered_on": lead.delivered_on.isoformat() if lead.delivered_on else None,
+        "delivered_time": lead.delivered_time.isoformat("minutes")
+        if lead.delivered_time
+        else None,
         "milestone": progress.get("lastReachedMilestone") if progress else None,
         "delivery_window": list(window) if window else None,
         "promised_on": promised_on.isoformat() if promised_on else None,

@@ -546,6 +546,18 @@ async def test_delivered_without_events_uses_the_order_line_day(hass):
     assert normalize_parcel(raw)["delivered_at"] is None
 
 
+async def test_delivered_without_events_uses_the_order_line_time(hass):
+    # #62: amazon.com's "Delivered on November 25 at 9:02 PM".
+    await hass.config.async_set_time_zone("America/Chicago")
+    raw = untracked_record()
+    raw["order_status"] = "Delivered on November 25 at 9:02 PM"
+    raw["delivered_on"] = "2026-11-25"
+    raw["delivered_time"] = "21:02"
+    assert normalize_parcel(raw)["delivered_at"] == "2026-11-25T21:02:00-06:00"
+    raw["delivered_time"] = "garbage"
+    assert normalize_parcel(raw)["delivered_at"] == "2026-11-25T00:00:00-06:00"
+
+
 async def test_a_parcel_delivered_today_by_its_card_stays_in_the_last_day(hass):
     await hass.config.async_set_time_zone("Europe/Paris")
     raw = untracked_record()

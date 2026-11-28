@@ -51,6 +51,9 @@ class Locale:
     events: dict[str, ParcelStatus] = field(default_factory=dict)
     # A timeline message starting with one of these is a delivery.
     delivered_events: tuple[str, ...] = ()
+    # Regular expressions (case-insensitive, searched in a delivered line)
+    # whose ``time`` group is the time of day it was delivered.
+    delivered_time: tuple[str, ...] = ()
     # Regular expressions (case-insensitive, matching the whole order line)
     # for a delivered line that by design names no day.
     undated_delivered: tuple[str, ...] = ()

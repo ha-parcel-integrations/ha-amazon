@@ -346,8 +346,12 @@ def _delivered_at(raw: dict) -> str | None:
         day = assumed_delivered_on(raw)
     if day is None:
         return None
-    # A bare day is the user's day: midnight in Home Assistant's zone, not UTC.
-    return dt_util.start_of_local_day(day).isoformat()
+    # The order line's day and time are the user's: Home Assistant's zone, not UTC.
+    try:
+        at = time.fromisoformat(str(raw.get("delivered_time")))
+    except ValueError:
+        return dt_util.start_of_local_day(day).isoformat()
+    return datetime.combine(day, at, tzinfo=dt_util.get_default_time_zone()).isoformat()
 
 
 def _raw_status(raw: dict) -> str | None:
